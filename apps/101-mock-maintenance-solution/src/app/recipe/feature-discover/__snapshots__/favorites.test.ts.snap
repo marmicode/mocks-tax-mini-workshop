@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Favorites > disables add when the store says the recipe cannot be added 1`] = `
+[
+  [
+    {
+      "courses": [],
+      "keywords": "",
+      "maxIngredientCount": null,
+      "maxStepCount": null,
+    },
+  ],
+]
+`;

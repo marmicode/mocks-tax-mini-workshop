@@ -1,0 +1,13 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SurpriseMe > picks a random recipe among all recipes 1`] = `
+[
+  [
+    {
+      "keywords": "",
+      "maxIngredientCount": null,
+      "maxStepCount": null,
+    },
+  ],
+]
+`;

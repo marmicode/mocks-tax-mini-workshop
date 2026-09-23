@@ -1,0 +1,13 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RecipeCompare > tells when recipes share no ingredients 1`] = `
+[
+  [
+    {
+      "keywords": "",
+      "maxIngredientCount": null,
+      "maxStepCount": null,
+    },
+  ],
+]
+`;

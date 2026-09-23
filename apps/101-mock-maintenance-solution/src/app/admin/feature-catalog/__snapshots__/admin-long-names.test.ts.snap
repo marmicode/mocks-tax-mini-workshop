@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AdminLongNames > applies a custom max length without searching again 1`] = `
+[
+  [
+    {
+      "courses": [],
+      "keywords": "",
+      "maxIngredientCount": null,
+      "maxStepCount": null,
+    },
+  ],
+]
+`;

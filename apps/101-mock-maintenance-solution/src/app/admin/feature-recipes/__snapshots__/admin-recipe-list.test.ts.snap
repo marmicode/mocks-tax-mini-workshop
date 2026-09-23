@@ -1,0 +1,22 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AdminRecipeList > shows "No recipes found" when nothing matches 1`] = `
+[
+  [
+    {
+      "courses": [],
+      "keywords": "",
+      "maxIngredientCount": null,
+      "maxStepCount": null,
+    },
+  ],
+  [
+    {
+      "courses": [],
+      "keywords": "xyz",
+      "maxIngredientCount": null,
+      "maxStepCount": null,
+    },
+  ],
+]
+`;

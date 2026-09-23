@@ -1,0 +1,205 @@
+import { Component } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
+import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
+import { RecipeQuickSearch } from './recipe-quick-search.ng';
+
+const burntAubergine = recipeMother
+  .withBasicInfo('Burnt Aubergine with Tahini and Pomegranate')
+  .build();
+
+const roastedAubergine = recipeMother
+  .withBasicInfo('Roasted Aubergine with Tahini and Pine Nuts')
+  .build();
+
+describe(RecipeQuickSearch.name, () => {
+  it('suggests nothing with less than 2 characters', async () => {
+    const { fixture } = mountQuickSearch();
+    await fixture.whenStable();
+
+    typeInto(quickSearchInput(fixture.nativeElement), 'a');
+    await fixture.whenStable();
+
+    expect(suggestionNames(fixture.nativeElement)).toEqual([]);
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="quick-search-empty"]'),
+    ).toBeNull();
+  });
+
+  it('searches by keywords', async () => {
+    const { fixture } = mountQuickSearch();
+    await fixture.whenStable();
+
+    typeInto(quickSearchInput(fixture.nativeElement), 'aub');
+    await fixture.whenStable();
+
+    expect(suggestionNames(fixture.nativeElement)).toEqual([
+      'Burnt Aubergine with Tahini and Pomegranate',
+      'Roasted Aubergine with Tahini and Pine Nuts',
+    ]);
+  });
+
+  it('shows at most 5 suggestions', async () => {
+    const { fixture } = mountQuickSearch({
+      recipes: Array.from({ length: 7 }, (_, index) =>
+        recipeMother.withBasicInfo(`Aubergine ${index}`).build(),
+      ),
+    });
+    await fixture.whenStable();
+
+    typeInto(quickSearchInput(fixture.nativeElement), 'aub');
+    await fixture.whenStable();
+
+    expect(suggestionNames(fixture.nativeElement)).toHaveLength(5);
+  });
+
+  it('links suggestions to the recipe detail page', async () => {
+    const { fixture } = mountQuickSearch();
+    await fixture.whenStable();
+
+    typeInto(quickSearchInput(fixture.nativeElement), 'aub');
+    await fixture.whenStable();
+
+    expect(
+      suggestionLinks(fixture.nativeElement)[0]?.getAttribute('href'),
+    ).toBe(`/recipes/${burntAubergine.id}`);
+  });
+
+  it('says when nothing matches', async () => {
+    const { fixture } = mountQuickSearch();
+    await fixture.whenStable();
+
+    typeInto(quickSearchInput(fixture.nativeElement), 'xyz');
+    await fixture.whenStable();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="quick-search-empty"]')
+        ?.textContent,
+    ).toContain('No recipes found');
+  });
+
+  it('clears the search once a suggestion is picked', async () => {
+    const { fixture } = mountQuickSearch();
+    await fixture.whenStable();
+
+    typeInto(quickSearchInput(fixture.nativeElement), 'aub');
+    await fixture.whenStable();
+    suggestionLinks(fixture.nativeElement)[0]?.click();
+    await fixture.whenStable();
+
+    expect(quickSearchInput(fixture.nativeElement).value).toBe('');
+    expect(suggestionNames(fixture.nativeElement)).toEqual([]);
+  });
+
+  it('trims keywords before searching', async () => {
+    const { fixture } = mountQuickSearch();
+    await fixture.whenStable();
+
+    typeInto(quickSearchInput(fixture.nativeElement), '  tahini  ');
+    await fixture.whenStable();
+
+    expect(suggestionNames(fixture.nativeElement)).toEqual([
+      'Burnt Aubergine with Tahini and Pomegranate',
+      'Roasted Aubergine with Tahini and Pine Nuts',
+    ]);
+  });
+
+  it('waits for 2 non-blank characters before searching', async () => {
+    const { fixture } = mountQuickSearch();
+    await fixture.whenStable();
+
+    typeInto(quickSearchInput(fixture.nativeElement), 'a ');
+    await fixture.whenStable();
+    expect(suggestionNames(fixture.nativeElement)).toEqual([]);
+
+    typeInto(quickSearchInput(fixture.nativeElement), 'au');
+    await fixture.whenStable();
+
+    expect(suggestionNames(fixture.nativeElement)).toEqual([
+      'Burnt Aubergine with Tahini and Pomegranate',
+      'Roasted Aubergine with Tahini and Pine Nuts',
+    ]);
+  });
+
+  it('refines suggestions while typing', async () => {
+    const { fixture } = mountQuickSearch();
+    await fixture.whenStable();
+
+    typeInto(quickSearchInput(fixture.nativeElement), 'aub');
+    await fixture.whenStable();
+    typeInto(quickSearchInput(fixture.nativeElement), 'pine');
+    await fixture.whenStable();
+
+    expect(suggestionNames(fixture.nativeElement)).toEqual([
+      'Roasted Aubergine with Tahini and Pine Nuts',
+    ]);
+  });
+
+  it('hides suggestions once keywords become too short again', async () => {
+    const { fixture } = mountQuickSearch();
+    await fixture.whenStable();
+
+    typeInto(quickSearchInput(fixture.nativeElement), 'aub');
+    await fixture.whenStable();
+    typeInto(quickSearchInput(fixture.nativeElement), 'a');
+    await fixture.whenStable();
+
+    expect(suggestionNames(fixture.nativeElement)).toEqual([]);
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="quick-search-empty"]'),
+    ).toBeNull();
+  });
+});
+
+@Component({ template: '' })
+class Blank {}
+
+function mountQuickSearch({
+  recipes = [burntAubergine, roastedAubergine],
+}: { recipes?: Recipe[] } = {}) {
+  TestBed.configureTestingModule({
+    providers: [
+      provideRouter([{ path: '**', component: Blank }]),
+      provideRecipeRepositoryFake(),
+    ],
+  });
+
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
+
+  const fixture = TestBed.createComponent(RecipeQuickSearch);
+
+  return { fixture };
+}
+
+function quickSearchInput(root: HTMLElement): HTMLInputElement {
+  const input = root.querySelector<HTMLInputElement>(
+    'input[aria-label="Quick search"]',
+  );
+  if (input == null) {
+    throw new Error('Quick search input not found.');
+  }
+  return input;
+}
+
+function typeInto(input: HTMLInputElement, value: string): void {
+  input.value = value;
+  input.dispatchEvent(new Event('input'));
+}
+
+function suggestionLinks(root: HTMLElement): HTMLAnchorElement[] {
+  return [
+    ...root.querySelectorAll<HTMLAnchorElement>(
+      '[data-testid="quick-search-suggestion"]',
+    ),
+  ];
+}
+
+function suggestionNames(root: HTMLElement): string[] {
+  return suggestionLinks(root).map((link) => link.textContent?.trim() ?? '');
+}

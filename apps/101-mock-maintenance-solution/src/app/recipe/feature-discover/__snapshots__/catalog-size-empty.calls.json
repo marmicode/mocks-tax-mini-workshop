@@ -1,0 +1,11 @@
+[
+  [
+    "/api/recipes/search",
+    {
+      "keywords": "",
+      "maxIngredientCount": null,
+      "maxStepCount": null,
+      "courses": []
+    }
+  ]
+]

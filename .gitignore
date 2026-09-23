@@ -45,3 +45,12 @@ Thumbs.db
 .claude/settings.local.json
 
 .angular
+
+.specify/workflows/runs
+
+tmp
+
+vitest.config.*.timestamp*
+.vitest-attachments
+
+.claude/hooks/learn-skills/.cache/

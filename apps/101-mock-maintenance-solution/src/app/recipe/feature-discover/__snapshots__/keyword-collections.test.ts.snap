@@ -1,0 +1,22 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`KeywordCollections > searches salads when the salads collection is chosen 1`] = `
+[
+  [
+    {
+      "courses": [],
+      "keywords": "soup",
+      "maxIngredientCount": null,
+      "maxStepCount": null,
+    },
+  ],
+  [
+    {
+      "courses": [],
+      "keywords": "salad",
+      "maxIngredientCount": null,
+      "maxStepCount": null,
+    },
+  ],
+]
+`;
