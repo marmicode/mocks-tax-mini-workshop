@@ -4,7 +4,7 @@ export interface RecipeFilterCriteria {
   keywords: string;
   maxIngredientCount: number | null;
   maxStepCount: number | null;
-  courses: Course[];
+  courses: Course[] | null;
   favoritesOnly: boolean;
 }
 
@@ -13,7 +13,7 @@ export function createDefaultRecipeFilterCriteria(): RecipeFilterCriteria {
     keywords: '',
     maxIngredientCount: null,
     maxStepCount: null,
-    courses: [],
+    courses: null,
     favoritesOnly: false,
   };
 }
