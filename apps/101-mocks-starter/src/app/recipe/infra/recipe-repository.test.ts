@@ -1,7 +1,11 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom, of, throwError } from 'rxjs';
-import { describe, it, vi } from 'vitest';
+import { firstValueFrom } from 'rxjs';
+import { afterEach, describe, it } from 'vitest';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import {
   createRecipeSearchParams,
@@ -19,11 +23,14 @@ const shakshuka: Recipe = {
 };
 
 describe(RecipeRepository.name, () => {
-  it('searches all recipes', async () => {
-    const { repository, post } = setUpRecipeRepository();
-    post.mockReturnValue(of([shakshuka]));
+  afterEach(() => {
+    TestBed.inject(HttpTestingController).verify();
+  });
 
-    const recipes = await firstValueFrom(
+  it('searches all recipes', async () => {
+    const { repository, httpTesting } = setUpRecipeRepository();
+
+    const recipes = firstValueFrom(
       repository.search({
         keywords: '',
         maxIngredientCount: null,
@@ -31,18 +38,24 @@ describe(RecipeRepository.name, () => {
       }),
     );
 
-    expect(post).toHaveBeenCalledExactlyOnceWith('/api/recipes/search', {
+    const req = httpTesting.expectOne({
+      method: 'POST',
+      url: '/api/recipes/search',
+    });
+    expect(req.request.body).toEqual({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(recipes).toEqual([shakshuka]);
+    req.flush([shakshuka]);
+
+    expect(await recipes).toEqual([shakshuka]);
   });
 
   it('sends keywords, max ingredients and max steps', async () => {
-    const { repository, post } = setUpRecipeRepository();
+    const { repository, httpTesting } = setUpRecipeRepository();
 
-    await firstValueFrom(
+    const recipes = firstValueFrom(
       repository.search({
         keywords: 'shak',
         maxIngredientCount: 5,
@@ -50,17 +63,24 @@ describe(RecipeRepository.name, () => {
       }),
     );
 
-    expect(post).toHaveBeenCalledExactlyOnceWith('/api/recipes/search', {
+    const req = httpTesting.expectOne({
+      method: 'POST',
+      url: '/api/recipes/search',
+    });
+    expect(req.request.body).toEqual({
       keywords: 'shak',
       maxIngredientCount: 5,
       maxStepCount: 3,
     });
+    req.flush([]);
+
+    await recipes;
   });
 
   it('sends courses', async () => {
-    const { repository, post } = setUpRecipeRepository();
+    const { repository, httpTesting } = setUpRecipeRepository();
 
-    await firstValueFrom(
+    const recipes = firstValueFrom(
       repository.search({
         keywords: '',
         maxIngredientCount: null,
@@ -69,75 +89,82 @@ describe(RecipeRepository.name, () => {
       }),
     );
 
-    expect(post).toHaveBeenCalledExactlyOnceWith('/api/recipes/search', {
+    const req = httpTesting.expectOne({
+      method: 'POST',
+      url: '/api/recipes/search',
+    });
+    expect(req.request.body).toEqual({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['starter', 'dessert'],
     });
+    req.flush([]);
+
+    await recipes;
   });
 
   it('fetches a recipe by id', async () => {
-    const { repository, get } = setUpRecipeRepository();
-    get.mockReturnValue(of(shakshuka));
+    const { repository, httpTesting } = setUpRecipeRepository();
 
-    const recipe = await firstValueFrom(
-      repository.findById({ id: 'shakshuka' }),
-    );
+    const recipe = firstValueFrom(repository.findById({ id: 'shakshuka' }));
 
-    expect(get).toHaveBeenCalledExactlyOnceWith('/api/recipes/shakshuka');
-    expect(recipe).toEqual(shakshuka);
+    httpTesting
+      .expectOne({ method: 'GET', url: '/api/recipes/shakshuka' })
+      .flush(shakshuka);
+
+    expect(await recipe).toEqual(shakshuka);
   });
 
   it('returns undefined when the recipe is not found', async () => {
-    const { repository, get } = setUpRecipeRepository();
-    get.mockReturnValue(
-      throwError(() => new HttpErrorResponse({ status: 404 })),
-    );
+    const { repository, httpTesting } = setUpRecipeRepository();
 
-    const recipe = await firstValueFrom(repository.findById({ id: 'missing' }));
+    const recipe = firstValueFrom(repository.findById({ id: 'missing' }));
 
-    expect(get).toHaveBeenCalledExactlyOnceWith('/api/recipes/missing');
-    expect(recipe).toBeUndefined();
+    httpTesting
+      .expectOne({ method: 'GET', url: '/api/recipes/missing' })
+      .flush(null, { status: 404, statusText: 'Not Found' });
+
+    expect(await recipe).toBeUndefined();
   });
 
   it('creates a recipe', async () => {
-    const repository = TestBed.inject(RecipeRepository);
-    const post = vi
-      .spyOn(TestBed.inject(HttpClient), 'post')
-      .mockReturnValue(of(shakshuka));
+    const { repository, httpTesting } = setUpRecipeRepository();
 
-    const recipe = await firstValueFrom(repository.create(shakshuka));
+    const recipe = firstValueFrom(repository.create(shakshuka));
 
-    expect(post).toHaveBeenCalledExactlyOnceWith('/api/recipes', shakshuka);
-    expect(recipe).toEqual(shakshuka);
+    const req = httpTesting.expectOne({ method: 'POST', url: '/api/recipes' });
+    expect(req.request.body).toEqual(shakshuka);
+    req.flush(shakshuka);
+
+    expect(await recipe).toEqual(shakshuka);
   });
 
   it('updates a recipe', async () => {
-    const repository = TestBed.inject(RecipeRepository);
-    const put = vi
-      .spyOn(TestBed.inject(HttpClient), 'put')
-      .mockReturnValue(of(shakshuka));
+    const { repository, httpTesting } = setUpRecipeRepository();
 
-    await firstValueFrom(repository.update(shakshuka));
+    const recipe = firstValueFrom(repository.update(shakshuka));
 
-    expect(put).toHaveBeenCalledExactlyOnceWith(
-      '/api/recipes/shakshuka',
-      shakshuka,
-    );
+    const req = httpTesting.expectOne({
+      method: 'PUT',
+      url: '/api/recipes/shakshuka',
+    });
+    expect(req.request.body).toEqual(shakshuka);
+    req.flush(shakshuka);
+
+    await recipe;
   });
 
   it('removes a recipe', async () => {
-    const repository = TestBed.inject(RecipeRepository);
-    const httpDelete = vi
-      .spyOn(TestBed.inject(HttpClient), 'delete')
-      .mockReturnValue(of(undefined));
+    const { repository, httpTesting } = setUpRecipeRepository();
 
-    await firstValueFrom(repository.remove({ id: 'shakshuka' }));
+    const result = firstValueFrom(repository.remove({ id: 'shakshuka' }));
 
-    expect(httpDelete).toHaveBeenCalledExactlyOnceWith(
-      '/api/recipes/shakshuka',
-    );
+    httpTesting
+      .expectOne({ method: 'DELETE', url: '/api/recipes/shakshuka' })
+      .flush(null, { status: 204, statusText: 'No Content' });
+
+    await result;
   });
 });
 
@@ -160,9 +187,10 @@ describe(createRecipeSearchParams.name, () => {
 });
 
 function setUpRecipeRepository() {
-  const http = TestBed.inject(HttpClient);
-  const get = vi.spyOn(http, 'get').mockReturnValue(of([]));
-  const post = vi.spyOn(http, 'post').mockReturnValue(of([]));
+  TestBed.configureTestingModule({
+    providers: [provideHttpClient(), provideHttpClientTesting()],
+  });
   const repository = TestBed.inject(RecipeRepository);
-  return { repository, get, post };
+  const httpTesting = TestBed.inject(HttpTestingController);
+  return { repository, httpTesting };
 }
