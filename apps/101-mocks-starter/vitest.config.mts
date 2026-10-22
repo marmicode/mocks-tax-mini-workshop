@@ -11,6 +11,7 @@ export default mergeConfig(
       globals: true,
       browser: {
         enabled: true,
+        screenshotFailures: false,
         headless: true,
         provider: playwright(),
         instances: [{ browser: 'chromium' }],
@@ -19,8 +20,7 @@ export default mergeConfig(
       setupFiles: ['src/test-setup.ts'],
       reporters: ['default'],
       coverage: {
-        reportsDirectory:
-          '../../coverage/apps/101-mocks-starter',
+        reportsDirectory: '../../coverage/apps/101-mocks-starter',
         provider: 'v8',
       },
     },
