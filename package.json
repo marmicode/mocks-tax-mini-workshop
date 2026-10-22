@@ -4,6 +4,7 @@
   "license": "MIT",
   "scripts": {
     "start": "nx serve",
+    "start-server": "nx start server",
     "cook": "node --experimental-strip-types tools/cook/main.ts",
     "limbo": "tools/limbo.sh"
   },
