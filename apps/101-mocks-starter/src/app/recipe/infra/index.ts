@@ -1,1 +1,5 @@
-export { RecipeRepository, type RecipeSearchParams } from './recipe-repository';
+export {
+  createRecipeSearchParams,
+  RecipeRepository,
+  type RecipeSearchParams,
+} from './recipe-repository';

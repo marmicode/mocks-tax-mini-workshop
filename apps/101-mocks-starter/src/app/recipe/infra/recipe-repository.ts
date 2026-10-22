@@ -13,6 +13,17 @@ export interface RecipeSearchParams {
   courses?: Course[];
 }
 
+export function createRecipeSearchParams(
+  params: Partial<RecipeSearchParams> = {},
+): RecipeSearchParams {
+  return {
+    keywords: '',
+    maxIngredientCount: null,
+    maxStepCount: null,
+    ...params,
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class RecipeRepository {
   private _http = inject(HttpClient);

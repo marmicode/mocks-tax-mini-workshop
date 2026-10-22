@@ -1,7 +1,10 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { recipeDetailRouterHelper } from './recipe-detail.router-helper';
 
@@ -79,12 +82,7 @@ export class SimilarRecipes {
   private _recipeRepository = inject(RecipeRepository);
 
   private _sameCourseRecipes = rxResource({
-    params: () => ({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [this.recipe().course],
-    }),
+    params: () => createRecipeSearchParams({ courses: [this.recipe().course] }),
     stream: ({ params }) => this._recipeRepository.search(params),
   });
 

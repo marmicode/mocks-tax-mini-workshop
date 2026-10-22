@@ -1,6 +1,9 @@
 import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import type { WeekdayAssignments } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { WEEKDAYS, type Weekday } from '@whiskmate/shared/model';
@@ -19,12 +22,7 @@ export class MealPlanSuggester {
     const plannedIds = new Set(Object.values(assignments));
 
     return this._recipeRepository
-      .search({
-        keywords: '',
-        maxIngredientCount: null,
-        maxStepCount: null,
-        courses: ['main'],
-      })
+      .search(createRecipeSearchParams({ courses: ['main'] }))
       .pipe(
         map((recipes) => {
           const candidates = recipes.filter(

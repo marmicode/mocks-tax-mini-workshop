@@ -3,7 +3,10 @@ import { TestBed } from '@angular/core/testing';
 import { firstValueFrom, of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
-import { RecipeRepository } from './recipe-repository';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from './recipe-repository';
 
 const shakshuka: Recipe = {
   id: 'shakshuka',
@@ -128,6 +131,24 @@ describe(RecipeRepository.name, () => {
     expect(httpDelete).toHaveBeenCalledExactlyOnceWith(
       '/api/recipes/shakshuka',
     );
+  });
+});
+
+describe(createRecipeSearchParams.name, () => {
+  it('creates search params with defaults', () => {
+    expect(createRecipeSearchParams()).toEqual({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+  });
+
+  it('overrides defaults', () => {
+    expect(createRecipeSearchParams({ maxStepCount: 3 })).toEqual({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: 3,
+    });
   });
 });
 

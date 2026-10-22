@@ -2,7 +2,10 @@ import { Component, computed, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { recipeDetailRouterHelper } from '@whiskmate/recipe/feature-detail';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import { ClockAdapter } from '@whiskmate/shared/infra';
 
 @Component({
@@ -103,12 +106,7 @@ export class RecipeOfTheDay {
   private _clock = inject(ClockAdapter);
 
   recipes = rxResource({
-    stream: () =>
-      this._recipeRepository.search({
-        keywords: '',
-        maxIngredientCount: null,
-        maxStepCount: null,
-      }),
+    stream: () => this._recipeRepository.search(createRecipeSearchParams()),
   });
 
   recipe = computed(() => {

@@ -2,7 +2,10 @@ import { Component, computed, inject, input } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { map, of, switchMap } from 'rxjs';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import { MealPlanStore } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import type { Weekday } from '@whiskmate/shared/model';
@@ -151,12 +154,7 @@ export class MealPlanSwap {
           }
 
           return this._recipeRepository
-            .search({
-              keywords: '',
-              maxIngredientCount: null,
-              maxStepCount: null,
-              courses: [current.course],
-            })
+            .search(createRecipeSearchParams({ courses: [current.course] }))
             .pipe(
               map((recipes) => ({
                 current,

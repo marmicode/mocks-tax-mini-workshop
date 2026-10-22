@@ -2,7 +2,10 @@ import { Component, computed, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { UserFavorites } from '@whiskmate/recipe/domain';
 import { recipeDetailRouterHelper } from '@whiskmate/recipe/feature-detail';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import { RecipePreview } from '@whiskmate/recipe/ui';
 import { MealPlanStore } from '@whiskmate/shared-meal-plan/domain';
 import type { Weekday } from '@whiskmate/shared/model';
@@ -62,12 +65,7 @@ export class Favorites {
   private _mealPlanStore = inject(MealPlanStore);
 
   recipes = rxResource({
-    stream: () =>
-      this._recipeRepository.search({
-        keywords: '',
-        maxIngredientCount: null,
-        maxStepCount: null,
-      }),
+    stream: () => this._recipeRepository.search(createRecipeSearchParams()),
   });
 
   favoriteRecipes = computed(() => {

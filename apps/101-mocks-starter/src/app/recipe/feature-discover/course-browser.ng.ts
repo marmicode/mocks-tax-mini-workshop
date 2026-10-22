@@ -2,7 +2,10 @@ import { Component, computed, inject, input } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { UserFavorites } from '@whiskmate/recipe/domain';
 import { recipeDetailRouterHelper } from '@whiskmate/recipe/feature-detail';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import { RecipePreview } from '@whiskmate/recipe/ui';
 import { MealPlanStore } from '@whiskmate/shared-meal-plan/domain';
 import type { Course } from '@whiskmate/shared-recipe/model';
@@ -68,12 +71,9 @@ export class CourseBrowser {
   recipes = rxResource({
     params: () => this.course(),
     stream: ({ params: course }) =>
-      this._recipeRepository.search({
-        keywords: '',
-        maxIngredientCount: null,
-        maxStepCount: null,
-        courses: [course],
-      }),
+      this._recipeRepository.search(
+        createRecipeSearchParams({ courses: [course] }),
+      ),
   });
 
   detailRoute(recipeId: string) {

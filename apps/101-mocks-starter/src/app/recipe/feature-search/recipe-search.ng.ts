@@ -8,6 +8,7 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { recipeDetailRouterHelper } from '@whiskmate/recipe/feature-detail';
 import { UserFavorites } from '@whiskmate/recipe/domain';
 import {
+  createRecipeSearchParams,
   RecipeRepository,
   type RecipeSearchParams,
 } from '@whiskmate/recipe/infra';
@@ -120,10 +121,10 @@ function toRecipeSearchParams({
   maxStepCount,
   courses,
 }: RecipeFilterCriteria): RecipeSearchParams {
-  return {
+  return createRecipeSearchParams({
     keywords,
     maxIngredientCount,
     maxStepCount,
     ...(courses.length > 0 ? { courses } : {}),
-  };
+  });
 }

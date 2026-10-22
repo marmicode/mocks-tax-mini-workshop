@@ -2,7 +2,10 @@ import { Component, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { forkJoin, map } from 'rxjs';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import { COURSES } from '@whiskmate/shared-recipe/model';
 import { courseLabel } from './course-label';
 import { recipeDiscoverRouterHelper } from './recipe-discover.router-helper';
@@ -79,12 +82,7 @@ export class CourseCounts {
       forkJoin(
         COURSES.map((course) =>
           this._recipeRepository
-            .search({
-              keywords: '',
-              maxIngredientCount: null,
-              maxStepCount: null,
-              courses: [course],
-            })
+            .search(createRecipeSearchParams({ courses: [course] }))
             .pipe(
               map((recipes) => ({
                 course,

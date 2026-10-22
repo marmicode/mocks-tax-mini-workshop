@@ -2,7 +2,10 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { recipeDetailRouterHelper } from '@whiskmate/recipe/feature-detail';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 
 const MIN_KEYWORDS_LENGTH = 2;
 const MAX_SUGGESTIONS = 5;
@@ -107,11 +110,7 @@ export class RecipeQuickSearch {
       return keywords.length >= MIN_KEYWORDS_LENGTH ? keywords : undefined;
     },
     stream: ({ params: keywords }) =>
-      this._recipeRepository.search({
-        keywords,
-        maxIngredientCount: null,
-        maxStepCount: null,
-      }),
+      this._recipeRepository.search(createRecipeSearchParams({ keywords })),
   });
 
   /**

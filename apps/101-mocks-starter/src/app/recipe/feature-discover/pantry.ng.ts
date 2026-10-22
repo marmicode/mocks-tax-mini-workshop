@@ -5,7 +5,10 @@ import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { RouterLink } from '@angular/router';
 import { recipeDetailRouterHelper } from '@whiskmate/recipe/feature-detail';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { normalizeIngredientName } from './ingredient-name';
 
@@ -212,12 +215,7 @@ export class Pantry {
   private _recipeRepository = inject(RecipeRepository);
 
   recipes = rxResource({
-    stream: () =>
-      this._recipeRepository.search({
-        keywords: '',
-        maxIngredientCount: null,
-        maxStepCount: null,
-      }),
+    stream: () => this._recipeRepository.search(createRecipeSearchParams()),
   });
 
   matches = computed<PantryMatch[]>(() => {

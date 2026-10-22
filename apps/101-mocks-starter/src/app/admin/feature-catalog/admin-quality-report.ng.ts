@@ -2,7 +2,10 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { adminRecipesRouterHelper } from '@whiskmate/admin/feature-recipes';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 
 const CHECK_COUNT = 4;
@@ -144,12 +147,7 @@ export class AdminQualityReport {
   private _recipeRepository = inject(RecipeRepository);
 
   recipes = rxResource({
-    stream: () =>
-      this._recipeRepository.search({
-        keywords: '',
-        maxIngredientCount: null,
-        maxStepCount: null,
-      }),
+    stream: () => this._recipeRepository.search(createRecipeSearchParams()),
   });
 
   rows = computed(() => {

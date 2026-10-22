@@ -4,7 +4,10 @@ import { MatButton } from '@angular/material/button';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { RouterLink } from '@angular/router';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import { COURSES, type Course } from '@whiskmate/shared-recipe/model';
 import { adminRecipesRouterHelper } from './admin-recipes.router-helper';
 
@@ -153,11 +156,11 @@ export class AdminRecipeList {
   protected recipes = rxResource({
     params: () => ({ keywords: this.keywords(), course: this.course() }),
     stream: ({ params: { keywords, course } }) =>
-      this._recipeRepository.search({
-        keywords,
-        maxIngredientCount: null,
-        maxStepCount: null,
-        ...(course !== '' ? { courses: [course] } : {}),
-      }),
+      this._recipeRepository.search(
+        createRecipeSearchParams({
+          keywords,
+          ...(course !== '' ? { courses: [course] } : {}),
+        }),
+      ),
   });
 }

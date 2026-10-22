@@ -1,6 +1,9 @@
 import { inject, Injectable } from '@angular/core';
 import { forkJoin, map, Observable } from 'rxjs';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import type { Course, Recipe } from '@whiskmate/shared-recipe/model';
 import { RandomAdapter } from '@whiskmate/shared/infra';
 
@@ -30,12 +33,7 @@ export class MenuGenerator {
     current: Recipe | null,
   ): Observable<Recipe | null> {
     return this._recipeRepository
-      .search({
-        keywords: '',
-        maxIngredientCount: null,
-        maxStepCount: null,
-        courses: [course],
-      })
+      .search(createRecipeSearchParams({ courses: [course] }))
       .pipe(
         map((recipes) => {
           const candidates = recipes.filter(

@@ -1,7 +1,10 @@
 import { Component, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import {
   type Course,
   COURSES,
@@ -115,12 +118,9 @@ export class AdminCourseBoard {
     course,
     recipes: rxResource({
       stream: () =>
-        this._recipeRepository.search({
-          keywords: '',
-          maxIngredientCount: null,
-          maxStepCount: null,
-          courses: [course],
-        }),
+        this._recipeRepository.search(
+          createRecipeSearchParams({ courses: [course] }),
+        ),
     }),
   }));
 

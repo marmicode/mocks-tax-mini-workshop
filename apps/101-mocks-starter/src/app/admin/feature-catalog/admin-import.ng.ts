@@ -1,7 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { forkJoin, map, Observable, switchMap } from 'rxjs';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import { COURSES, type Recipe } from '@whiskmate/shared-recipe/model';
 
 interface ImportSummary {
@@ -167,11 +170,7 @@ export class AdminImport {
 
     this.importing.set(true);
     this._recipeRepository
-      .search({
-        keywords: '',
-        maxIngredientCount: null,
-        maxStepCount: null,
-      })
+      .search(createRecipeSearchParams())
       .pipe(
         switchMap((existingRecipes) => {
           const existingIds = new Set(existingRecipes.map(({ id }) => id));

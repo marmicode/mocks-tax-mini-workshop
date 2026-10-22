@@ -2,7 +2,10 @@ import { Component, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { MatCheckbox } from '@angular/material/checkbox';
 import { recipeDetailRouterHelper } from '@whiskmate/recipe/feature-detail';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import { RecipePreview } from '@whiskmate/recipe/ui';
 import { Catalog } from '@whiskmate/shared/ui';
 
@@ -77,11 +80,12 @@ export class QuickRecipes {
   recipes = rxResource({
     params: () => this.fewIngredients(),
     stream: ({ params: fewIngredients }) =>
-      this._recipeRepository.search({
-        keywords: '',
-        maxIngredientCount: fewIngredients ? MAX_INGREDIENT_COUNT : null,
-        maxStepCount: MAX_STEP_COUNT,
-      }),
+      this._recipeRepository.search(
+        createRecipeSearchParams({
+          maxIngredientCount: fewIngredients ? MAX_INGREDIENT_COUNT : null,
+          maxStepCount: MAX_STEP_COUNT,
+        }),
+      ),
   });
 
   detailRoute(recipeId: string) {

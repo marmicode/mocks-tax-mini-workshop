@@ -4,7 +4,10 @@ import { MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { RouterLink } from '@angular/router';
 import { recipeDetailRouterHelper } from '@whiskmate/recipe/feature-detail';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { normalizeIngredientName } from './ingredient-name';
 
@@ -135,12 +138,7 @@ export class IngredientIndex {
   private _recipeRepository = inject(RecipeRepository);
 
   recipes = rxResource({
-    stream: () =>
-      this._recipeRepository.search({
-        keywords: '',
-        maxIngredientCount: null,
-        maxStepCount: null,
-      }),
+    stream: () => this._recipeRepository.search(createRecipeSearchParams()),
   });
 
   sections = computed<IndexSection[]>(() => {

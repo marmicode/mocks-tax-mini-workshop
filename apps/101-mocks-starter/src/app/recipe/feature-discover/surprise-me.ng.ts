@@ -7,7 +7,10 @@ import {
 import { RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { recipeDetailRouterHelper } from '@whiskmate/recipe/feature-detail';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import { COURSES, type Course } from '@whiskmate/shared-recipe/model';
 import { RandomAdapter } from '@whiskmate/shared/infra';
 import { courseLabel } from './course-label';
@@ -141,12 +144,9 @@ export class SurpriseMe {
     params: () => ({ course: this.course() }),
     stream: ({ params: { course } }) =>
       this._recipeRepository
-        .search({
-          keywords: '',
-          maxIngredientCount: null,
-          maxStepCount: null,
-          ...(course != null ? { courses: [course] } : {}),
-        })
+        .search(
+          createRecipeSearchParams(course != null ? { courses: [course] } : {}),
+        )
         .pipe(
           map((recipes) =>
             recipes.length > 0 ? this._random.pick(recipes) : null,

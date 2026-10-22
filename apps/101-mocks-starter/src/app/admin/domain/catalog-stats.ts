@@ -1,6 +1,9 @@
 import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import {
   COURSES,
   type Course,
@@ -21,7 +24,7 @@ export class CatalogStats {
 
   stats(): Observable<CatalogStatsSummary> {
     return this._recipeRepository
-      .search({ keywords: '', maxIngredientCount: null, maxStepCount: null })
+      .search(createRecipeSearchParams())
       .pipe(map(summarize));
   }
 }

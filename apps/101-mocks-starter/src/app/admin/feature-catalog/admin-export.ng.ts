@@ -1,7 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import { type Course, COURSES } from '@whiskmate/shared-recipe/model';
 
 @Component({
@@ -84,12 +87,9 @@ export class AdminExport {
   recipes = rxResource({
     params: () => this.course(),
     stream: ({ params: course }) =>
-      this._recipeRepository.search({
-        keywords: '',
-        maxIngredientCount: null,
-        maxStepCount: null,
-        ...(course != null ? { courses: [course] } : {}),
-      }),
+      this._recipeRepository.search(
+        createRecipeSearchParams(course != null ? { courses: [course] } : {}),
+      ),
   });
 
   json = computed(() =>
