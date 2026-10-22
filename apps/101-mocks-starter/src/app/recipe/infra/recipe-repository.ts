@@ -4,7 +4,7 @@ import { catchError, Observable, of, throwError } from 'rxjs';
 import type { Course, Recipe } from '@whiskmate/shared-recipe/model';
 
 /**
- * Query params sent to the backend's recipe search endpoint.
+ * Body sent to the backend's recipe search endpoint.
  */
 export interface RecipeSearchParams {
   keywords: string;
@@ -28,20 +28,8 @@ export function createRecipeSearchParams(
 export class RecipeRepository {
   private _http = inject(HttpClient);
 
-  search({
-    keywords,
-    maxIngredientCount,
-    maxStepCount,
-    courses,
-  }: RecipeSearchParams): Observable<Recipe[]> {
-    return this._http.get<Recipe[]>('/api/recipes', {
-      params: {
-        ...(keywords ? { keywords } : {}),
-        ...(maxIngredientCount != null ? { maxIngredientCount } : {}),
-        ...(maxStepCount != null ? { maxStepCount } : {}),
-        ...(courses != null ? { courses } : {}),
-      },
-    });
+  search(params: RecipeSearchParams): Observable<Recipe[]> {
+    return this._http.post<Recipe[]>('/api/recipes/search', params);
   }
 
   /**
