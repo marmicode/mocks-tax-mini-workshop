@@ -157,7 +157,7 @@ describe(RecipeSearch.name, () => {
     });
   });
 
-  it('stops sending courses once every course is unselected', async () => {
+  it('keeps sending empty courses once every course is unselected', async () => {
     const { fixture, search } = await mountRecipeSearch();
     await fixture.whenStable();
 
@@ -166,10 +166,7 @@ describe(RecipeSearch.name, () => {
     clickCourse(fixture.nativeElement, 'main');
     await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    expect(recipeNames(fixture.nativeElement)).toEqual([]);
     expect(search).toHaveBeenCalledTimes(3);
     expect(search).toHaveBeenNthCalledWith(2, {
       keywords: '',
@@ -181,8 +178,8 @@ describe(RecipeSearch.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
-    expect(search.mock.lastCall?.[0]).not.toHaveProperty('courses');
   });
 
   it('combines keywords and course', async () => {
@@ -240,7 +237,7 @@ describe(RecipeSearch.name, () => {
     });
   });
 
-  it('keeps keywords but drops courses once the course is unselected', async () => {
+  it('keeps keywords and empty courses once the course is unselected', async () => {
     const { fixture, search } = await mountRecipeSearch();
     await fixture.whenStable();
 
@@ -256,6 +253,7 @@ describe(RecipeSearch.name, () => {
       keywords: 'lemon',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
