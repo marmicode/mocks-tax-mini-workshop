@@ -75,27 +75,29 @@ describe(RandomWeekFiller.name, () => {
   });
 
   it('picks a random main for each empty day without repeating it', async () => {
-    const { randomWeekFiller, search, pick } = setUpRandomWeekFiller();
-    search.mockReturnValue(of([hummus, shakshuka, lambKofte]));
+    const { randomWeekFiller, search, pick } = setUpRandomWeekFiller({
+      catalog: [hummus, shakshuka, lambKofte],
+    });
     pick.mockImplementation((recipes) => recipes.at(-1));
 
     const suggestions = await firstValueFrom(
       randomWeekFiller.fill({ ...fullWeek, saturday: null, sunday: null }),
     );
 
+    expect(pick).toHaveBeenNthCalledWith(1, [shakshuka, lambKofte]);
+    expect(pick).toHaveBeenNthCalledWith(2, [shakshuka]);
+    expect(suggestions).toEqual({ saturday: lambKofte, sunday: shakshuka });
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(pick).toHaveBeenNthCalledWith(1, [shakshuka, lambKofte]);
-    expect(pick).toHaveBeenNthCalledWith(2, [shakshuka]);
-    expect(suggestions).toEqual({ saturday: lambKofte, sunday: shakshuka });
   });
 
   it('does not pick recipes that are already planned', async () => {
-    const { randomWeekFiller, search, pick } = setUpRandomWeekFiller();
-    search.mockReturnValue(of([shakshuka, lambKofte]));
+    const { randomWeekFiller, search, pick } = setUpRandomWeekFiller({
+      catalog: [shakshuka, lambKofte],
+    });
 
     const suggestions = await firstValueFrom(
       randomWeekFiller.fill({
@@ -105,36 +107,45 @@ describe(RandomWeekFiller.name, () => {
       }),
     );
 
+    expect(pick).toHaveBeenCalledExactlyOnceWith([lambKofte]);
+    expect(suggestions).toEqual({ sunday: lambKofte });
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(pick).toHaveBeenCalledExactlyOnceWith([lambKofte]);
-    expect(suggestions).toEqual({ sunday: lambKofte });
   });
 
   it('leaves days empty once mains run out', async () => {
-    const { randomWeekFiller, search } = setUpRandomWeekFiller();
-    search.mockReturnValue(of([shakshuka]));
+    const { randomWeekFiller, search } = setUpRandomWeekFiller({
+      catalog: [shakshuka],
+    });
 
     const suggestions = await firstValueFrom(
       randomWeekFiller.fill({ ...fullWeek, saturday: null, sunday: null }),
     );
 
+    expect(suggestions).toEqual({ saturday: shakshuka });
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(suggestions).toEqual({ saturday: shakshuka });
   });
 });
 
-function setUpRandomWeekFiller() {
+function setUpRandomWeekFiller({
+  catalog = [shakshuka],
+}: { catalog?: Recipe[] } = {}) {
   const search = vi
     .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([shakshuka]));
+    .mockImplementation(({ courses }) => {
+      /* The filler picks mains itself, it never asks for a course. */
+      if (courses != null) {
+        throw new Error('Invalid call');
+      }
+      return of(catalog);
+    });
   const pick = vi
     .spyOn(TestBed.inject(RandomAdapter), 'pick')
     .mockImplementation((items) => items[0]);

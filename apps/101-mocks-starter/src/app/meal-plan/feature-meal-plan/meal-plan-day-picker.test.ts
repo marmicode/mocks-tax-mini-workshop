@@ -54,10 +54,10 @@ const emptyAssignments: WeekdayAssignments = {
 
 describe(MealPlanDayPicker.name, () => {
   it('searches the catalog', async () => {
-    const { fixture, search } = mountMealPlanDayPicker(
-      'monday',
-      emptyAssignments,
-    );
+    const { fixture, search } = mountMealPlanDayPicker({
+      weekday: 'monday',
+      assignments: emptyAssignments,
+    });
     await fixture.whenStable();
 
     expect(search).toHaveBeenCalledExactlyOnceWith({
@@ -68,48 +68,48 @@ describe(MealPlanDayPicker.name, () => {
   });
 
   it('only lists mains', async () => {
-    const { fixture, search } = mountMealPlanDayPicker(
-      'monday',
-      emptyAssignments,
-    );
-    search.mockReturnValue(of([hummus, shakshuka, lambKofte]));
+    const { fixture, search } = mountMealPlanDayPicker({
+      weekday: 'monday',
+      assignments: emptyAssignments,
+      catalog: [hummus, shakshuka, lambKofte],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(candidateNames(fixture.nativeElement)).toEqual([
       'Shakshuka',
       'Lamb Kofte with Yogurt and Sumac',
     ]);
-  });
-
-  it('does not list mains that are already planned', async () => {
-    const { fixture, search } = mountMealPlanDayPicker('monday', {
-      ...emptyAssignments,
-      tuesday: 'shakshuka',
-    });
-    search.mockReturnValue(of([shakshuka, lambKofte]));
-    await fixture.whenStable();
-
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
+  });
+
+  it('does not list mains that are already planned', async () => {
+    const { fixture, search } = mountMealPlanDayPicker({
+      weekday: 'monday',
+      assignments: { ...emptyAssignments, tuesday: 'shakshuka' },
+      catalog: [shakshuka, lambKofte],
+    });
+    await fixture.whenStable();
+
     expect(candidateNames(fixture.nativeElement)).toEqual([
       'Lamb Kofte with Yogurt and Sumac',
     ]);
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
   });
 
   it('assigns the picked main and goes back to the meal plan', async () => {
-    const { fixture, search, mealPlanStore, router } = mountMealPlanDayPicker(
-      'thursday',
-      emptyAssignments,
-    );
-    search.mockReturnValue(of([shakshuka, lambKofte]));
+    const { fixture, search, mealPlanStore, router } = mountMealPlanDayPicker({
+      weekday: 'thursday',
+      assignments: emptyAssignments,
+      catalog: [shakshuka, lambKofte],
+    });
     const assign = vi
       .spyOn(mealPlanStore, 'assign')
       .mockImplementation(() => undefined);
@@ -119,41 +119,46 @@ describe(MealPlanDayPicker.name, () => {
     buttonByText(fixture.nativeElement, 'Pick Shakshuka').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(assign).toHaveBeenCalledExactlyOnceWith({
       weekday: 'thursday',
       recipeId: 'shakshuka',
     });
     expect(navigate).toHaveBeenCalledExactlyOnceWith(['/', 'meal-plan']);
-  });
-
-  it('says there is nothing left to pick when every main is planned', async () => {
-    const { fixture, search } = mountMealPlanDayPicker('monday', {
-      ...emptyAssignments,
-      tuesday: 'shakshuka',
-    });
-    search.mockReturnValue(of([hummus, shakshuka]));
-    await fixture.whenStable();
-
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
+  });
+
+  it('says there is nothing left to pick when every main is planned', async () => {
+    const { fixture, search } = mountMealPlanDayPicker({
+      weekday: 'monday',
+      assignments: { ...emptyAssignments, tuesday: 'shakshuka' },
+      catalog: [hummus, shakshuka],
+    });
+    await fixture.whenStable();
+
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-candidates"]'),
     ).not.toBeNull();
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
   });
 });
 
-function mountMealPlanDayPicker(
-  weekday: Weekday,
-  assignments: WeekdayAssignments,
-) {
+function mountMealPlanDayPicker({
+  weekday,
+  assignments,
+  catalog = [],
+}: {
+  weekday: Weekday;
+  assignments: WeekdayAssignments;
+  catalog?: Recipe[];
+}) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
@@ -169,7 +174,13 @@ function mountMealPlanDayPicker(
 
   const search = vi
     .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([]));
+    .mockImplementation(({ courses }) => {
+      /* The day picker filters mains itself, it never asks for a course. */
+      if (courses != null) {
+        throw new Error('Invalid call');
+      }
+      return of(catalog);
+    });
   const mealPlanStore = TestBed.inject(MealPlanStore);
   vi.spyOn(mealPlanStore, 'assignments').mockReturnValue(assignments);
   const router = TestBed.inject(Router);
