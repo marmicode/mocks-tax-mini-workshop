@@ -1,0 +1,176 @@
+import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { of } from 'rxjs';
+import { describe, it, vi } from 'vitest';
+import { RecipeRepository } from '@whiskmate/recipe/infra';
+import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { AdminRecipeList } from './admin-recipe-list.ng';
+
+const shakshuka: Recipe = {
+  id: 'shakshuka',
+  course: 'main',
+  name: 'Shakshuka',
+  description: null,
+  pictureUri: 'https://example.com/shakshuka.jpg',
+  ingredients: [{ name: 'eggs' }, { name: 'tomatoes' }],
+  steps: ['Cook the sauce.', 'Poach the eggs.', 'Serve.'],
+};
+
+const cheesecake: Recipe = {
+  id: 'lemon-ricotta-cheesecake',
+  course: 'dessert',
+  name: 'Lemon and Ricotta Cheesecake',
+  description: null,
+  pictureUri: 'https://example.com/cheesecake.jpg',
+  ingredients: [{ name: 'ricotta' }],
+  steps: ['Bake.'],
+};
+
+describe(AdminRecipeList.name, () => {
+  it('lists all recipes on load', async () => {
+    const { fixture, search } = mountAdminRecipeList();
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(rows(fixture.nativeElement)).toEqual([
+      ['Shakshuka', 'main', '2', '3'],
+      ['Lemon and Ricotta Cheesecake', 'dessert', '1', '1'],
+    ]);
+  });
+
+  it('searches by keywords', async () => {
+    const { fixture, search } = mountAdminRecipeList();
+    await fixture.whenStable();
+
+    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'lemon');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: 'lemon',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+  });
+
+  it('searches by course', async () => {
+    const { fixture, search } = mountAdminRecipeList();
+    await fixture.whenStable();
+
+    selectCourse(fixture.nativeElement, 'dessert');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+      courses: ['dessert'],
+    });
+  });
+
+  it('stops filtering by course when "All courses" is selected', async () => {
+    const { fixture, search } = mountAdminRecipeList();
+    await fixture.whenStable();
+
+    selectCourse(fixture.nativeElement, 'dessert');
+    await fixture.whenStable();
+    selectCourse(fixture.nativeElement, '');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(search.mock.lastCall?.[0]).not.toHaveProperty('courses');
+  });
+
+  it('links to the edit and delete pages of each recipe', async () => {
+    const { fixture, search } = mountAdminRecipeList();
+    search.mockReturnValue(of([shakshuka]));
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(linkByText(fixture.nativeElement, 'Edit').getAttribute('href')).toBe(
+      '/admin/recipes/shakshuka/edit',
+    );
+    expect(
+      linkByText(fixture.nativeElement, 'Delete').getAttribute('href'),
+    ).toBe('/admin/recipes/shakshuka/delete');
+    expect(
+      linkByText(fixture.nativeElement, 'New recipe').getAttribute('href'),
+    ).toBe('/admin/recipes/new');
+  });
+
+  it('shows "No recipes found" when nothing matches', async () => {
+    const { fixture, search } = mountAdminRecipeList();
+    search.mockReturnValue(of([]));
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(fixture.nativeElement.textContent).toContain('No recipes found');
+  });
+});
+
+function mountAdminRecipeList() {
+  TestBed.configureTestingModule({ providers: [provideRouter([])] });
+  const search = vi
+    .spyOn(TestBed.inject(RecipeRepository), 'search')
+    .mockReturnValue(of([shakshuka, cheesecake]));
+  const fixture = TestBed.createComponent(AdminRecipeList);
+  return { fixture, search };
+}
+
+function rows(root: HTMLElement): string[][] {
+  return [...root.querySelectorAll('[data-testid="recipe-row"]')].map((row) =>
+    [...row.querySelectorAll('td')]
+      .slice(0, 4)
+      .map((cell) => cell.textContent?.trim() ?? ''),
+  );
+}
+
+function inputByLabel(root: HTMLElement, label: string): HTMLInputElement {
+  const field = [...root.querySelectorAll('mat-form-field')].find(
+    (el) => el.querySelector('mat-label')?.textContent?.trim() === label,
+  );
+  const input = field?.querySelector('input');
+  if (input == null) {
+    throw new Error(`Input "${label}" not found.`);
+  }
+  return input;
+}
+
+function typeInto(input: HTMLInputElement, value: string): void {
+  input.value = value;
+  input.dispatchEvent(new Event('input'));
+}
+
+function selectCourse(root: HTMLElement, course: string): void {
+  const select = root.querySelector('select');
+  if (select == null) {
+    throw new Error('Course select not found.');
+  }
+  select.value = course;
+  select.dispatchEvent(new Event('change'));
+}
+
+function linkByText(root: HTMLElement, text: string): HTMLAnchorElement {
+  const link = [...root.querySelectorAll('a')].find(
+    (el) => el.textContent?.trim() === text,
+  );
+  if (link == null) {
+    throw new Error(`Link "${text}" not found.`);
+  }
+  return link;
+}

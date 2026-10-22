@@ -5,6 +5,7 @@ export default defineConfig({
     projects: [
       '**/vitest.config.{mjs,js,ts,mts}',
       '!vitest.config.{mjs,js,ts,mts}',
+      '!dist/**',
     ],
   },
 });
