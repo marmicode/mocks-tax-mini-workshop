@@ -111,6 +111,57 @@ describe(CatalogStats.name, () => {
       missingDescriptionCount: 0,
     });
   });
+
+  it('computes fractional averages', async () => {
+    const { catalogStats, search } = setUpCatalogStats();
+    search.mockReturnValue(of([hummus, shakshuka]));
+
+    const stats = await firstValueFrom(catalogStats.stats());
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(stats.averageIngredientCount).toBe(2.5);
+    expect(stats.averageStepCount).toBe(2);
+  });
+
+  it('summarizes a single described recipe', async () => {
+    const { catalogStats, search } = setUpCatalogStats();
+    search.mockReturnValue(of([hummus]));
+
+    const stats = await firstValueFrom(catalogStats.stats());
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(stats).toEqual({
+      recipeCount: 1,
+      countByCourse: { starter: 1, main: 0, dessert: 0 },
+      averageIngredientCount: 2,
+      averageStepCount: 1,
+      missingDescriptionCount: 0,
+    });
+  });
+
+  it('searches the catalog again every time stats are requested', async () => {
+    const { catalogStats, search } = setUpCatalogStats();
+    search.mockReturnValue(of([kofte]));
+
+    await firstValueFrom(catalogStats.stats());
+    const stats = await firstValueFrom(catalogStats.stats());
+
+    expect(search).toHaveBeenCalledTimes(2);
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(stats.recipeCount).toBe(1);
+  });
 });
 
 function setUpCatalogStats() {

@@ -112,6 +112,82 @@ describe(SurpriseMe.name, () => {
         ?.textContent,
     ).toContain('Nothing to surprise you with');
   });
+
+  it('picks among the recipes of the chosen course', async () => {
+    const { fixture, search, pick } = mountSurpriseMe();
+    await fixture.whenStable();
+
+    search.mockReturnValue(of([cheesecake]));
+    pick.mockReturnValue(cheesecake);
+    clickToggle(fixture.nativeElement, 'Desserts');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+      courses: ['dessert'],
+    });
+    expect(pick).toHaveBeenLastCalledWith([cheesecake]);
+    expect(recipeName(fixture.nativeElement)).toBe(
+      'Lemon and Ricotta Cheesecake',
+    );
+  });
+
+  it('links the surprise to its recipe page', async () => {
+    const { fixture, search, pick } = mountSurpriseMe();
+    pick.mockReturnValue(shakshuka);
+    await fixture.whenStable();
+
+    const root: HTMLElement = fixture.nativeElement;
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(root.querySelector('.eyebrow')?.textContent?.trim()).toBe('🎲 main');
+    expect(root.querySelector('a')?.getAttribute('href')).toBe(
+      '/recipes/shakshuka',
+    );
+  });
+
+  it('keeps the chosen course when asked again', async () => {
+    const { fixture, search } = mountSurpriseMe();
+    await fixture.whenStable();
+
+    clickToggle(fixture.nativeElement, 'Mains');
+    await fixture.whenStable();
+    buttonByText(fixture.nativeElement, 'Surprise me again').click();
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledTimes(3);
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+      courses: ['main'],
+    });
+  });
+
+  it('shows a message when the chosen course has no recipes', async () => {
+    const { fixture, search } = mountSurpriseMe();
+    await fixture.whenStable();
+
+    search.mockReturnValue(of([]));
+    clickToggle(fixture.nativeElement, 'Starters');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+      courses: ['starter'],
+    });
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
+        ?.textContent,
+    ).toContain('Nothing to surprise you with');
+  });
 });
 
 function mountSurpriseMe() {

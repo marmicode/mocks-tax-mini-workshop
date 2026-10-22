@@ -21,6 +21,10 @@ import { mealPlanRouterHelper } from './meal-plan.router-helper';
           <mat-icon>auto_awesome</mat-icon>
           Auto-fill empty days
         </a>
+        <a class="wm-button" [routerLink]="routerHelper.randomWeek()">
+          <mat-icon>casino</mat-icon>
+          Random week
+        </a>
         <a
           class="wm-button wm-button-outlined"
           [routerLink]="routerHelper.share()"
@@ -32,20 +36,29 @@ import { mealPlanRouterHelper } from './meal-plan.router-helper';
     </header>
     <div class="week">
       @for (day of days(); track day.weekday) {
-        <wm-meal-plan-day
-          [weekday]="day.weekday"
-          [recipe]="day.recipe"
-          (remove)="onRemove(day.weekday)"
-        >
-          @if (day.recipe) {
+        <div class="slot">
+          <wm-meal-plan-day
+            [weekday]="day.weekday"
+            [recipe]="day.recipe"
+            (remove)="onRemove(day.weekday)"
+          >
+            @if (day.recipe) {
+              <a
+                class="wm-button swap"
+                data-slot="actions"
+                [routerLink]="routerHelper.swap(day.weekday)"
+                >Swap</a
+              >
+            }
+          </wm-meal-plan-day>
+          @if (!day.recipe) {
             <a
-              class="wm-button swap"
-              data-slot="actions"
-              [routerLink]="routerHelper.swap(day.weekday)"
-              >Swap</a
+              class="wm-button pick"
+              [routerLink]="routerHelper.pick(day.weekday)"
+              >Pick a recipe</a
             >
           }
-        </wm-meal-plan-day>
+        </div>
       }
     </div>
   `,
@@ -80,6 +93,20 @@ import { mealPlanRouterHelper } from './meal-plan.router-helper';
       gap: 1.25rem;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       margin-top: 1.25rem;
+    }
+
+    .slot {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      wm-meal-plan-day {
+        flex: 1;
+      }
+    }
+
+    .pick {
+      align-self: center;
     }
   `,
 })

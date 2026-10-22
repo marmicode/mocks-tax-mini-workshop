@@ -15,6 +15,14 @@ export const mealPlanRouterHelper = {
     return ['/', this.PATH, weekday, 'swap'];
   },
 
+  randomWeek() {
+    return ['/', this.PATH, 'random-week'];
+  },
+
+  pick(weekday: Weekday) {
+    return ['/', this.PATH, weekday, 'pick'];
+  },
+
   share() {
     return ['/', this.PATH, 'share'];
   },

@@ -105,6 +105,79 @@ describe(Favorites.name, () => {
       buttonByText(fixture.nativeElement, 'add to meal plan').disabled,
     ).toBe(true);
   });
+
+  it('shows every favorite recipe', async () => {
+    const { fixture, search } = mountFavorites([cheesecake.id, shakshuka.id]);
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Shakshuka',
+      'Lemon and Ricotta Cheesecake',
+    ]);
+  });
+
+  it('ignores favorites that are no longer in the catalog', async () => {
+    const { fixture, search } = mountFavorites(['deleted-recipe']);
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(recipeNames(fixture.nativeElement)).toEqual([]);
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="no-favorites-message"]',
+      ),
+    ).not.toBeNull();
+  });
+
+  it('assigns a favorite recipe to the picked weekday', async () => {
+    const { fixture, search, mealPlanStore } = mountFavorites([shakshuka.id]);
+    vi.spyOn(mealPlanStore, 'canAdd').mockReturnValue(true);
+    const assign = vi
+      .spyOn(mealPlanStore, 'assign')
+      .mockImplementation(() => undefined);
+    await fixture.whenStable();
+
+    buttonByText(fixture.nativeElement, 'add to meal plan').click();
+    await fixture.whenStable();
+    buttonByText(fixture.nativeElement, 'friday').click();
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(assign).toHaveBeenCalledExactlyOnceWith({
+      weekday: 'friday',
+      recipeId: 'shakshuka',
+    });
+  });
+
+  it('shows a message when the repository returns no recipes', async () => {
+    const { fixture, search } = mountFavorites([shakshuka.id]);
+    search.mockReturnValue(of([]));
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="no-favorites-message"]',
+      )?.textContent,
+    ).toContain('You have no favorite recipes yet');
+  });
 });
 
 function mountFavorites(favoriteIds: string[]) {

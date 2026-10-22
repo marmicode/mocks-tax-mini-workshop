@@ -134,6 +134,27 @@ describe(MealPlan.name, () => {
     expect(findById).toHaveBeenCalledWith({ id: 'shakshuka' });
     expect(clear).toHaveBeenCalledExactlyOnceWith({ weekday: 'monday' });
   });
+
+  it('links each empty day to the recipe picker', async () => {
+    const { fixture, findById } = mountMealPlan({
+      ...emptyAssignments,
+      monday: 'shakshuka',
+    });
+    findById.mockReturnValue(of(shakshuka));
+    await fixture.whenStable();
+
+    const pickLinks = [...fixture.nativeElement.querySelectorAll('a')].filter(
+      (el) => el.textContent?.trim() === 'Pick a recipe',
+    );
+    expect(pickLinks.map((el) => el.getAttribute('href'))).toEqual([
+      '/meal-plan/tuesday/pick',
+      '/meal-plan/wednesday/pick',
+      '/meal-plan/thursday/pick',
+      '/meal-plan/friday/pick',
+      '/meal-plan/saturday/pick',
+      '/meal-plan/sunday/pick',
+    ]);
+  });
 });
 
 function mountMealPlan(assignments: WeekdayAssignments) {

@@ -182,6 +182,77 @@ describe(RecipeSearch.name, () => {
     });
   });
 
+  it('combines max ingredients and max steps', async () => {
+    const { fixture, search } = await mountRecipeSearch();
+    await fixture.whenStable();
+
+    typeInto(inputByLabel(fixture.nativeElement, 'Max Ingredients'), '8');
+    await fixture.whenStable();
+    typeInto(inputByLabel(fixture.nativeElement, 'Max Steps'), '4');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: 8,
+      maxStepCount: 4,
+    });
+  });
+
+  it('searches all recipes again once keywords are cleared', async () => {
+    const { fixture, search } = await mountRecipeSearch();
+    await fixture.whenStable();
+
+    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'shak');
+    await fixture.whenStable();
+    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), '');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+  });
+
+  it('keeps keywords but drops courses once the course is unselected', async () => {
+    const { fixture, search } = await mountRecipeSearch();
+    await fixture.whenStable();
+
+    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'lemon');
+    await fixture.whenStable();
+    clickCourse(fixture.nativeElement, 'dessert');
+    await fixture.whenStable();
+    clickCourse(fixture.nativeElement, 'dessert');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: 'lemon',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+  });
+
+  it('shows "no recipes" when favorites only is checked without any favorite', async () => {
+    const { fixture, search, userFavorites } = await mountRecipeSearch();
+    search.mockReturnValue(of([shakshuka, cheesecake]));
+    vi.spyOn(userFavorites, 'favoriteIds').mockReturnValue(new Set());
+    await fixture.whenStable();
+
+    checkboxByLabel(fixture.nativeElement, 'Favorites only').click();
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(recipeNames(fixture.nativeElement)).toEqual([]);
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
+        ?.textContent,
+    ).toContain('No recipes found');
+  });
+
   it('shows only favorites without sending favorites to the repository', async () => {
     const { fixture, search, userFavorites } = await mountRecipeSearch();
     search.mockReturnValue(of([shakshuka, cheesecake]));

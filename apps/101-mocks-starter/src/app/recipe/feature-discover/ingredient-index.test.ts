@@ -122,6 +122,79 @@ describe(IngredientIndex.name, () => {
       )?.textContent,
     ).toContain('No ingredients found.');
   });
+
+  it('filters ingredients ignoring case and surrounding spaces', async () => {
+    const { fixture, search } = mountIngredientIndex();
+    await fixture.whenStable();
+
+    typeInto(fixture.nativeElement.querySelector('input'), '  GAR ');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(ingredientNames(fixture.nativeElement)).toEqual(['garlic']);
+  });
+
+  it('lists a recipe only once when it uses an ingredient twice', async () => {
+    const { fixture, search } = mountIngredientIndex();
+    search.mockReturnValue(
+      of([
+        {
+          ...hummus,
+          ingredients: [
+            { name: 'garlic, crushed' },
+            { name: '2 garlic, roasted' },
+          ],
+        },
+      ]),
+    );
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(ingredientNames(fixture.nativeElement)).toEqual(['garlic']);
+    expect(recipeNamesFor(fixture.nativeElement, 'garlic')).toEqual([
+      'Hummus with Ful',
+    ]);
+  });
+
+  it('links each recipe to its detail page', async () => {
+    const { fixture, search } = mountIngredientIndex();
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(recipeLinksFor(fixture.nativeElement, 'tahini')).toEqual([
+      '/recipes/hummus-ful',
+    ]);
+  });
+
+  it('shows a message when the repository returns no recipes', async () => {
+    const { fixture, search } = mountIngredientIndex();
+    search.mockReturnValue(of([]));
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(sectionLetters(fixture.nativeElement)).toEqual([]);
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="no-ingredients-message"]',
+      )?.textContent,
+    ).toContain('No ingredients found.');
+  });
 });
 
 function mountIngredientIndex() {
@@ -160,6 +233,15 @@ function recipeNamesFor(root: HTMLElement, ingredient: string): string[] {
   );
   return [...(entry?.querySelectorAll('dd a') ?? [])].map(
     (el) => el.textContent?.trim() ?? '',
+  );
+}
+
+function recipeLinksFor(root: HTMLElement, ingredient: string): string[] {
+  const entry = entries(root).find(
+    (el) => el.querySelector('dt')?.textContent?.trim() === ingredient,
+  );
+  return [...(entry?.querySelectorAll('dd a') ?? [])].map(
+    (el) => el.getAttribute('href') ?? '',
   );
 }
 

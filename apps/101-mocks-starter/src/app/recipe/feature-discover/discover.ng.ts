@@ -126,5 +126,59 @@ export class Discover {
       description: 'Starter, main and dessert.',
       route: recipeDiscoverRouterHelper.menuBuilder(),
     },
+    {
+      emoji: '🔤',
+      title: 'A–Z',
+      description: 'Every recipe, alphabetically.',
+      route: recipeDiscoverRouterHelper.alphabetical(),
+    },
+    {
+      emoji: '🖐️',
+      title: 'Five ingredients',
+      description: 'Big flavor, short shopping list.',
+      route: recipeDiscoverRouterHelper.fiveIngredients(),
+    },
+    {
+      emoji: '3️⃣',
+      title: 'Three steps',
+      description: 'Done in three moves.',
+      route: recipeDiscoverRouterHelper.threeSteps(),
+    },
+    {
+      emoji: '🛠️',
+      title: 'Weekend projects',
+      description: 'The most involved recipes.',
+      route: recipeDiscoverRouterHelper.weekendProjects(),
+    },
+    {
+      emoji: '🪶',
+      title: 'Simplest recipes',
+      description: 'The fewest ingredients first.',
+      route: recipeDiscoverRouterHelper.simplest(),
+    },
+    {
+      emoji: '🔦',
+      title: 'Ingredient spotlight',
+      description: 'One ingredient, many ideas.',
+      route: recipeDiscoverRouterHelper.ingredientSpotlight(),
+    },
+    {
+      emoji: '📚',
+      title: 'Collections',
+      description: 'Soups, salads and cakes.',
+      route: recipeDiscoverRouterHelper.collections(),
+    },
+    {
+      emoji: '📊',
+      title: 'Our catalog',
+      description: 'How big is the cookbook?',
+      route: recipeDiscoverRouterHelper.catalog(),
+    },
+    {
+      emoji: '🖼️',
+      title: 'Gallery',
+      description: 'Browse by picture.',
+      route: recipeDiscoverRouterHelper.gallery(),
+    },
   ];
 }

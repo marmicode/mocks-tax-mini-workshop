@@ -95,6 +95,23 @@ describe(Admin.name, () => {
       { label: 'Ingredients', href: '/admin/catalog/ingredients' },
       { label: 'Export', href: '/admin/catalog/export' },
       { label: 'Import', href: '/admin/catalog/import' },
+      {
+        label: 'Descriptions to write',
+        href: '/admin/catalog/missing-descriptions',
+      },
+      { label: 'Recipes without steps', href: '/admin/catalog/missing-steps' },
+      {
+        label: 'Recipes without ingredients',
+        href: '/admin/catalog/missing-ingredients',
+      },
+      { label: 'Step counts', href: '/admin/catalog/step-histogram' },
+      {
+        label: 'Ingredient counts',
+        href: '/admin/catalog/ingredient-histogram',
+      },
+      { label: 'Id audit', href: '/admin/catalog/id-audit' },
+      { label: 'Long names', href: '/admin/catalog/long-names' },
+      { label: 'Picture audit', href: '/admin/catalog/picture-audit' },
     ]);
   });
 });

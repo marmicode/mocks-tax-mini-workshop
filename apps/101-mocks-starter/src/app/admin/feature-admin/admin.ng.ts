@@ -199,6 +199,54 @@ export class Admin {
       description: 'Create or update recipes from JSON.',
       route: adminCatalogRouterHelper.import(),
     },
+    {
+      label: 'Descriptions to write',
+      icon: 'notes',
+      description: 'List recipes without a description.',
+      route: adminCatalogRouterHelper.missingDescriptions(),
+    },
+    {
+      label: 'Recipes without steps',
+      icon: 'format_list_numbered',
+      description: 'Find recipes that have no steps.',
+      route: adminCatalogRouterHelper.missingSteps(),
+    },
+    {
+      label: 'Recipes without ingredients',
+      icon: 'remove_shopping_cart',
+      description: 'Find recipes that have no ingredients.',
+      route: adminCatalogRouterHelper.missingIngredients(),
+    },
+    {
+      label: 'Step counts',
+      icon: 'bar_chart',
+      description: 'See how many steps recipes have.',
+      route: adminCatalogRouterHelper.stepHistogram(),
+    },
+    {
+      label: 'Ingredient counts',
+      icon: 'stacked_bar_chart',
+      description: 'See how many ingredients recipes have.',
+      route: adminCatalogRouterHelper.ingredientHistogram(),
+    },
+    {
+      label: 'Id audit',
+      icon: 'tag',
+      description: 'Spot ids that do not match recipe names.',
+      route: adminCatalogRouterHelper.idAudit(),
+    },
+    {
+      label: 'Long names',
+      icon: 'short_text',
+      description: 'Find names too long for recipe cards.',
+      route: adminCatalogRouterHelper.longNames(),
+    },
+    {
+      label: 'Picture audit',
+      icon: 'image',
+      description: 'Find pictures not served over https.',
+      route: adminCatalogRouterHelper.pictureAudit(),
+    },
   ];
 
   private _catalogStats = inject(CatalogStats);

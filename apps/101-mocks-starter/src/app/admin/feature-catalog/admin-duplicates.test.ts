@@ -146,6 +146,92 @@ describe(AdminDuplicates.name, () => {
       '/admin/recipes/ful-and-hummus/edit',
     ]);
   });
+
+  it('shows "no duplicates" when the catalog is empty', async () => {
+    const { fixture, search } = mountAdminDuplicates();
+    search.mockReturnValue(of([]));
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(pairTexts(fixture.nativeElement)).toEqual([]);
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="no-duplicates"]')
+        ?.textContent,
+    ).toContain('No duplicates found');
+  });
+
+  it('does not pair recipes sharing only some of their ingredients', async () => {
+    const { fixture, search } = mountAdminDuplicates();
+    search.mockReturnValue(
+      of([
+        aubergine,
+        {
+          ...roastedAubergine,
+          ingredients: [
+            { name: 'aubergines' },
+            { name: 'tahini' },
+            { name: 'lemon juice' },
+            { name: 'garlic' },
+            { name: 'mint' },
+          ],
+        },
+      ]),
+    );
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="no-duplicates"]'),
+    ).not.toBeNull();
+  });
+
+  it('reports same-name recipes as name duplicates even if ingredients match too', async () => {
+    const { fixture, search } = mountAdminDuplicates();
+    search.mockReturnValue(
+      of([hummus, { ...hummus, id: 'hummus-copy', name: 'hummus with ful!' }]),
+    );
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(pairTexts(fixture.nativeElement)).toEqual([
+      'Hummus with Ful ↔ hummus with ful! (same name)',
+    ]);
+  });
+
+  it('pairs every combination of duplicates', async () => {
+    const { fixture, search } = mountAdminDuplicates();
+    search.mockReturnValue(
+      of([
+        hummus,
+        fulHummus,
+        { ...fulHummus, id: 'ful-with-hummus', name: 'Ful with Hummus' },
+      ]),
+    );
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(pairTexts(fixture.nativeElement)).toEqual([
+      'Hummus with Ful ↔ Ful & Hummus (same name)',
+      'Hummus with Ful ↔ Ful with Hummus (same name)',
+      'Ful & Hummus ↔ Ful with Hummus (same name)',
+    ]);
+  });
 });
 
 function mountAdminDuplicates() {

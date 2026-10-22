@@ -124,6 +124,77 @@ describe(RecipeQuickSearch.name, () => {
     expect(quickSearchInput(fixture.nativeElement).value).toBe('');
     expect(suggestionNames(fixture.nativeElement)).toEqual([]);
   });
+
+  it('trims keywords before searching', async () => {
+    const { fixture, search } = mountQuickSearch();
+    await fixture.whenStable();
+
+    typeInto(quickSearchInput(fixture.nativeElement), '  tahini  ');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: 'tahini',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+  });
+
+  it('waits for 2 non-blank characters before searching', async () => {
+    const { fixture, search } = mountQuickSearch();
+    await fixture.whenStable();
+
+    typeInto(quickSearchInput(fixture.nativeElement), 'a ');
+    await fixture.whenStable();
+    typeInto(quickSearchInput(fixture.nativeElement), 'au');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: 'au',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+  });
+
+  it('refines suggestions while typing', async () => {
+    const { fixture, search } = mountQuickSearch();
+    await fixture.whenStable();
+
+    typeInto(quickSearchInput(fixture.nativeElement), 'aub');
+    await fixture.whenStable();
+    search.mockReturnValue(of([roastedAubergine]));
+    typeInto(quickSearchInput(fixture.nativeElement), 'aubergine pine');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledTimes(2);
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: 'aubergine pine',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(suggestionNames(fixture.nativeElement)).toEqual([
+      'Roasted Aubergine with Tahini and Pine Nuts',
+    ]);
+  });
+
+  it('hides suggestions once keywords become too short again', async () => {
+    const { fixture, search } = mountQuickSearch();
+    await fixture.whenStable();
+
+    typeInto(quickSearchInput(fixture.nativeElement), 'aub');
+    await fixture.whenStable();
+    typeInto(quickSearchInput(fixture.nativeElement), 'a');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: 'aub',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(suggestionNames(fixture.nativeElement)).toEqual([]);
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="quick-search-empty"]'),
+    ).toBeNull();
+  });
 });
 
 @Component({ template: '' })

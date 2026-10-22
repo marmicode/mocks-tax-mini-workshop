@@ -115,6 +115,85 @@ describe(AdminIngredients.name, () => {
 
     expect(update).not.toHaveBeenCalled();
   });
+
+  it('counts an ingredient once per recipe', async () => {
+    const { fixture, search } = mountAdminIngredients();
+    search.mockReturnValue(
+      of([
+        {
+          ...shakshuka,
+          ingredients: [{ name: 'Eggs' }, { name: ' eggs ' }],
+        },
+      ]),
+    );
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(ingredientRows(fixture.nativeElement)).toEqual([['eggs', '1']]);
+  });
+
+  it('does not update anything when the new name is blank', async () => {
+    const { fixture, search, update } = mountAdminIngredients();
+    await fixture.whenStable();
+
+    await renameIngredient(fixture, 'tahini', '   ');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('cancels renaming', async () => {
+    const { fixture, search, update } = mountAdminIngredients();
+    await fixture.whenStable();
+
+    buttonByText(fixture.nativeElement, 'Rename').click();
+    await fixture.whenStable();
+    buttonByText(fixture.nativeElement, 'Cancel').click();
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(update).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('input')).toBeNull();
+  });
+
+  it('shows the renamed ingredient once recipes are searched again', async () => {
+    const { fixture, search } = mountAdminIngredients();
+    await fixture.whenStable();
+
+    search.mockReturnValue(
+      of([
+        shakshuka,
+        { ...hummus, ingredients: [{ name: 'olive oil' }, { name: 'tahina' }] },
+      ]),
+    );
+    await renameIngredient(fixture, 'tahini', 'tahina');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(ingredientRows(fixture.nativeElement)).toEqual([
+      ['olive oil', '2'],
+      ['eggs', '1'],
+      ['tahina', '1'],
+    ]);
+    expect(fixture.nativeElement.querySelector('input')).toBeNull();
+  });
 });
 
 function mountAdminIngredients() {

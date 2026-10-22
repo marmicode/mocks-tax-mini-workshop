@@ -115,6 +115,87 @@ describe(AdminQualityReport.name, () => {
       'Courgette Fritters',
     ]);
   });
+
+  it('shows every recipe again once the filter is unchecked', async () => {
+    const { fixture, search } = mountAdminQualityReport();
+    search.mockReturnValue(of([shakshuka, brownies]));
+    await fixture.whenStable();
+
+    checkboxByLabel(fixture.nativeElement, 'Only recipes with issues').click();
+    await fixture.whenStable();
+    checkboxByLabel(fixture.nativeElement, 'Only recipes with issues').click();
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(rowNames(fixture.nativeElement)).toEqual([
+      'Shakshuka',
+      'Tahini and Halva Brownies',
+    ]);
+  });
+
+  it('tolerates up to half of the ingredients without quantity', async () => {
+    const { fixture, search } = mountAdminQualityReport();
+    search.mockReturnValue(
+      of([
+        {
+          ...shakshuka,
+          ingredients: [
+            { name: 'eggs', quantity: { amount: 6, unit: '' } },
+            { name: 'salt' },
+          ],
+        },
+      ]),
+    );
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(rowTexts(fixture.nativeElement)).toEqual(['Shakshuka 100% ✅']);
+  });
+
+  it('reports a blank description and too few steps', async () => {
+    const { fixture, search } = mountAdminQualityReport();
+    search.mockReturnValue(
+      of([{ ...shakshuka, description: '   ', steps: ['Cook.', 'Serve.'] }]),
+    );
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(rowTexts(fixture.nativeElement)).toEqual([
+      'Shakshuka 50% Missing description Fewer than 3 steps',
+    ]);
+  });
+
+  it('links each recipe to its edit page', async () => {
+    const { fixture, search } = mountAdminQualityReport();
+    search.mockReturnValue(of([shakshuka, brownies]));
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(
+      rows(fixture.nativeElement).map((row) =>
+        row.querySelector('a')?.getAttribute('href'),
+      ),
+    ).toEqual([
+      '/admin/recipes/shakshuka/edit',
+      '/admin/recipes/tahini-halva-brownies/edit',
+    ]);
+  });
 });
 
 function mountAdminQualityReport() {

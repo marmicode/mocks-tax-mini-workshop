@@ -42,4 +42,40 @@ export const recipeDiscoverRouterHelper = {
   menuBuilder() {
     return ['/', this.DISCOVER_PATH, 'menu-builder'];
   },
+
+  alphabetical() {
+    return ['/', this.DISCOVER_PATH, 'a-z'];
+  },
+
+  fiveIngredients() {
+    return ['/', this.DISCOVER_PATH, 'five-ingredients'];
+  },
+
+  threeSteps() {
+    return ['/', this.DISCOVER_PATH, 'three-steps'];
+  },
+
+  weekendProjects() {
+    return ['/', this.DISCOVER_PATH, 'weekend-projects'];
+  },
+
+  simplest() {
+    return ['/', this.DISCOVER_PATH, 'simplest'];
+  },
+
+  ingredientSpotlight() {
+    return ['/', this.DISCOVER_PATH, 'ingredient-spotlight'];
+  },
+
+  collections() {
+    return ['/', this.DISCOVER_PATH, 'collections'];
+  },
+
+  catalog() {
+    return ['/', this.DISCOVER_PATH, 'catalog'];
+  },
+
+  gallery() {
+    return ['/', this.DISCOVER_PATH, 'gallery'];
+  },
 };

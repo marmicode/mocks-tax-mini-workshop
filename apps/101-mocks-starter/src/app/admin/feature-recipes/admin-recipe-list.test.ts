@@ -121,6 +121,74 @@ describe(AdminRecipeList.name, () => {
     });
     expect(fixture.nativeElement.textContent).toContain('No recipes found');
   });
+
+  it('shows the number of recipes found', async () => {
+    const { fixture, search } = mountAdminRecipeList();
+    search.mockReturnValue(of([shakshuka, cheesecake]));
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(
+      fixture.nativeElement.querySelector('.count')?.textContent?.trim(),
+    ).toBe('2 recipe(s)');
+  });
+
+  it('renders the recipes matching the keywords', async () => {
+    const { fixture, search } = mountAdminRecipeList();
+    await fixture.whenStable();
+
+    search.mockReturnValue(of([cheesecake]));
+    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'ricotta');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: 'ricotta',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(rows(fixture.nativeElement)).toEqual([
+      ['Lemon and Ricotta Cheesecake', 'dessert', '1', '1'],
+    ]);
+  });
+
+  it('combines keywords and course', async () => {
+    const { fixture, search } = mountAdminRecipeList();
+    await fixture.whenStable();
+
+    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'eggs');
+    await fixture.whenStable();
+    selectCourse(fixture.nativeElement, 'main');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: 'eggs',
+      maxIngredientCount: null,
+      maxStepCount: null,
+      courses: ['main'],
+    });
+  });
+
+  it('keeps keywords when "All courses" is selected again', async () => {
+    const { fixture, search } = mountAdminRecipeList();
+    await fixture.whenStable();
+
+    selectCourse(fixture.nativeElement, 'starter');
+    await fixture.whenStable();
+    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'hummus');
+    await fixture.whenStable();
+    selectCourse(fixture.nativeElement, '');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: 'hummus',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+  });
 });
 
 function mountAdminRecipeList() {

@@ -27,4 +27,36 @@ export const adminCatalogRouterHelper = {
   import() {
     return ['/', 'admin', this.CATALOG_PATH, 'import'];
   },
+
+  missingDescriptions() {
+    return ['/', 'admin', this.CATALOG_PATH, 'missing-descriptions'];
+  },
+
+  missingSteps() {
+    return ['/', 'admin', this.CATALOG_PATH, 'missing-steps'];
+  },
+
+  missingIngredients() {
+    return ['/', 'admin', this.CATALOG_PATH, 'missing-ingredients'];
+  },
+
+  stepHistogram() {
+    return ['/', 'admin', this.CATALOG_PATH, 'step-histogram'];
+  },
+
+  ingredientHistogram() {
+    return ['/', 'admin', this.CATALOG_PATH, 'ingredient-histogram'];
+  },
+
+  idAudit() {
+    return ['/', 'admin', this.CATALOG_PATH, 'id-audit'];
+  },
+
+  longNames() {
+    return ['/', 'admin', this.CATALOG_PATH, 'long-names'];
+  },
+
+  pictureAudit() {
+    return ['/', 'admin', this.CATALOG_PATH, 'picture-audit'];
+  },
 };

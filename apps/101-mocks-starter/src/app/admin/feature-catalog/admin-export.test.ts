@@ -116,6 +116,92 @@ describe(AdminExport.name, () => {
     expect(link.download).toBe('recipes.json');
     expect(link.href).toBe('blob:recipes');
   });
+
+  it('previews an empty export when the catalog is empty', async () => {
+    const { fixture, search } = mountAdminExport();
+    search.mockReturnValue(of([]));
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
+      '0 recipe(s) to export',
+    );
+    expect(
+      JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
+    ).toEqual([]);
+  });
+
+  it('switches from one course to another', async () => {
+    const { fixture, search } = mountAdminExport();
+    await fixture.whenStable();
+
+    selectCourse(fixture.nativeElement, 'main');
+    await fixture.whenStable();
+    search.mockReturnValue(of([cheesecake]));
+    selectCourse(fixture.nativeElement, 'dessert');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+      courses: ['dessert'],
+    });
+    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
+      '1 recipe(s) to export',
+    );
+  });
+
+  it('counts the recipes to export again after going back to all courses', async () => {
+    const { fixture, search } = mountAdminExport();
+    await fixture.whenStable();
+
+    search.mockReturnValue(of([shakshuka]));
+    selectCourse(fixture.nativeElement, 'main');
+    await fixture.whenStable();
+    search.mockReturnValue(of([shakshuka, cheesecake]));
+    selectCourse(fixture.nativeElement, '');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
+      '2 recipe(s) to export',
+    );
+  });
+
+  it('downloads only the recipes of the selected course', async () => {
+    const { fixture, search } = mountAdminExport();
+    const createObjectURL = vi
+      .spyOn(URL, 'createObjectURL')
+      .mockReturnValue('blob:recipes');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(
+      () => undefined,
+    );
+    await fixture.whenStable();
+
+    search.mockReturnValue(of([shakshuka]));
+    selectCourse(fixture.nativeElement, 'main');
+    await fixture.whenStable();
+    buttonByText(fixture.nativeElement, 'Download recipes.json').click();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+      courses: ['main'],
+    });
+    const blob = createObjectURL.mock.lastCall?.[0] as Blob;
+    expect(JSON.parse(await blob.text())).toEqual([shakshuka]);
+  });
 });
 
 function mountAdminExport() {

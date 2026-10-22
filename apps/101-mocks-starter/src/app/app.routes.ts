@@ -13,6 +13,7 @@ import { recipeDiscoverRoutes } from '@whiskmate/recipe/feature-discover';
 import {
   RecipeSearch,
   recipeRouterHelper,
+  recipeSearchRoutes,
 } from '@whiskmate/recipe/feature-search';
 
 export const appRoutes: Route[] = [
@@ -20,6 +21,7 @@ export const appRoutes: Route[] = [
     path: recipeRouterHelper.SEARCH_PATH,
     component: RecipeSearch,
   },
+  ...recipeSearchRoutes,
   ...recipeDetailRoutes,
   ...recipeDiscoverRoutes,
   ...mealPlanRoutes,

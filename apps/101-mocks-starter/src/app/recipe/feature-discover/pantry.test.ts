@@ -155,6 +155,82 @@ describe(Pantry.name, () => {
         ?.textContent,
     ).toContain('No recipe uses these ingredients.');
   });
+
+  it('ignores blank and duplicate ingredients', async () => {
+    const { fixture, search } = mountPantry();
+    await fixture.whenStable();
+
+    addIngredient(fixture.nativeElement, 'garlic');
+    addIngredient(fixture.nativeElement, '  GARLIC ');
+    addIngredient(fixture.nativeElement, '   ');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(itemLabels(fixture.nativeElement)).toEqual(['Remove garlic']);
+  });
+
+  it('does not show missing ingredients when I have them all', async () => {
+    const { fixture, search } = mountPantry();
+    await fixture.whenStable();
+
+    addIngredient(fixture.nativeElement, 'ricotta');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(textsOf(fixture.nativeElement, 'match-count')).toEqual([
+      '1/1 ingredients',
+    ]);
+    expect(textsOf(fixture.nativeElement, 'missing-ingredients')).toEqual([]);
+  });
+
+  it('shows the hint again once the last ingredient is removed', async () => {
+    const { fixture, search } = mountPantry();
+    await fixture.whenStable();
+
+    addIngredient(fixture.nativeElement, 'tahini');
+    await fixture.whenStable();
+    fixture.nativeElement
+      .querySelector('button[aria-label="Remove tahini"]')
+      ?.click();
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(matchedRecipeNames(fixture.nativeElement)).toEqual([]);
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="pantry-hint"]'),
+    ).not.toBeNull();
+  });
+
+  it('tells when the repository returns no recipes', async () => {
+    const { fixture, search } = mountPantry();
+    search.mockReturnValue(of([]));
+    await fixture.whenStable();
+
+    addIngredient(fixture.nativeElement, 'garlic');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="no-match-message"]')
+        ?.textContent,
+    ).toContain('No recipe uses these ingredients.');
+  });
 });
 
 function mountPantry() {
@@ -178,6 +254,12 @@ function addIngredient(root: HTMLElement, ingredient: string): void {
   }
   input.value = ingredient;
   input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+}
+
+function itemLabels(root: HTMLElement): string[] {
+  return [...root.querySelectorAll('.items button')].map(
+    (el) => el.getAttribute('aria-label') ?? '',
+  );
 }
 
 function matchedRecipeNames(root: HTMLElement): string[] {

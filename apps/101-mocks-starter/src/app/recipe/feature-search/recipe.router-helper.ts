@@ -4,4 +4,12 @@ export const recipeRouterHelper = {
   search() {
     return ['/', this.SEARCH_PATH];
   },
+
+  keywords() {
+    return ['/', this.SEARCH_PATH, 'keywords'];
+  },
+
+  byIngredientCount() {
+    return ['/', this.SEARCH_PATH, 'by-ingredient-count'];
+  },
 };

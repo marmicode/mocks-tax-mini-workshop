@@ -101,6 +101,56 @@ describe(QuickRecipes.name, () => {
         ?.textContent,
     ).toContain('No quick recipes found');
   });
+
+  it('mentions the step cap', async () => {
+    const { fixture, search } = mountQuickRecipes();
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: 5,
+    });
+    expect(fixture.nativeElement.textContent).toContain(
+      'Recipes with at most 5 steps.',
+    );
+  });
+
+  it('shows the recipes with few ingredients once capped', async () => {
+    const { fixture, search } = mountQuickRecipes();
+    await fixture.whenStable();
+
+    search.mockReturnValue(of([hummus]));
+    checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: 6,
+      maxStepCount: 5,
+    });
+    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
+  });
+
+  it('shows a message when no quick recipe has few ingredients', async () => {
+    const { fixture, search } = mountQuickRecipes();
+    await fixture.whenStable();
+
+    search.mockReturnValue(of([]));
+    checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: '',
+      maxIngredientCount: 6,
+      maxStepCount: 5,
+    });
+    expect(recipeNames(fixture.nativeElement)).toEqual([]);
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
+        ?.textContent,
+    ).toContain('No quick recipes found');
+  });
 });
 
 function mountQuickRecipes() {

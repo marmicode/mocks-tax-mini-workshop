@@ -113,6 +113,64 @@ describe(RecipeOfTheDay.name, () => {
         ?.textContent,
     ).toContain('No recipe today');
   });
+
+  it('hides the description when the recipe has none', async () => {
+    /* January 1st is the 1st day of the year: 1 % 3 = 1. */
+    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 1));
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(recipeName(fixture.nativeElement)).toBe('Hummus with Ful');
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="recipe-description"]'),
+    ).toBeNull();
+  });
+
+  it("shows the course of today's pick", async () => {
+    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 1));
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(
+      fixture.nativeElement.querySelector('.eyebrow')?.textContent?.trim(),
+    ).toBe("Today's pick · starter");
+  });
+
+  it('counts days across months', async () => {
+    /* February 1st is the 32nd day of the year: 32 % 3 = 2. */
+    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 1, 1));
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(recipeName(fixture.nativeElement)).toBe(
+      'Lemon and Ricotta Cheesecake',
+    );
+  });
+
+  it('always picks the only recipe of the catalog', async () => {
+    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 11, 31));
+    search.mockReturnValue(of([hummus]));
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(recipeName(fixture.nativeElement)).toBe('Hummus with Ful');
+  });
 });
 
 function mountRecipeOfTheDay(now: Date) {

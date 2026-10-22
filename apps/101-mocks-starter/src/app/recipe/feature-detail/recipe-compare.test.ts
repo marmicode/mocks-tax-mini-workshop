@@ -118,6 +118,88 @@ describe(RecipeCompare.name, () => {
       queryParamsHandling: 'merge',
     });
   });
+
+  it('preselects the compared recipes in the pickers', async () => {
+    const { fixture, search } = mountRecipeCompare({
+      left: 'hummus-ful',
+      right: 'shakshuka',
+    });
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(
+      selects(fixture.nativeElement).map((select) => select.value),
+    ).toEqual(['hummus-ful', 'shakshuka']);
+  });
+
+  it('does not compare until both recipes are picked', async () => {
+    const { fixture, search, findById } = mountRecipeCompare({
+      left: 'shakshuka',
+    });
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
+    expect(fixture.nativeElement.querySelector('table')).toBeNull();
+  });
+
+  it('tells when recipes share no ingredients', async () => {
+    const { fixture, search, findById } = mountRecipeCompare({
+      left: 'shakshuka',
+      right: 'hummus-ful',
+    });
+    findById.mockImplementation(({ id }) =>
+      of(
+        id === 'shakshuka'
+          ? shakshuka
+          : { ...hummus, ingredients: [{ name: 'tahini' }] },
+      ),
+    );
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(textOf(fixture.nativeElement, 'no-shared-ingredients')).toBe(
+      'No shared ingredients.',
+    );
+  });
+
+  it('clears a side when "Pick a recipe" is chosen', async () => {
+    const { fixture, search } = mountRecipeCompare({
+      left: 'shakshuka',
+      right: 'hummus-ful',
+    });
+    const navigate = vi
+      .spyOn(TestBed.inject(Router), 'navigate')
+      .mockResolvedValue(true);
+    await fixture.whenStable();
+
+    const [, rightSelect] = selects(fixture.nativeElement);
+    rightSelect.value = '';
+    rightSelect.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(navigate).toHaveBeenCalledExactlyOnceWith(['/', 'compare'], {
+      queryParams: { right: null },
+      queryParamsHandling: 'merge',
+    });
+  });
 });
 
 function mountRecipeCompare({
