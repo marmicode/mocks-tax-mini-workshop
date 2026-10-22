@@ -85,11 +85,13 @@ describe(RecipeDetail.name, () => {
   });
 
   it('shows similar recipes of the same course', async () => {
-    const { fixture, search } = mountRecipeDetail('shakshuka');
+    const { fixture, findById, search } = mountRecipeDetail('shakshuka');
     search.mockReturnValue(of([shakshuka, harissaChicken]));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    expect(findById).toHaveBeenCalledTimes(1);
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(search).toHaveBeenNthCalledWith(1, {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,

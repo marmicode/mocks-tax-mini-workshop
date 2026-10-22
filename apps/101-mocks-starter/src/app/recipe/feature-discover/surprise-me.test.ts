@@ -33,15 +33,15 @@ describe(SurpriseMe.name, () => {
     pick.mockReturnValue(cheesecake);
     await fixture.whenStable();
 
+    expect(pick).toHaveBeenCalledExactlyOnceWith([shakshuka, cheesecake]);
+    expect(recipeName(fixture.nativeElement)).toBe(
+      'Lemon and Ricotta Cheesecake',
+    );
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(pick).toHaveBeenCalledExactlyOnceWith([shakshuka, cheesecake]);
-    expect(recipeName(fixture.nativeElement)).toBe(
-      'Lemon and Ricotta Cheesecake',
-    );
   });
 
   it('searches only the chosen course', async () => {
@@ -52,7 +52,12 @@ describe(SurpriseMe.name, () => {
     await fixture.whenStable();
 
     expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
+    expect(search).toHaveBeenNthCalledWith(1, {
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(search).toHaveBeenNthCalledWith(2, {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -61,7 +66,7 @@ describe(SurpriseMe.name, () => {
   });
 
   it('stops filtering by course when "Any" is chosen', async () => {
-    const { fixture, search } = mountSurpriseMe();
+    const { fixture, search, pick } = mountSurpriseMe();
     await fixture.whenStable();
 
     clickToggle(fixture.nativeElement, 'Mains');
@@ -69,7 +74,15 @@ describe(SurpriseMe.name, () => {
     clickToggle(fixture.nativeElement, 'Any');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenLastCalledWith({
+    expect(pick).toHaveBeenLastCalledWith([shakshuka, cheesecake]);
+    expect(search).toHaveBeenCalledTimes(3);
+    expect(search).toHaveBeenNthCalledWith(2, {
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+      courses: ['main'],
+    });
+    expect(search).toHaveBeenNthCalledWith(3, {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -85,15 +98,15 @@ describe(SurpriseMe.name, () => {
     buttonByText(fixture.nativeElement, 'Surprise me again').click();
     await fixture.whenStable();
 
+    expect(recipeName(fixture.nativeElement)).toBe(
+      'Lemon and Ricotta Cheesecake',
+    );
     expect(search).toHaveBeenCalledTimes(2);
     expect(search).toHaveBeenNthCalledWith(2, {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(recipeName(fixture.nativeElement)).toBe(
-      'Lemon and Ricotta Cheesecake',
-    );
   });
 
   it('shows a message when there is nothing to pick', async () => {
@@ -117,38 +130,35 @@ describe(SurpriseMe.name, () => {
     const { fixture, search, pick } = mountSurpriseMe();
     await fixture.whenStable();
 
-    search.mockReturnValue(of([cheesecake]));
-    pick.mockReturnValue(cheesecake);
     clickToggle(fixture.nativeElement, 'Desserts');
     await fixture.whenStable();
 
+    expect(pick).toHaveBeenLastCalledWith([cheesecake]);
+    expect(recipeName(fixture.nativeElement)).toBe(
+      'Lemon and Ricotta Cheesecake',
+    );
     expect(search).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['dessert'],
     });
-    expect(pick).toHaveBeenLastCalledWith([cheesecake]);
-    expect(recipeName(fixture.nativeElement)).toBe(
-      'Lemon and Ricotta Cheesecake',
-    );
   });
 
   it('links the surprise to its recipe page', async () => {
-    const { fixture, search, pick } = mountSurpriseMe();
-    pick.mockReturnValue(shakshuka);
+    const { fixture, search } = mountSurpriseMe();
     await fixture.whenStable();
 
     const root: HTMLElement = fixture.nativeElement;
+    expect(root.querySelector('.eyebrow')?.textContent?.trim()).toBe('🎲 main');
+    expect(root.querySelector('a')?.getAttribute('href')).toBe(
+      '/recipes/shakshuka',
+    );
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(root.querySelector('.eyebrow')?.textContent?.trim()).toBe('🎲 main');
-    expect(root.querySelector('a')?.getAttribute('href')).toBe(
-      '/recipes/shakshuka',
-    );
   });
 
   it('keeps the chosen course when asked again', async () => {
@@ -161,7 +171,18 @@ describe(SurpriseMe.name, () => {
     await fixture.whenStable();
 
     expect(search).toHaveBeenCalledTimes(3);
-    expect(search).toHaveBeenLastCalledWith({
+    expect(search).toHaveBeenNthCalledWith(1, {
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(search).toHaveBeenNthCalledWith(2, {
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+      courses: ['main'],
+    });
+    expect(search).toHaveBeenNthCalledWith(3, {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -170,13 +191,13 @@ describe(SurpriseMe.name, () => {
   });
 
   it('shows a message when the chosen course has no recipes', async () => {
-    const { fixture, search } = mountSurpriseMe();
+    const { fixture, search, pick } = mountSurpriseMe();
     await fixture.whenStable();
 
-    search.mockReturnValue(of([]));
     clickToggle(fixture.nativeElement, 'Starters');
     await fixture.whenStable();
 
+    expect(pick).toHaveBeenCalledTimes(1);
     expect(search).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: null,
@@ -195,12 +216,19 @@ function mountSurpriseMe() {
     providers: [provideRouter([])],
   });
 
+  const catalog = [shakshuka, cheesecake];
   const search = vi
     .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([shakshuka, cheesecake]));
+    .mockImplementation((params) =>
+      of(
+        params.courses == null
+          ? catalog
+          : catalog.filter((recipe) => params.courses?.includes(recipe.course)),
+      ),
+    );
   const pick = vi
     .spyOn(TestBed.inject(RandomAdapter), 'pick')
-    .mockReturnValue(shakshuka);
+    .mockImplementation((items) => items[0]);
 
   const fixture = TestBed.createComponent(SurpriseMe);
 

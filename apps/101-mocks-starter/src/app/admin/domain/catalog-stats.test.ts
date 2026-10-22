@@ -154,12 +154,10 @@ describe(CatalogStats.name, () => {
     await firstValueFrom(catalogStats.stats());
     const stats = await firstValueFrom(catalogStats.stats());
 
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toEqual([
+      [{ keywords: '', maxIngredientCount: null, maxStepCount: null }],
+      [{ keywords: '', maxIngredientCount: null, maxStepCount: null }],
+    ]);
     expect(stats.recipeCount).toBe(1);
   });
 });

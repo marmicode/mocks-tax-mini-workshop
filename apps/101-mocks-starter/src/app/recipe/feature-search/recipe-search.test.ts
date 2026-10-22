@@ -44,18 +44,17 @@ describe(RecipeSearch.name, () => {
 
   it('renders the recipes returned by the repository', async () => {
     const { fixture, search } = await mountRecipeSearch();
-    search.mockReturnValue(of([shakshuka, cheesecake]));
     await fixture.whenStable();
 
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Shakshuka',
+      'Lemon and Ricotta Cheesecake',
+    ]);
     expect(search).toHaveBeenCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-    ]);
   });
 
   it('shows "no recipes" when the repository returns nothing', async () => {
@@ -123,7 +122,16 @@ describe(RecipeSearch.name, () => {
     clickCourse(fixture.nativeElement, 'dessert');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenLastCalledWith({
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Lemon and Ricotta Cheesecake',
+    ]);
+    expect(search).toHaveBeenCalledTimes(2);
+    expect(search).toHaveBeenNthCalledWith(1, {
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(search).toHaveBeenNthCalledWith(2, {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -140,6 +148,7 @@ describe(RecipeSearch.name, () => {
     clickCourse(fixture.nativeElement, 'dessert');
     await fixture.whenStable();
 
+    expect(search).toHaveBeenCalledTimes(3);
     expect(search).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: null,
@@ -157,7 +166,18 @@ describe(RecipeSearch.name, () => {
     clickCourse(fixture.nativeElement, 'main');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenLastCalledWith({
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Shakshuka',
+      'Lemon and Ricotta Cheesecake',
+    ]);
+    expect(search).toHaveBeenCalledTimes(3);
+    expect(search).toHaveBeenNthCalledWith(2, {
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+      courses: ['main'],
+    });
+    expect(search).toHaveBeenNthCalledWith(3, {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -174,7 +194,13 @@ describe(RecipeSearch.name, () => {
     clickCourse(fixture.nativeElement, 'dessert');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenLastCalledWith({
+    expect(search).toHaveBeenCalledTimes(3);
+    expect(search).toHaveBeenNthCalledWith(2, {
+      keywords: 'lemon',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(search).toHaveBeenNthCalledWith(3, {
       keywords: 'lemon',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -225,7 +251,8 @@ describe(RecipeSearch.name, () => {
     clickCourse(fixture.nativeElement, 'dessert');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenLastCalledWith({
+    expect(search).toHaveBeenCalledTimes(4);
+    expect(search).toHaveBeenNthCalledWith(4, {
       keywords: 'lemon',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -234,7 +261,6 @@ describe(RecipeSearch.name, () => {
 
   it('shows "no recipes" when favorites only is checked without any favorite', async () => {
     const { fixture, search, userFavorites } = await mountRecipeSearch();
-    search.mockReturnValue(of([shakshuka, cheesecake]));
     vi.spyOn(userFavorites, 'favoriteIds').mockReturnValue(new Set());
     await fixture.whenStable();
 
@@ -255,7 +281,6 @@ describe(RecipeSearch.name, () => {
 
   it('shows only favorites without sending favorites to the repository', async () => {
     const { fixture, search, userFavorites } = await mountRecipeSearch();
-    search.mockReturnValue(of([shakshuka, cheesecake]));
     vi.spyOn(userFavorites, 'favoriteIds').mockReturnValue(
       new Set([cheesecake.id]),
     );
@@ -264,14 +289,14 @@ describe(RecipeSearch.name, () => {
     checkboxByLabel(fixture.nativeElement, 'Favorites only').click();
     await fixture.whenStable();
 
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Lemon and Ricotta Cheesecake',
+    ]);
     expect(search).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Lemon and Ricotta Cheesecake',
-    ]);
   });
 
   it('adds a recipe to favorites', async () => {
@@ -372,10 +397,17 @@ async function mountRecipeSearch() {
     ],
   });
 
+  const catalog = [shakshuka, cheesecake];
   const recipeRepository = TestBed.inject(RecipeRepository);
   const search = vi
     .spyOn(recipeRepository, 'search')
-    .mockReturnValue(of([shakshuka, cheesecake]));
+    .mockImplementation(({ courses }) =>
+      of(
+        courses
+          ? catalog.filter((recipe) => courses.includes(recipe.course))
+          : catalog,
+      ),
+    );
   const userFavorites = TestBed.inject(UserFavorites);
   const mealPlanStore = TestBed.inject(MealPlanStore);
 

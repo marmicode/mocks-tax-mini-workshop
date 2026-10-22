@@ -69,12 +69,24 @@ describe(RecipeKeywordChips.name, () => {
     chipByLabel(fixture.nativeElement, 'lentil').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'lentil',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "le",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+        [
+          {
+            "keywords": "lentil",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
     expect(recipeNames(fixture.nativeElement)).toEqual(['Red Lentil Soup']);
   });
 

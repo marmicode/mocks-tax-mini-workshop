@@ -61,8 +61,10 @@ describe(MealPlanSwap.name, () => {
     findById.mockReturnValue(of(shakshuka));
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    expect(findById).toHaveBeenCalledTimes(1);
+    expect(findById).toHaveBeenNthCalledWith(1, { id: 'shakshuka' });
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(search).toHaveBeenNthCalledWith(1, {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,

@@ -35,7 +35,8 @@ describe(RecipeCompare.name, () => {
     const { fixture, search, findById } = mountRecipeCompare({});
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(search).toHaveBeenNthCalledWith(1, {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -49,15 +50,21 @@ describe(RecipeCompare.name, () => {
   });
 
   it('fetches both compared recipes', async () => {
-    const { fixture, findById } = mountRecipeCompare({
+    const { fixture, search, findById } = mountRecipeCompare({
       left: 'shakshuka',
       right: 'hummus-ful',
     });
     await fixture.whenStable();
 
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(search).toHaveBeenNthCalledWith(1, {
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
     expect(findById).toHaveBeenCalledTimes(2);
-    expect(findById).toHaveBeenCalledWith({ id: 'shakshuka' });
-    expect(findById).toHaveBeenCalledWith({ id: 'hummus-ful' });
+    expect(findById).toHaveBeenNthCalledWith(1, { id: 'shakshuka' });
+    expect(findById).toHaveBeenNthCalledWith(2, { id: 'hummus-ful' });
   });
 
   it('compares course, ingredient count and step count', async () => {

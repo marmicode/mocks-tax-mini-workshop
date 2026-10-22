@@ -1,7 +1,7 @@
+import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { CatalogSize } from './catalog-size.ng';
 
@@ -27,10 +27,10 @@ const salad: Recipe = {
 
 describe(CatalogSize.name, () => {
   it('searches all recipes', async () => {
-    const { fixture, search } = mountCatalogSize();
+    const { fixture, post } = mountCatalogSize();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    expect(post).toHaveBeenCalledExactlyOnceWith('/api/recipes/search', {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -38,11 +38,11 @@ describe(CatalogSize.name, () => {
   });
 
   it('shows the number of recipes', async () => {
-    const { fixture, search } = mountCatalogSize();
-    search.mockReturnValue(of([hummus, salad]));
+    const { fixture, post } = mountCatalogSize();
+    post.mockReturnValue(of([hummus, salad]));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    expect(post).toHaveBeenCalledExactlyOnceWith('/api/recipes/search', {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -51,11 +51,11 @@ describe(CatalogSize.name, () => {
   });
 
   it('uses the singular for a single recipe', async () => {
-    const { fixture, search } = mountCatalogSize();
-    search.mockReturnValue(of([hummus]));
+    const { fixture, post } = mountCatalogSize();
+    post.mockReturnValue(of([hummus]));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    expect(post).toHaveBeenCalledExactlyOnceWith('/api/recipes/search', {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -64,11 +64,11 @@ describe(CatalogSize.name, () => {
   });
 
   it('counts distinct ingredients', async () => {
-    const { fixture, search } = mountCatalogSize();
-    search.mockReturnValue(of([hummus, salad]));
+    const { fixture, post } = mountCatalogSize();
+    post.mockReturnValue(of([hummus, salad]));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    expect(post).toHaveBeenCalledExactlyOnceWith('/api/recipes/search', {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -79,11 +79,11 @@ describe(CatalogSize.name, () => {
   });
 
   it('shows a message when the catalog is empty', async () => {
-    const { fixture, search } = mountCatalogSize();
-    search.mockReturnValue(of([]));
+    const { fixture, post } = mountCatalogSize();
+    post.mockReturnValue(of([]));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    expect(post).toHaveBeenCalledExactlyOnceWith('/api/recipes/search', {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -95,13 +95,15 @@ describe(CatalogSize.name, () => {
 });
 
 function mountCatalogSize() {
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
+  TestBed.configureTestingModule({ providers: [provideHttpClient()] });
+
+  const post = vi
+    .spyOn(TestBed.inject(HttpClient), 'post')
     .mockReturnValue(of([hummus, salad]));
 
   const fixture = TestBed.createComponent(CatalogSize);
 
-  return { fixture, search };
+  return { fixture, post };
 }
 
 function textOf(root: HTMLElement, testId: string): string | undefined {

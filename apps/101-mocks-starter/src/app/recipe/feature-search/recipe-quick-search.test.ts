@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -27,6 +27,8 @@ const roastedAubergine: Recipe = {
   steps: [],
 };
 
+const SEARCH_PARAM_KEYS = ['keywords', 'maxIngredientCount', 'maxStepCount'];
+
 describe(RecipeQuickSearch.name, () => {
   it('does not search with less than 2 characters', async () => {
     const { fixture, search } = mountQuickSearch();
@@ -46,15 +48,15 @@ describe(RecipeQuickSearch.name, () => {
     typeInto(quickSearchInput(fixture.nativeElement), 'aub');
     await fixture.whenStable();
 
+    expect(suggestionNames(fixture.nativeElement)).toEqual([
+      'Burnt Aubergine with Tahini and Pomegranate',
+      'Roasted Aubergine with Tahini and Pine Nuts',
+    ]);
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: 'aub',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(suggestionNames(fixture.nativeElement)).toEqual([
-      'Burnt Aubergine with Tahini and Pomegranate',
-      'Roasted Aubergine with Tahini and Pine Nuts',
-    ]);
   });
 
   it('shows at most 5 suggestions', async () => {
@@ -95,21 +97,20 @@ describe(RecipeQuickSearch.name, () => {
 
   it('says when nothing matches', async () => {
     const { fixture, search } = mountQuickSearch();
-    search.mockReturnValue(of([]));
     await fixture.whenStable();
 
     typeInto(quickSearchInput(fixture.nativeElement), 'xyz');
     await fixture.whenStable();
 
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="quick-search-empty"]')
+        ?.textContent,
+    ).toContain('No recipes found');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: 'xyz',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="quick-search-empty"]')
-        ?.textContent,
-    ).toContain('No recipes found');
   });
 
   it('clears the search once a suggestion is picked', async () => {
@@ -132,6 +133,10 @@ describe(RecipeQuickSearch.name, () => {
     typeInto(quickSearchInput(fixture.nativeElement), '  tahini  ');
     await fixture.whenStable();
 
+    expect(suggestionNames(fixture.nativeElement)).toEqual([
+      'Burnt Aubergine with Tahini and Pomegranate',
+      'Roasted Aubergine with Tahini and Pine Nuts',
+    ]);
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: 'tahini',
       maxIngredientCount: null,
@@ -161,19 +166,23 @@ describe(RecipeQuickSearch.name, () => {
 
     typeInto(quickSearchInput(fixture.nativeElement), 'aub');
     await fixture.whenStable();
-    search.mockReturnValue(of([roastedAubergine]));
-    typeInto(quickSearchInput(fixture.nativeElement), 'aubergine pine');
+    typeInto(quickSearchInput(fixture.nativeElement), 'pine');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'aubergine pine',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(suggestionNames(fixture.nativeElement)).toEqual([
       'Roasted Aubergine with Tahini and Pine Nuts',
     ]);
+    expect(search).toHaveBeenCalledTimes(2);
+    expect(search).toHaveBeenNthCalledWith(1, {
+      keywords: 'aub',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(search).toHaveBeenNthCalledWith(2, {
+      keywords: 'pine',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
   });
 
   it('hides suggestions once keywords become too short again', async () => {
@@ -207,7 +216,25 @@ function mountQuickSearch() {
 
   const search = vi
     .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([burntAubergine, roastedAubergine]));
+    .mockImplementation((params) => {
+      /* Fail fast on params this stub does not know how to handle. */
+      const unexpectedKeys = Object.keys(params).filter(
+        (key) => !SEARCH_PARAM_KEYS.includes(key),
+      );
+      if (unexpectedKeys.length > 0) {
+        return throwError(
+          () =>
+            new Error(`Unexpected search params: ${unexpectedKeys.join(', ')}`),
+        );
+      }
+
+      const keywords = params.keywords.toLowerCase();
+      return of(
+        [burntAubergine, roastedAubergine].filter((recipe) =>
+          recipe.name.toLowerCase().includes(keywords),
+        ),
+      );
+    });
 
   const fixture = TestBed.createComponent(RecipeQuickSearch);
 

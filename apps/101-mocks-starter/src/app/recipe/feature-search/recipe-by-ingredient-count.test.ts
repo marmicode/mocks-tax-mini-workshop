@@ -77,12 +77,24 @@ describe(RecipeByIngredientCount.name, () => {
     buttonByText(fixture.nativeElement, 'At most 3 ingredients').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: 3,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": 5,
+            "maxStepCount": null,
+          },
+        ],
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": 3,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
   });
 
   it('searches with more ingredients when asked', async () => {

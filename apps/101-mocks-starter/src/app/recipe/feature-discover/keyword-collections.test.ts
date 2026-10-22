@@ -27,6 +27,15 @@ const cake: Recipe = {
   steps: [],
 };
 
+/**
+ * Canned backend responses, keyed by the exact search request.
+ */
+const responses: Record<string, Recipe[]> = {
+  '{"keywords":"soup","maxIngredientCount":null,"maxStepCount":null}': [soup],
+  '{"keywords":"salad","maxIngredientCount":null,"maxStepCount":null}': [],
+  '{"keywords":"cake","maxIngredientCount":null,"maxStepCount":null}': [cake],
+};
+
 describe(KeywordCollections.name, () => {
   it('searches soups by default', async () => {
     const { fixture, search } = mountKeywordCollections();
@@ -41,15 +50,14 @@ describe(KeywordCollections.name, () => {
 
   it('shows the recipes of the collection', async () => {
     const { fixture, search } = mountKeywordCollections();
-    search.mockReturnValue(of([soup]));
     await fixture.whenStable();
 
+    expect(recipeNames(fixture.nativeElement)).toEqual(['Red Lentil Soup']);
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: 'soup',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Red Lentil Soup']);
   });
 
   it('searches salads when the salads collection is chosen', async () => {
@@ -71,25 +79,26 @@ describe(KeywordCollections.name, () => {
     const { fixture, search } = mountKeywordCollections();
     await fixture.whenStable();
 
-    search.mockReturnValue(of([cake]));
     clickToggle(fixture.nativeElement, 'Cakes');
     await fixture.whenStable();
 
+    expect(recipeNames(fixture.nativeElement)).toEqual(['Orange Polenta Cake']);
     expect(search).toHaveBeenLastCalledWith({
       keywords: 'cake',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Orange Polenta Cake']);
   });
 
   it('shows a message when the collection is empty', async () => {
     const { fixture, search } = mountKeywordCollections();
-    search.mockReturnValue(of([]));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'soup',
+    clickToggle(fixture.nativeElement, 'Salads');
+    await fixture.whenStable();
+
+    expect(search).toHaveBeenLastCalledWith({
+      keywords: 'salad',
       maxIngredientCount: null,
       maxStepCount: null,
     });
@@ -116,7 +125,9 @@ function mountKeywordCollections() {
 
   const search = vi
     .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([soup, cake]));
+    .mockImplementation((params) =>
+      of(responses[JSON.stringify(params)] ?? []),
+    );
 
   const fixture = TestBed.createComponent(KeywordCollections);
 

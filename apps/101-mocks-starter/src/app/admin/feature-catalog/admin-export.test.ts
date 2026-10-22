@@ -26,6 +26,16 @@ const cheesecake: Recipe = {
   steps: [],
 };
 
+/**
+ * What the backend returns for each course filter.
+ */
+const recipesByCourse: Record<string, Recipe[]> = {
+  all: [shakshuka, cheesecake],
+  starter: [],
+  main: [shakshuka],
+  dessert: [cheesecake],
+};
+
 describe(AdminExport.name, () => {
   it('searches all recipes without a course filter', async () => {
     const { fixture, search } = mountAdminExport();
@@ -43,36 +53,36 @@ describe(AdminExport.name, () => {
     const { fixture, search } = mountAdminExport();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
       '2 recipe(s) to export',
     );
     expect(
       JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
     ).toEqual([shakshuka, cheesecake]);
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
   });
 
   it('exports a single course', async () => {
     const { fixture, search } = mountAdminExport();
     await fixture.whenStable();
-    search.mockReturnValue(of([cheesecake]));
 
     selectCourse(fixture.nativeElement, 'dessert');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenLastCalledWith({
+    expect(
+      JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
+    ).toEqual([cheesecake]);
+    expect(search).toHaveBeenCalledTimes(2);
+    expect(search).toHaveBeenNthCalledWith(2, {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['dessert'],
     });
-    expect(
-      JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
-    ).toEqual([cheesecake]);
   });
 
   it('goes back to all courses', async () => {
@@ -84,8 +94,22 @@ describe(AdminExport.name, () => {
     selectCourse(fixture.nativeElement, '');
     await fixture.whenStable();
 
+    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
+      '2 recipe(s) to export',
+    );
     expect(search).toHaveBeenCalledTimes(3);
-    expect(search).toHaveBeenLastCalledWith({
+    expect(search).toHaveBeenNthCalledWith(1, {
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
+    expect(search).toHaveBeenNthCalledWith(2, {
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+      courses: ['main'],
+    });
+    expect(search).toHaveBeenNthCalledWith(3, {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -105,16 +129,16 @@ describe(AdminExport.name, () => {
 
     buttonByText(fixture.nativeElement, 'Download recipes.json').click();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     const blob = createObjectURL.mock.lastCall?.[0] as Blob;
     expect(JSON.parse(await blob.text())).toEqual([shakshuka, cheesecake]);
     const link = click.mock.contexts[0] as HTMLAnchorElement;
     expect(link.download).toBe('recipes.json');
     expect(link.href).toBe('blob:recipes');
+    expect(search).toHaveBeenCalledExactlyOnceWith({
+      keywords: '',
+      maxIngredientCount: null,
+      maxStepCount: null,
+    });
   });
 
   it('previews an empty export when the catalog is empty', async () => {
@@ -141,40 +165,42 @@ describe(AdminExport.name, () => {
 
     selectCourse(fixture.nativeElement, 'main');
     await fixture.whenStable();
-    search.mockReturnValue(of([cheesecake]));
     selectCourse(fixture.nativeElement, 'dessert');
     await fixture.whenStable();
 
+    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
+      '1 recipe(s) to export',
+    );
+    expect(search).toHaveBeenCalledTimes(3);
     expect(search).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['dessert'],
     });
-    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
-      '1 recipe(s) to export',
-    );
   });
 
   it('counts the recipes to export again after going back to all courses', async () => {
     const { fixture, search } = mountAdminExport();
     await fixture.whenStable();
 
-    search.mockReturnValue(of([shakshuka]));
     selectCourse(fixture.nativeElement, 'main');
     await fixture.whenStable();
-    search.mockReturnValue(of([shakshuka, cheesecake]));
+    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
+      '1 recipe(s) to export',
+    );
+
     selectCourse(fixture.nativeElement, '');
     await fixture.whenStable();
 
+    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
+      '2 recipe(s) to export',
+    );
     expect(search).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
-      '2 recipe(s) to export',
-    );
   });
 
   it('downloads only the recipes of the selected course', async () => {
@@ -188,19 +214,18 @@ describe(AdminExport.name, () => {
     );
     await fixture.whenStable();
 
-    search.mockReturnValue(of([shakshuka]));
     selectCourse(fixture.nativeElement, 'main');
     await fixture.whenStable();
     buttonByText(fixture.nativeElement, 'Download recipes.json').click();
 
+    const blob = createObjectURL.mock.lastCall?.[0] as Blob;
+    expect(JSON.parse(await blob.text())).toEqual([shakshuka]);
     expect(search).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['main'],
     });
-    const blob = createObjectURL.mock.lastCall?.[0] as Blob;
-    expect(JSON.parse(await blob.text())).toEqual([shakshuka]);
   });
 });
 
@@ -208,7 +233,13 @@ function mountAdminExport() {
   TestBed.configureTestingModule({ providers: [provideRouter([])] });
   const search = vi
     .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([shakshuka, cheesecake]));
+    .mockImplementation(({ courses }) =>
+      of(
+        courses === undefined
+          ? recipesByCourse['all']
+          : recipesByCourse[courses[0]],
+      ),
+    );
 
   const fixture = TestBed.createComponent(AdminExport);
 
