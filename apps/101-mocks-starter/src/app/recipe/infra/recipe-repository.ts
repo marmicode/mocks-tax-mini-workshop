@@ -10,9 +10,6 @@ export interface RecipeSearchParams {
   keywords: string;
   maxIngredientCount: number | null;
   maxStepCount: number | null;
-  /**
-   * Omitted to search all courses.
-   */
   courses?: Course[];
 }
 
