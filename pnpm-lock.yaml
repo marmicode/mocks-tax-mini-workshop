@@ -118,7 +118,7 @@ importers:
         specifier: ~5.0.5
         version: 5.0.5(vitest@5.0.5)
       '@wallabyjs/cli':
-        specifier: 1.0.26
+        specifier: ''
         version: 1.0.26
       angular-eslint:
         specifier: ^22.1.0
