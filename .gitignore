@@ -52,5 +52,6 @@ tmp
 
 vitest.config.*.timestamp*
 .vitest-attachments
+.vitest
 
 .claude/hooks/learn-skills/.cache/
