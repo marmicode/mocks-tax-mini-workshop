@@ -22,8 +22,18 @@ const lamb = recipeMother
   .build();
 
 describe(ThreeStepRecipes.name, () => {
-  it('shows only recipes with at most three steps', async () => {
+  it('searches recipes with at most three steps', async () => {
     const { fixture } = mountThreeStepRecipes();
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Hummus with Ful',
+      'Burnt Aubergine with Tahini and Pomegranate',
+    ]);
+  });
+
+  it('shows the three-step recipes', async () => {
+    const { fixture } = mountThreeStepRecipes({ recipes: [hummus, salad] });
     await fixture.whenStable();
 
     expect(recipeNames(fixture.nativeElement)).toEqual([

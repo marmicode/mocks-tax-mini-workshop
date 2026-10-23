@@ -29,8 +29,20 @@ const cheesecake = recipeMother
   .build();
 
 describe(RecipeByIngredientCount.name, () => {
-  it('shows recipes with at most 5 ingredients by default', async () => {
+  it('searches recipes with at most 5 ingredients by default', async () => {
     const { fixture } = mountRecipeByIngredientCount();
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Hummus with Ful',
+      'Shakshuka',
+    ]);
+  });
+
+  it('shows the matching recipes', async () => {
+    const { fixture } = mountRecipeByIngredientCount({
+      recipes: [hummus, shakshuka],
+    });
     await fixture.whenStable();
 
     expect(recipeNames(fixture.nativeElement)).toEqual([
@@ -48,7 +60,7 @@ describe(RecipeByIngredientCount.name, () => {
     );
   });
 
-  it('shows fewer recipes when asked for fewer ingredients', async () => {
+  it('searches with fewer ingredients when asked', async () => {
     const { fixture } = mountRecipeByIngredientCount();
     await fixture.whenStable();
 
@@ -61,7 +73,7 @@ describe(RecipeByIngredientCount.name, () => {
     );
   });
 
-  it('shows more recipes when asked for more ingredients', async () => {
+  it('searches with more ingredients when asked', async () => {
     const { fixture } = mountRecipeByIngredientCount();
     await fixture.whenStable();
 

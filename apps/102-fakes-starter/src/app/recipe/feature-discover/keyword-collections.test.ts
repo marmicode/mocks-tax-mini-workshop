@@ -14,12 +14,33 @@ const soup = recipeMother.withBasicInfo('Red Lentil Soup').build();
 
 const cake = recipeMother.withBasicInfo('Orange Polenta Cake').build();
 
+const salad = recipeMother.withBasicInfo('Fattoush Salad').build();
+
 describe(KeywordCollections.name, () => {
-  it('shows the soups by default', async () => {
+  it('searches soups by default', async () => {
     const { fixture } = mountKeywordCollections();
     await fixture.whenStable();
 
     expect(recipeNames(fixture.nativeElement)).toEqual(['Red Lentil Soup']);
+  });
+
+  it('shows the recipes of the collection', async () => {
+    const { fixture } = mountKeywordCollections({ recipes: [soup] });
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual(['Red Lentil Soup']);
+  });
+
+  it('searches salads when the salads collection is chosen', async () => {
+    const { fixture } = mountKeywordCollections({
+      recipes: [soup, cake, salad],
+    });
+    await fixture.whenStable();
+
+    clickToggle(fixture.nativeElement, 'Salads');
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual(['Fattoush Salad']);
   });
 
   it('shows cakes when the cakes collection is chosen', async () => {

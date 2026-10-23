@@ -31,14 +31,22 @@ const emptyAssignments: WeekdayAssignments = {
 };
 
 describe(MealPlanSuggester.name, () => {
-  it('only suggests mains', async () => {
-    const { suggester } = setUpMealPlanSuggester([hummus]);
+  it('searches mains', async () => {
+    const { suggester } = setUpMealPlanSuggester([hummus, shakshuka]);
 
     const suggestions = await firstValueFrom(
       suggester.suggest(emptyAssignments),
     );
 
-    expect(suggestions).toEqual({});
+    expect(suggestions).toEqual({
+      monday: shakshuka,
+      tuesday: shakshuka,
+      wednesday: shakshuka,
+      thursday: shakshuka,
+      friday: shakshuka,
+      saturday: shakshuka,
+      sunday: shakshuka,
+    });
   });
 
   it('fills every empty weekday round-robin', async () => {

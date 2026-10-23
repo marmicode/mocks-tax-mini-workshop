@@ -37,6 +37,17 @@ describe(RecipeCompare.name, () => {
     ]);
   });
 
+  it('shows both compared recipes', async () => {
+    const { fixture } = mountRecipeCompare({
+      left: shakshuka.id,
+      right: hummus.id,
+    });
+    await fixture.whenStable();
+
+    expect(textOf(fixture.nativeElement, 'left-name')).toBe('Shakshuka');
+    expect(textOf(fixture.nativeElement, 'right-name')).toBe('Hummus with Ful');
+  });
+
   it('compares course, ingredient count and step count', async () => {
     const { fixture } = mountRecipeCompare({
       left: shakshuka.id,

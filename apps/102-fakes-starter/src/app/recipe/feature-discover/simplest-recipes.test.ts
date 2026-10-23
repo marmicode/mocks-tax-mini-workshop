@@ -19,6 +19,28 @@ const salad = recipeMother
   .build();
 
 describe(SimplestRecipes.name, () => {
+  it('searches all recipes', async () => {
+    const { fixture } = mountSimplestRecipes({
+      recipes: [
+        recipeMother.withBasicInfo('Cassoulet').withManyIngredients().build(),
+        recipeMother
+          .withBasicInfo('Slow-cooked Lamb Stew')
+          .withManySteps()
+          .build(),
+        recipeMother
+          .withBasicInfo({ name: 'Baklava', course: 'dessert' })
+          .build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Baklava',
+      'Slow-cooked Lamb Stew',
+      'Cassoulet',
+    ]);
+  });
+
   it('shows recipes with the fewest ingredients first', async () => {
     const { fixture } = mountSimplestRecipes({ recipes: [hummus, salad] });
     await fixture.whenStable();

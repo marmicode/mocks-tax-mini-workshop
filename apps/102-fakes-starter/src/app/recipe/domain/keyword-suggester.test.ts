@@ -20,6 +20,26 @@ const lemonChicken = recipeMother
 const lentilSoup = recipeMother.withBasicInfo('Red Lentil Soup').build();
 
 describe(KeywordSuggester.name, () => {
+  it('searches recipes matching the prefix', async () => {
+    const { keywordSuggester } = setUpKeywordSuggester({
+      /* A dessert with many ingredients and steps: only the prefix filters. */
+      recipes: [
+        recipeMother
+          .withBasicInfo({
+            name: 'Lemon and Ricotta Cheesecake',
+            course: 'dessert',
+          })
+          .withManyIngredients()
+          .withManySteps()
+          .build(),
+      ],
+    });
+
+    const keywords = await firstValueFrom(keywordSuggester.suggest('lem'));
+
+    expect(keywords).toEqual(['lemon']);
+  });
+
   it('suggests the words of recipe names that start with the prefix', async () => {
     const { keywordSuggester } = setUpKeywordSuggester();
 

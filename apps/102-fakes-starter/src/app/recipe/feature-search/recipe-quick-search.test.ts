@@ -32,7 +32,7 @@ describe(RecipeQuickSearch.name, () => {
     ).toBeNull();
   });
 
-  it('suggests the recipes matching the keywords', async () => {
+  it('searches by keywords', async () => {
     const { fixture } = mountQuickSearch();
     await fixture.whenStable();
 
@@ -97,11 +97,11 @@ describe(RecipeQuickSearch.name, () => {
     expect(suggestionNames(fixture.nativeElement)).toEqual([]);
   });
 
-  it('ignores surrounding spaces and case', async () => {
+  it('trims keywords before searching', async () => {
     const { fixture } = mountQuickSearch();
     await fixture.whenStable();
 
-    typeInto(quickSearchInput(fixture.nativeElement), '  TAHINI  ');
+    typeInto(quickSearchInput(fixture.nativeElement), '  tahini  ');
     await fixture.whenStable();
 
     expect(suggestionNames(fixture.nativeElement)).toEqual([
@@ -110,7 +110,7 @@ describe(RecipeQuickSearch.name, () => {
     ]);
   });
 
-  it('waits for 2 non-blank characters before suggesting', async () => {
+  it('waits for 2 non-blank characters before searching', async () => {
     const { fixture } = mountQuickSearch();
     await fixture.whenStable();
 

@@ -27,8 +27,20 @@ const brownies = recipeMother
   .build();
 
 describe(CourseBrowser.name, () => {
-  it('shows the course title and only its recipes', async () => {
+  it('searches recipes of the course', async () => {
     const { fixture } = mountCourseBrowser('dessert');
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Lemon and Ricotta Cheesecake',
+      'Tahini and Halva Brownies',
+    ]);
+  });
+
+  it('shows the course title and its recipes', async () => {
+    const { fixture } = mountCourseBrowser('dessert', {
+      recipes: [cheesecake, brownies],
+    });
     await fixture.whenStable();
 
     expect(fixture.nativeElement.querySelector('h2')?.textContent).toBe(
@@ -40,7 +52,7 @@ describe(CourseBrowser.name, () => {
     ]);
   });
 
-  it('shows the recipes of the new course when the course changes', async () => {
+  it('searches again when the course changes', async () => {
     const { fixture } = mountCourseBrowser('dessert');
     await fixture.whenStable();
 

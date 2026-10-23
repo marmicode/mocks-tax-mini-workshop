@@ -17,6 +17,29 @@ const lamb = recipeMother
   .build();
 
 describe(WeekendProjects.name, () => {
+  it('searches all recipes', async () => {
+    const { fixture } = mountWeekendProjects({
+      recipes: [
+        recipeMother
+          .withBasicInfo({ name: 'Baklava', course: 'dessert' })
+          .withSomeSteps()
+          .build(),
+        recipeMother.withBasicInfo('Cassoulet').withManyIngredients().build(),
+        recipeMother
+          .withBasicInfo('Slow-cooked Lamb Stew')
+          .withManySteps()
+          .build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Slow-cooked Lamb Stew',
+      'Baklava',
+      'Cassoulet',
+    ]);
+  });
+
   it('shows the most involved recipes first', async () => {
     const { fixture } = mountWeekendProjects({ recipes: [hummus, lamb] });
     await fixture.whenStable();

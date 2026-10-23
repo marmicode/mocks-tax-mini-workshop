@@ -41,6 +41,28 @@ const sketchyFritters = recipeMother
   .build();
 
 describe(AdminQualityReport.name, () => {
+  it('searches all recipes', async () => {
+    const { fixture } = mountAdminQualityReport({
+      recipes: [
+        recipeMother
+          .withBasicInfo({
+            name: 'Lemon and Ricotta Cheesecake',
+            course: 'dessert',
+          })
+          .build(),
+        recipeMother.withBasicInfo('Shakshuka').withManyIngredients().build(),
+        recipeMother.withBasicInfo('Hummus with Ful').withManySteps().build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(rowNames(fixture.nativeElement)).toEqual([
+      'Lemon and Ricotta Cheesecake',
+      'Shakshuka',
+      'Hummus with Ful',
+    ]);
+  });
+
   it('gives a perfect score to a complete recipe', async () => {
     const { fixture } = mountAdminQualityReport({ recipes: [shakshuka] });
     await fixture.whenStable();

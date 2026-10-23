@@ -33,6 +33,15 @@ const cheesecake = recipeMother
   .build();
 
 describe(RecipeDetail.name, () => {
+  it('shows the recipe with the given id', async () => {
+    const { fixture } = mountRecipeDetail(harissaChicken.id);
+    await fixture.whenStable();
+
+    expect(textOf(fixture.nativeElement, 'recipe-name')).toBe(
+      'Harissa-Roasted Chicken',
+    );
+  });
+
   it('shows the recipe name, course, description and picture', async () => {
     const { fixture } = mountRecipeDetail(shakshuka.id);
     await fixture.whenStable();

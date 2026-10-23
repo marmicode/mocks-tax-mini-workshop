@@ -27,7 +27,7 @@ const cheesecake = recipeMother
   .build();
 
 describe(RecipeSearch.name, () => {
-  it('shows every recipe of the catalog on load', async () => {
+  it('searches all recipes on load', async () => {
     const { fixture } = mountRecipeSearch();
     await fixture.whenStable();
 
@@ -38,7 +38,17 @@ describe(RecipeSearch.name, () => {
     ]);
   });
 
-  it('shows "no recipes" when the catalog is empty', async () => {
+  it('renders the recipes returned by the repository', async () => {
+    const { fixture } = mountRecipeSearch({ recipes: [shakshuka, cheesecake] });
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Shakshuka',
+      'Lemon and Ricotta Cheesecake',
+    ]);
+  });
+
+  it('shows "no recipes" when the repository returns nothing', async () => {
     const { fixture } = mountRecipeSearch({ recipes: [] });
     await fixture.whenStable();
 
@@ -111,6 +121,22 @@ describe(RecipeSearch.name, () => {
     ]);
   });
 
+  it('shows all recipes again once every course is unselected', async () => {
+    const { fixture } = mountRecipeSearch();
+    await fixture.whenStable();
+
+    clickCourse(fixture.nativeElement, 'main');
+    await fixture.whenStable();
+    clickCourse(fixture.nativeElement, 'main');
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Hummus with Ful',
+      'Shakshuka',
+      'Lemon and Ricotta Cheesecake',
+    ]);
+  });
+
   it('combines keywords and course', async () => {
     const { fixture } = mountRecipeSearch();
     await fixture.whenStable();
@@ -142,7 +168,7 @@ describe(RecipeSearch.name, () => {
     expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
 
-  it('shows all recipes again once keywords are cleared', async () => {
+  it('searches all recipes again once keywords are cleared', async () => {
     const { fixture } = mountRecipeSearch();
     await fixture.whenStable();
 
@@ -158,7 +184,7 @@ describe(RecipeSearch.name, () => {
     ]);
   });
 
-  it('shows no recipe once the course is unselected even with keywords', async () => {
+  it('keeps the keywords once the course is unselected', async () => {
     const { fixture } = mountRecipeSearch();
     await fixture.whenStable();
 
@@ -169,7 +195,10 @@ describe(RecipeSearch.name, () => {
     clickCourse(fixture.nativeElement, 'dessert');
     await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([]);
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Shakshuka',
+      'Lemon and Ricotta Cheesecake',
+    ]);
   });
 
   it('shows "no recipes" when favorites only is checked without any favorite', async () => {

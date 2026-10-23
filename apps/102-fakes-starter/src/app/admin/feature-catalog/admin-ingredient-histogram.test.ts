@@ -10,6 +10,29 @@ import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminIngredientHistogram } from './admin-ingredient-histogram.ng';
 
 describe(AdminIngredientHistogram.name, () => {
+  it('searches all recipes', async () => {
+    const { fixture } = mountAdminIngredientHistogram({
+      recipes: [
+        recipeMother
+          .withBasicInfo({
+            name: 'Lemon and Ricotta Cheesecake',
+            course: 'dessert',
+          })
+          .withSomeIngredients()
+          .build(),
+        recipeMother.withBasicInfo('Shakshuka').withManyIngredients().build(),
+        recipeMother.withBasicInfo('Hummus with Ful').withManySteps().build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(histogram(fixture.nativeElement)).toEqual([
+      { ingredientCount: '0', recipeCount: '1' },
+      { ingredientCount: '3', recipeCount: '1' },
+      { ingredientCount: '8', recipeCount: '1' },
+    ]);
+  });
+
   it('shows an empty state when there are no recipes', async () => {
     const { fixture } = mountAdminIngredientHistogram();
     await fixture.whenStable();

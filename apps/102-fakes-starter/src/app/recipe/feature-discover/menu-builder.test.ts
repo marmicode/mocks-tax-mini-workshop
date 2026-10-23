@@ -29,6 +29,26 @@ const cheesecake = recipeMother
   .build();
 
 describe(MenuBuilder.name, () => {
+  it('searches recipes for each course', async () => {
+    const { fixture } = mountMenuBuilder({
+      recipes: [
+        recipeMother
+          .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+          .withManyIngredients()
+          .build(),
+        recipeMother.withBasicInfo('Shakshuka').withManySteps().build(),
+        cheesecake,
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Hummus with Ful',
+      'Shakshuka',
+      'Lemon and Ricotta Cheesecake',
+    ]);
+  });
+
   it('shows a three-course menu', async () => {
     const { fixture } = mountMenuBuilder();
     await fixture.whenStable();

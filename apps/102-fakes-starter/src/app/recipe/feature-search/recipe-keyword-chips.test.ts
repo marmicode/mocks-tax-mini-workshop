@@ -19,7 +19,30 @@ const lentilSoup = recipeMother.withBasicInfo('Red Lentil Soup').build();
 const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 describe(RecipeKeywordChips.name, () => {
-  it('shows a chip for each keyword matching the typed prefix', async () => {
+  it('searches recipes matching the typed prefix', async () => {
+    const { fixture } = mountRecipeKeywordChips({
+      /* A dessert with many ingredients and steps: only the prefix filters. */
+      recipes: [
+        recipeMother
+          .withBasicInfo({
+            name: 'Lemon and Ricotta Cheesecake',
+            course: 'dessert',
+          })
+          .withManyIngredients()
+          .withManySteps()
+          .build(),
+        shakshuka,
+      ],
+    });
+    await fixture.whenStable();
+
+    typeKeywordPrefix(fixture.nativeElement, 'le');
+    await fixture.whenStable();
+
+    expect(chipLabels(fixture.nativeElement)).toEqual(['lemon']);
+  });
+
+  it('shows a chip for each suggested keyword', async () => {
     const { fixture } = mountRecipeKeywordChips();
     await fixture.whenStable();
 
@@ -29,7 +52,7 @@ describe(RecipeKeywordChips.name, () => {
     expect(chipLabels(fixture.nativeElement)).toEqual(['lemon', 'lentil']);
   });
 
-  it('shows the recipes matching the picked keyword', async () => {
+  it('searches recipes with the picked keyword', async () => {
     const { fixture } = mountRecipeKeywordChips();
     await fixture.whenStable();
 
@@ -41,7 +64,7 @@ describe(RecipeKeywordChips.name, () => {
     expect(recipeNames(fixture.nativeElement)).toEqual(['Red Lentil Soup']);
   });
 
-  it('shows a message when the picked keyword matches no recipe anymore', async () => {
+  it('shows a message when the picked keyword matches no recipe', async () => {
     const { fixture, recipeRepositoryFake } = mountRecipeKeywordChips();
     await fixture.whenStable();
 

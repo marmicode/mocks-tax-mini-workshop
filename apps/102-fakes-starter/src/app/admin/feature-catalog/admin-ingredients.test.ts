@@ -23,6 +23,36 @@ const hummus = recipeMother
   .build();
 
 describe(AdminIngredients.name, () => {
+  it('searches all recipes', async () => {
+    const { fixture } = mountAdminIngredients({
+      recipes: [
+        recipeMother
+          .withBasicInfo({
+            name: 'Lemon and Ricotta Cheesecake',
+            course: 'dessert',
+          })
+          .withIngredients([{ name: 'olive oil' }])
+          .build(),
+        /* The pantry of withManyIngredients() includes olive oil too. */
+        recipeMother
+          .withBasicInfo('Slow-Roasted Lamb Shoulder')
+          .withManyIngredients()
+          .build(),
+        recipeMother
+          .withBasicInfo('Lamb Kofte')
+          .withManySteps()
+          .withIngredients([{ name: 'olive oil' }])
+          .build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(ingredientRows(fixture.nativeElement)).toContainEqual([
+      'olive oil',
+      '3',
+    ]);
+  });
+
   it('counts how many recipes use each ingredient', async () => {
     const { fixture } = mountAdminIngredients();
     await fixture.whenStable();
@@ -62,19 +92,27 @@ describe(AdminIngredients.name, () => {
     ]);
   });
 
-  it('shows the renamed ingredient after renaming', async () => {
-    const { fixture } = mountAdminIngredients();
+  it('searches recipes again after renaming', async () => {
+    const { fixture, recipeRepositoryFake } = mountAdminIngredients();
     await fixture.whenStable();
 
+    recipeRepositoryFake.setRecipes([
+      shakshuka,
+      hummus,
+      recipeMother
+        .withBasicInfo('Lamb Kofte')
+        .withIngredients([{ name: 'cumin' }])
+        .build(),
+    ]);
     await renameIngredient(fixture, 'tahini', 'light tahini');
     await fixture.whenStable();
 
     expect(ingredientRows(fixture.nativeElement)).toEqual([
       ['olive oil', '2'],
+      ['cumin', '1'],
       ['eggs', '1'],
       ['light tahini', '1'],
     ]);
-    expect(fixture.nativeElement.querySelector('input')).toBeNull();
   });
 
   it('does not update anything when the name is unchanged', async () => {
@@ -121,6 +159,21 @@ describe(AdminIngredients.name, () => {
     await fixture.whenStable();
 
     expect(recipeRepositoryFake.getRecipesSync()).toEqual([shakshuka, hummus]);
+    expect(fixture.nativeElement.querySelector('input')).toBeNull();
+  });
+
+  it('shows the renamed ingredient once recipes are searched again', async () => {
+    const { fixture } = mountAdminIngredients();
+    await fixture.whenStable();
+
+    await renameIngredient(fixture, 'tahini', 'tahina');
+    await fixture.whenStable();
+
+    expect(ingredientRows(fixture.nativeElement)).toEqual([
+      ['olive oil', '2'],
+      ['eggs', '1'],
+      ['tahina', '1'],
+    ]);
     expect(fixture.nativeElement.querySelector('input')).toBeNull();
   });
 });

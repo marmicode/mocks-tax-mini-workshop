@@ -41,6 +41,17 @@ describe(MealPlan.name, () => {
     }
   });
 
+  it('shows the planned recipe', async () => {
+    const { fixture } = mountMealPlan({
+      ...emptyAssignments,
+      monday: shakshuka.id,
+    });
+    await fixture.whenStable();
+
+    const [monday] = dayElements(fixture.nativeElement);
+    expect(monday?.textContent).toContain('Shakshuka');
+  });
+
   it('shows each planned recipe', async () => {
     const { fixture } = mountMealPlan({
       ...emptyAssignments,

@@ -16,6 +16,28 @@ const cheesecake = recipeMother
   .build();
 
 describe(AdminExport.name, () => {
+  it('searches all recipes without a course filter', async () => {
+    const lambShoulder = recipeMother
+      .withBasicInfo('Slow-Roasted Lamb Shoulder')
+      .withManyIngredients()
+      .build();
+    const kofte = recipeMother
+      .withBasicInfo('Lamb Kofte')
+      .withManySteps()
+      .build();
+    const { fixture } = mountAdminExport({
+      recipes: [shakshuka, cheesecake, lambShoulder, kofte],
+    });
+    await fixture.whenStable();
+
+    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
+      '4 recipe(s) to export',
+    );
+    expect(
+      JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
+    ).toEqual([shakshuka, cheesecake, lambShoulder, kofte]);
+  });
+
   it('previews the exported recipes as JSON', async () => {
     const { fixture } = mountAdminExport();
     await fixture.whenStable();

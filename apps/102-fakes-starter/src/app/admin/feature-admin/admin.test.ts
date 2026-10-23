@@ -26,6 +26,33 @@ const shakshuka = recipeMother
   .build();
 
 describe(Admin.name, () => {
+  it('searches the whole catalog to compute stats', async () => {
+    const { fixture } = mountAdmin({
+      recipes: [
+        hummus,
+        shakshuka,
+        recipeMother
+          .withBasicInfo({
+            name: 'Lemon and Ricotta Cheesecake',
+            course: 'dessert',
+          })
+          .withManyIngredients()
+          .withSomeSteps()
+          .build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(tiles(fixture.nativeElement)).toEqual(
+      expect.arrayContaining([
+        '3 Recipes',
+        '1 starters',
+        '1 mains',
+        '1 desserts',
+      ]),
+    );
+  });
+
   it('shows the recipe count and the count per course', async () => {
     const { fixture } = mountAdmin();
     await fixture.whenStable();

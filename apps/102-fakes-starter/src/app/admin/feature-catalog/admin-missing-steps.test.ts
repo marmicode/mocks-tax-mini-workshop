@@ -10,6 +10,32 @@ import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminMissingSteps } from './admin-missing-steps.ng';
 
 describe(AdminMissingSteps.name, () => {
+  it('searches all recipes', async () => {
+    const { fixture } = mountAdminMissingSteps({
+      recipes: [
+        recipeMother
+          .withBasicInfo({
+            name: 'Lemon and Ricotta Cheesecake',
+            course: 'dessert',
+          })
+          .build(),
+        recipeMother.withBasicInfo('Shakshuka').withManyIngredients().build(),
+        /* Too many steps for any quick filter, all of them blank. */
+        recipeMother
+          .withBasicInfo('Hummus with Ful')
+          .withSteps(['', '', '', '', '', '', '', ''])
+          .build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(rowTexts(fixture.nativeElement)).toEqual([
+      'Lemon and Ricotta Cheesecake',
+      'Shakshuka',
+      'Hummus with Ful (8 blank)',
+    ]);
+  });
+
   it('shows an empty state when every recipe has steps', async () => {
     const { fixture } = mountAdminMissingSteps({
       recipes: [

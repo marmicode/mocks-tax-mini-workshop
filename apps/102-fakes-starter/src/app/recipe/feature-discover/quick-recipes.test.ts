@@ -23,8 +23,18 @@ const stew = recipeMother
   .build();
 
 describe(QuickRecipes.name, () => {
-  it('shows only recipes with few steps', async () => {
+  it('searches recipes with few steps', async () => {
     const { fixture } = mountQuickRecipes();
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Hummus with Ful',
+      'Burnt Aubergine with Tahini and Pomegranate',
+    ]);
+  });
+
+  it('shows the quick recipes', async () => {
+    const { fixture } = mountQuickRecipes({ recipes: [hummus, salad] });
     await fixture.whenStable();
 
     expect(recipeNames(fixture.nativeElement)).toEqual([
@@ -75,6 +85,16 @@ describe(QuickRecipes.name, () => {
     expect(fixture.nativeElement.textContent).toContain(
       'Recipes with at most 5 steps.',
     );
+  });
+
+  it('shows the recipes with few ingredients once capped', async () => {
+    const { fixture } = mountQuickRecipes();
+    await fixture.whenStable();
+
+    checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
 
   it('shows a message when no quick recipe has few ingredients', async () => {

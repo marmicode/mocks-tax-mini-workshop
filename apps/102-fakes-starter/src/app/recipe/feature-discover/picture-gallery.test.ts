@@ -16,6 +16,30 @@ const salad = recipeMother
   .build();
 
 describe(PictureGallery.name, () => {
+  it('searches all recipes', async () => {
+    const baklava = recipeMother
+      .withBasicInfo({ name: 'Baklava', course: 'dessert' })
+      .build();
+    const cassoulet = recipeMother
+      .withBasicInfo('Cassoulet')
+      .withManyIngredients()
+      .build();
+    const stew = recipeMother
+      .withBasicInfo('Slow-cooked Lamb Stew')
+      .withManySteps()
+      .build();
+    const { fixture } = mountPictureGallery({
+      recipes: [baklava, cassoulet, stew],
+    });
+    await fixture.whenStable();
+
+    expect(pictureSources(fixture.nativeElement)).toEqual([
+      baklava.pictureUri,
+      cassoulet.pictureUri,
+      stew.pictureUri,
+    ]);
+  });
+
   it('shows the picture of each recipe', async () => {
     const { fixture } = mountPictureGallery({ recipes: [hummus, salad] });
     await fixture.whenStable();

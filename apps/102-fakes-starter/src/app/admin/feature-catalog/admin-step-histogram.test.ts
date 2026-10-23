@@ -10,6 +10,32 @@ import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminStepHistogram } from './admin-step-histogram.ng';
 
 describe(AdminStepHistogram.name, () => {
+  it('searches all recipes', async () => {
+    const { fixture } = mountAdminStepHistogram({
+      recipes: [
+        recipeMother
+          .withBasicInfo({
+            name: 'Lemon and Ricotta Cheesecake',
+            course: 'dessert',
+          })
+          .withSomeSteps()
+          .build(),
+        recipeMother.withBasicInfo('Shakshuka').withManySteps().build(),
+        recipeMother
+          .withBasicInfo('Hummus with Ful')
+          .withManyIngredients()
+          .build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(histogram(fixture.nativeElement)).toEqual([
+      { stepCount: '0', recipeCount: '1' },
+      { stepCount: '3', recipeCount: '1' },
+      { stepCount: '8', recipeCount: '1' },
+    ]);
+  });
+
   it('shows an empty state when there are no recipes', async () => {
     const { fixture } = mountAdminStepHistogram();
     await fixture.whenStable();

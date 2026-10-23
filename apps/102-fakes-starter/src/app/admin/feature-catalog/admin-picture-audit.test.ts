@@ -10,6 +10,37 @@ import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminPictureAudit } from './admin-picture-audit.ng';
 
 describe(AdminPictureAudit.name, () => {
+  it('searches all recipes', async () => {
+    const { fixture } = mountAdminPictureAudit({
+      recipes: [
+        recipeMother
+          .withBasicInfo({
+            name: 'Lemon and Ricotta Cheesecake',
+            course: 'dessert',
+          })
+          .withPictureUri('http://example.com/cheesecake.jpg')
+          .build(),
+        recipeMother
+          .withBasicInfo('Shakshuka')
+          .withPictureUri('http://example.com/shakshuka.jpg')
+          .withManyIngredients()
+          .build(),
+        recipeMother
+          .withBasicInfo('Hummus with Ful')
+          .withPictureUri('http://example.com/hummus.jpg')
+          .withManySteps()
+          .build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(rowTexts(fixture.nativeElement)).toEqual([
+      'Lemon and Ricotta Cheesecake http://example.com/cheesecake.jpg Not served over https',
+      'Shakshuka http://example.com/shakshuka.jpg Not served over https',
+      'Hummus with Ful http://example.com/hummus.jpg Not served over https',
+    ]);
+  });
+
   it('accepts https and local pictures', async () => {
     const { fixture } = mountAdminPictureAudit({
       recipes: [

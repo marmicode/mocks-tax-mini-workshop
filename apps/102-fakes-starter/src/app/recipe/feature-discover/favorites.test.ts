@@ -19,6 +19,31 @@ const cheesecake = recipeMother
   .build();
 
 describe(Favorites.name, () => {
+  it('searches all recipes', async () => {
+    const baklava = recipeMother
+      .withBasicInfo({ name: 'Baklava', course: 'dessert' })
+      .build();
+    const cassoulet = recipeMother
+      .withBasicInfo('Cassoulet')
+      .withManyIngredients()
+      .build();
+    const elaborate = recipeMother
+      .withBasicInfo('Shakshuka')
+      .withManySteps()
+      .build();
+    const { fixture } = mountFavorites({
+      favoriteIds: [baklava.id, cassoulet.id, elaborate.id],
+      recipes: [baklava, cassoulet, elaborate],
+    });
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Baklava',
+      'Cassoulet',
+      'Shakshuka',
+    ]);
+  });
+
   it('shows only favorite recipes', async () => {
     const { fixture } = mountFavorites({ favoriteIds: [cheesecake.id] });
     await fixture.whenStable();
@@ -102,7 +127,7 @@ describe(Favorites.name, () => {
     expect(mealPlanStore.assignments().friday).toBe(shakshuka.id);
   });
 
-  it('shows a message when the catalog is empty', async () => {
+  it('shows a message when the repository returns no recipes', async () => {
     const { fixture } = mountFavorites({
       favoriteIds: [shakshuka.id],
       recipes: [],

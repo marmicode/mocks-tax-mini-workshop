@@ -10,6 +10,29 @@ import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminMissingDescriptions } from './admin-missing-descriptions.ng';
 
 describe(AdminMissingDescriptions.name, () => {
+  it('searches all recipes', async () => {
+    const { fixture } = mountAdminMissingDescriptions({
+      recipes: [
+        recipeMother
+          .withBasicInfo({
+            name: 'Lemon and Ricotta Cheesecake',
+            course: 'dessert',
+          })
+          .build(),
+        recipeMother.withBasicInfo('Shakshuka').withManyIngredients().build(),
+        recipeMother.withBasicInfo('Hummus with Ful').withManySteps().build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(summary(fixture.nativeElement)).toBe('3 of 3 recipes');
+    expect(rowNames(fixture.nativeElement)).toEqual([
+      'Hummus with Ful',
+      'Lemon and Ricotta Cheesecake',
+      'Shakshuka',
+    ]);
+  });
+
   it('shows an empty state when every recipe has a description', async () => {
     const { fixture } = mountAdminMissingDescriptions({
       recipes: [

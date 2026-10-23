@@ -32,13 +32,35 @@ const cheesecake = recipeMother
   .build();
 
 describe(Pantry.name, () => {
-  it('shows a hint until an ingredient is added', async () => {
-    const { fixture } = mountPantry();
+  it('searches all recipes', async () => {
+    const { fixture } = mountPantry({
+      recipes: [
+        recipeMother
+          .withBasicInfo({ name: 'Baklava', course: 'dessert' })
+          .withIngredients([{ name: 'garlic' }])
+          .build(),
+        recipeMother.withBasicInfo('Cassoulet').withManyIngredients().build(),
+        recipeMother
+          .withBasicInfo('Shakshuka')
+          .withIngredients([{ name: 'garlic' }])
+          .withManySteps()
+          .build(),
+      ],
+    });
     await fixture.whenStable();
 
     expect(
       fixture.nativeElement.querySelector('[data-testid="pantry-hint"]'),
     ).not.toBeNull();
+
+    addIngredient(fixture.nativeElement, 'garlic');
+    await fixture.whenStable();
+
+    expect(matchedRecipeNames(fixture.nativeElement)).toEqual([
+      'Baklava',
+      'Shakshuka',
+      'Cassoulet',
+    ]);
   });
 
   it('shows recipes using an ingredient I have', async () => {
@@ -156,7 +178,7 @@ describe(Pantry.name, () => {
     ).not.toBeNull();
   });
 
-  it('tells when the catalog is empty', async () => {
+  it('tells when the repository returns no recipes', async () => {
     const { fixture } = mountPantry({ recipes: [] });
     await fixture.whenStable();
 

@@ -38,6 +38,24 @@ const stew = recipeMother
   .build();
 
 describe(CatalogStats.name, () => {
+  it('searches the whole catalog', async () => {
+    const { catalogStats } = setUpCatalogStats([
+      hummus,
+      stew,
+      recipeMother
+        .withBasicInfo({
+          name: 'Lemon and Ricotta Cheesecake',
+          course: 'dessert',
+        })
+        .build(),
+    ]);
+
+    const stats = await firstValueFrom(catalogStats.stats());
+
+    expect(stats.recipeCount).toBe(3);
+    expect(stats.countByCourse).toEqual({ starter: 1, main: 1, dessert: 1 });
+  });
+
   it('counts recipes per course', async () => {
     const { catalogStats } = setUpCatalogStats([hummus, shakshuka, kofte]);
 
@@ -101,7 +119,7 @@ describe(CatalogStats.name, () => {
     });
   });
 
-  it('reflects catalog changes every time stats are requested', async () => {
+  it('searches the catalog again every time stats are requested', async () => {
     const { catalogStats, recipeRepositoryFake } = setUpCatalogStats([kofte]);
 
     const statsBefore = await firstValueFrom(catalogStats.stats());

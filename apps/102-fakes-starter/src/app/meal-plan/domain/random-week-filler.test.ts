@@ -40,19 +40,19 @@ const fullWeek: WeekdayAssignments = {
 };
 
 describe(RandomWeekFiller.name, () => {
-  it('picks among every main of the catalog', async () => {
+  it('searches every recipe of the catalog', async () => {
     const { randomWeekFiller } = setUpRandomWeekFiller({
       catalog: [hummus, shakshuka, lambKofte],
     });
 
     const suggestions = await firstValueFrom(
-      randomWeekFiller.fill({ ...fullWeek, sunday: null }),
+      randomWeekFiller.fill({ ...fullWeek, saturday: null, sunday: null }),
     );
 
-    expect(suggestions).toEqual({ sunday: shakshuka });
+    expect(suggestions).toEqual({ saturday: shakshuka, sunday: lambKofte });
   });
 
-  it('only picks quick recipes when asked', async () => {
+  it('only searches quick recipes when asked', async () => {
     const { randomWeekFiller } = setUpRandomWeekFiller({
       catalog: [hummus, shakshuka, lambKofte],
     });

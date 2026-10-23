@@ -27,6 +27,34 @@ const hummus = recipeMother
   .build();
 
 describe(IngredientIndex.name, () => {
+  it('searches all recipes', async () => {
+    const { fixture } = mountIngredientIndex({
+      recipes: [
+        recipeMother
+          .withBasicInfo({ name: 'Baklava', course: 'dessert' })
+          .withIngredients([{ name: 'pistachios' }])
+          .build(),
+        recipeMother.withBasicInfo('Cassoulet').withManyIngredients().build(),
+        recipeMother
+          .withBasicInfo('Shakshuka')
+          .withIngredients([{ name: 'saffron' }])
+          .withManySteps()
+          .build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(recipeNamesFor(fixture.nativeElement, 'pistachios')).toEqual([
+      'Baklava',
+    ]);
+    expect(recipeNamesFor(fixture.nativeElement, 'salt')).toEqual([
+      'Cassoulet',
+    ]);
+    expect(recipeNamesFor(fixture.nativeElement, 'saffron')).toEqual([
+      'Shakshuka',
+    ]);
+  });
+
   it('lists normalized ingredient names alphabetically', async () => {
     const { fixture } = mountIngredientIndex();
     await fixture.whenStable();
@@ -119,7 +147,7 @@ describe(IngredientIndex.name, () => {
     ]);
   });
 
-  it('shows a message when the catalog is empty', async () => {
+  it('shows a message when the repository returns no recipes', async () => {
     const { fixture } = mountIngredientIndex({ recipes: [] });
     await fixture.whenStable();
 

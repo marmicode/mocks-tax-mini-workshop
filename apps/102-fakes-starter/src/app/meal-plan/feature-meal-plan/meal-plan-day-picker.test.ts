@@ -25,6 +25,16 @@ const lambKofte = recipeMother
   .withBasicInfo('Lamb Kofte with Yogurt and Sumac')
   .build();
 
+const cassoulet = recipeMother
+  .withBasicInfo('Cassoulet')
+  .withManyIngredients()
+  .build();
+
+const beefWellington = recipeMother
+  .withBasicInfo('Beef Wellington')
+  .withManySteps()
+  .build();
+
 const emptyAssignments: WeekdayAssignments = {
   monday: null,
   tuesday: null,
@@ -36,6 +46,21 @@ const emptyAssignments: WeekdayAssignments = {
 };
 
 describe(MealPlanDayPicker.name, () => {
+  it('searches the catalog', async () => {
+    const { fixture } = mountMealPlanDayPicker({
+      weekday: 'monday',
+      assignments: emptyAssignments,
+      recipes: [shakshuka, cassoulet, beefWellington],
+    });
+    await fixture.whenStable();
+
+    expect(candidateNames(fixture.nativeElement)).toEqual([
+      'Shakshuka',
+      'Cassoulet',
+      'Beef Wellington',
+    ]);
+  });
+
   it('only lists mains', async () => {
     const { fixture } = mountMealPlanDayPicker({
       weekday: 'monday',

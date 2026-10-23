@@ -6,6 +6,7 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import { MealPlanStore } from '@whiskmate/shared-meal-plan/domain';
+import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { App } from './app';
@@ -14,21 +15,38 @@ import { appRoutes } from './app.routes';
 const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 const cheesecake = recipeMother
-  .withBasicInfo('Lemon and Ricotta Cheesecake')
+  .withBasicInfo({ name: 'Lemon and Ricotta Cheesecake', course: 'dessert' })
+  .build();
+
+const cassoulet = recipeMother
+  .withBasicInfo('Cassoulet')
+  .withManyIngredients()
+  .build();
+
+const beefWellington = recipeMother
+  .withBasicInfo('Beef Wellington')
+  .withManySteps()
   .build();
 
 describe(App.name, () => {
-  it('redirects to the search page and shows every recipe', async () => {
-    const { fixture, router } = await mountApp();
+  it('redirects to the search page and searches all recipes', async () => {
+    const { fixture, router } = await mountApp({
+      recipes: [shakshuka, cheesecake, cassoulet, beefWellington],
+    });
 
     await router.navigateByUrl('/');
     await fixture.whenStable();
 
     expect(router.url).toBe('/search');
-    expect(fixture.nativeElement.textContent).toContain('Shakshuka');
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Shakshuka',
+      'Lemon and Ricotta Cheesecake',
+      'Cassoulet',
+      'Beef Wellington',
+    ]);
   });
 
-  it('shows the latest catalog when coming back to the search page', async () => {
+  it('searches all recipes again when coming back to the search page', async () => {
     const { fixture, router, recipeRepositoryFake } = await mountApp();
 
     await router.navigateByUrl('/search');
@@ -56,7 +74,9 @@ describe(App.name, () => {
   });
 
   it('navigates from the meal plan to the search page through the navbar', async () => {
-    const { fixture, router } = await mountApp();
+    const { fixture, router } = await mountApp({
+      recipes: [shakshuka, cheesecake, cassoulet, beefWellington],
+    });
 
     await router.navigateByUrl('/meal-plan');
     await fixture.whenStable();
@@ -64,7 +84,12 @@ describe(App.name, () => {
     await fixture.whenStable();
 
     expect(router.url).toBe('/search');
-    expect(fixture.nativeElement.textContent).toContain('Shakshuka');
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Shakshuka',
+      'Lemon and Ricotta Cheesecake',
+      'Cassoulet',
+      'Beef Wellington',
+    ]);
   });
 
   it('shows the admin link once signed in', async () => {
@@ -87,7 +112,9 @@ describe(App.name, () => {
   });
 });
 
-async function mountApp() {
+async function mountApp({
+  recipes = [shakshuka],
+}: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter(appRoutes),
@@ -97,7 +124,7 @@ async function mountApp() {
   });
 
   const recipeRepositoryFake = TestBed.inject(RecipeRepositoryFake);
-  recipeRepositoryFake.setRecipes([shakshuka]);
+  recipeRepositoryFake.setRecipes(recipes);
   const mealPlanStore = TestBed.inject(MealPlanStore);
   const router = TestBed.inject(Router);
 
@@ -105,6 +132,12 @@ async function mountApp() {
   await fixture.whenStable();
 
   return { fixture, router, recipeRepositoryFake, mealPlanStore };
+}
+
+function recipeNames(root: HTMLElement): string[] {
+  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
+    (el) => el.textContent?.trim() ?? '',
+  );
 }
 
 function linkByText(root: HTMLElement, text: string): HTMLAnchorElement {

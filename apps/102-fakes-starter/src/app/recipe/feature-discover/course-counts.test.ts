@@ -20,6 +20,26 @@ const fritters = recipeMother
 const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 describe(CourseCounts.name, () => {
+  it('searches each course', async () => {
+    const { fixture } = mountCourseCounts({
+      recipes: [
+        hummus,
+        recipeMother.withBasicInfo('Cassoulet').withManyIngredients().build(),
+        recipeMother
+          .withBasicInfo({ name: 'Baklava', course: 'dessert' })
+          .withManySteps()
+          .build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(courseCountTexts(fixture.nativeElement)).toEqual([
+      'Starters (1)',
+      'Mains (1)',
+      'Desserts (1)',
+    ]);
+  });
+
   it('shows the recipe count of each course', async () => {
     const { fixture } = mountCourseCounts({
       recipes: [hummus, fritters, shakshuka],

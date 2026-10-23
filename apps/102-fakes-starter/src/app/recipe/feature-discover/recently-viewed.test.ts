@@ -15,6 +15,10 @@ const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 const hummus = recipeMother.withBasicInfo('Hummus with Ful').build();
 
+const cheesecake = recipeMother
+  .withBasicInfo('Lemon and Ricotta Cheesecake')
+  .build();
+
 describe(RecentlyViewedPage.name, () => {
   it('shows a message when no recipe was viewed', async () => {
     const { fixture } = mountRecentlyViewedPage({ viewedIds: [] });
@@ -24,6 +28,19 @@ describe(RecentlyViewedPage.name, () => {
       fixture.nativeElement.querySelector('[data-testid="empty-message"]')
         ?.textContent,
     ).toContain("You haven't viewed any recipe yet.");
+  });
+
+  it('shows only the recently viewed recipes', async () => {
+    const { fixture } = mountRecentlyViewedPage({
+      viewedIds: [shakshuka.id, hummus.id],
+      recipes: [shakshuka, hummus, cheesecake],
+    });
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Hummus with Ful',
+      'Shakshuka',
+    ]);
   });
 
   it('lists recipes in the recently viewed order', async () => {

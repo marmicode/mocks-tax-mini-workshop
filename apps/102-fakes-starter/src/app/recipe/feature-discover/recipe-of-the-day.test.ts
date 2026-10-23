@@ -29,6 +29,25 @@ const cheesecake = recipeMother
   .build();
 
 describe(RecipeOfTheDay.name, () => {
+  it('searches all recipes', async () => {
+    /* January 2nd is the 2nd day of the year: 2 % 3 = 2, the last recipe. */
+    const { fixture } = mountRecipeOfTheDay(new Date(2026, 0, 2), {
+      recipes: [
+        recipeMother.withBasicInfo('Cassoulet').withManyIngredients().build(),
+        recipeMother
+          .withBasicInfo('Slow-cooked Lamb Stew')
+          .withManySteps()
+          .build(),
+        recipeMother
+          .withBasicInfo({ name: 'Baklava', course: 'dessert' })
+          .build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(recipeName(fixture.nativeElement)).toBe('Baklava');
+  });
+
   it('picks the recipe matching the day of the year', async () => {
     /* January 2nd is the 2nd day of the year: 2 % 3 = 2. */
     const { fixture } = mountRecipeOfTheDay(new Date(2026, 0, 2));

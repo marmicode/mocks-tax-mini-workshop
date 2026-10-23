@@ -30,7 +30,19 @@ describe(SurpriseMe.name, () => {
     );
   });
 
-  it('picks among all recipes again when "Any" is chosen', async () => {
+  it('searches only the chosen course', async () => {
+    const { fixture } = mountSurpriseMe();
+    await fixture.whenStable();
+
+    clickToggle(fixture.nativeElement, 'Desserts');
+    await fixture.whenStable();
+
+    expect(recipeName(fixture.nativeElement)).toBe(
+      'Lemon and Ricotta Cheesecake',
+    );
+  });
+
+  it('stops filtering by course when "Any" is chosen', async () => {
     const { fixture, randomAdapterFake } = mountSurpriseMe();
     randomAdapterFake.setPickIndex(-1);
     await fixture.whenStable();

@@ -19,6 +19,21 @@ const salad = recipeMother
   .build();
 
 describe(CatalogSize.name, () => {
+  it('searches all recipes', async () => {
+    const { fixture } = mountCatalogSize({
+      recipes: [
+        recipeMother
+          .withBasicInfo({ name: 'Baklava', course: 'dessert' })
+          .build(),
+        recipeMother.withBasicInfo('Cassoulet').withManyIngredients().build(),
+        recipeMother.withBasicInfo('Shakshuka').withManySteps().build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(textOf(fixture.nativeElement, 'catalog-size')).toBe('3 recipes');
+  });
+
   it('shows the number of recipes', async () => {
     const { fixture } = mountCatalogSize({ recipes: [hummus, salad] });
     await fixture.whenStable();

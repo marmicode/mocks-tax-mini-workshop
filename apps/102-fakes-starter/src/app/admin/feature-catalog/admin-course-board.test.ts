@@ -20,6 +20,37 @@ const cheesecake = recipeMother
   .build();
 
 describe(AdminCourseBoard.name, () => {
+  it('searches recipes for each course', async () => {
+    const { fixture } = mountAdminCourseBoard({
+      recipes: [
+        recipeMother
+          .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+          .withManyIngredients()
+          .build(),
+        recipeMother.withBasicInfo('Shakshuka').withManySteps().build(),
+        recipeMother
+          .withBasicInfo({
+            name: 'Lemon and Ricotta Cheesecake',
+            course: 'dessert',
+          })
+          .withManyIngredients()
+          .withManySteps()
+          .build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(columnRecipeNames(fixture.nativeElement, 'starter')).toEqual([
+      'Hummus with Ful',
+    ]);
+    expect(columnRecipeNames(fixture.nativeElement, 'main')).toEqual([
+      'Shakshuka',
+    ]);
+    expect(columnRecipeNames(fixture.nativeElement, 'dessert')).toEqual([
+      'Lemon and Ricotta Cheesecake',
+    ]);
+  });
+
   it('shows each recipe in its course column', async () => {
     const { fixture } = mountAdminCourseBoard();
     await fixture.whenStable();

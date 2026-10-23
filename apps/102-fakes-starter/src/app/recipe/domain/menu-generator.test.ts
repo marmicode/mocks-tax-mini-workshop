@@ -28,7 +28,7 @@ const cheesecake = recipeMother
   .build();
 
 describe(MenuGenerator.name, () => {
-  it('picks one recipe of each course', async () => {
+  it('searches recipes for each course', async () => {
     const { menuGenerator } = setUpMenuGenerator();
 
     const menu = await firstValueFrom(menuGenerator.generate());
@@ -40,7 +40,7 @@ describe(MenuGenerator.name, () => {
     });
   });
 
-  it('picks randomly among the recipes of a course', async () => {
+  it('picks one recipe per course', async () => {
     const { menuGenerator, randomAdapterFake } = setUpMenuGenerator();
     randomAdapterFake.setPickIndex(-1);
 

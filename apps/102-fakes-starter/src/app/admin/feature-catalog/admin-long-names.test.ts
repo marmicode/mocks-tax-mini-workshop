@@ -10,6 +10,34 @@ import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminLongNames } from './admin-long-names.ng';
 
 describe(AdminLongNames.name, () => {
+  it('searches all recipes', async () => {
+    const { fixture } = mountAdminLongNames({
+      recipes: [
+        recipeMother
+          .withBasicInfo({
+            name: 'Lemon and Ricotta Cheesecake with Honey',
+            course: 'dessert',
+          })
+          .build(),
+        recipeMother
+          .withBasicInfo('Slow-Roasted Lamb Shoulder with Pomegranate')
+          .withManyIngredients()
+          .build(),
+        recipeMother
+          .withBasicInfo('Burnt Aubergine Salad with Pomegranate')
+          .withManySteps()
+          .build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(rowTexts(fixture.nativeElement)).toEqual([
+      'Slow-Roasted Lamb Shoulder with Pomegranate (43)',
+      'Lemon and Ricotta Cheesecake with Honey (39)',
+      'Burnt Aubergine Salad with Pomegranate (38)',
+    ]);
+  });
+
   it('shows an empty state when every name is short enough', async () => {
     const { fixture } = mountAdminLongNames({
       recipes: [recipeMother.withBasicInfo('Shakshuka').build()],

@@ -18,6 +18,25 @@ const salad = recipeMother
 const sabich = recipeMother.withBasicInfo('Sabich').build();
 
 describe(AlphabeticalIndex.name, () => {
+  it('searches all recipes', async () => {
+    const { fixture } = mountAlphabeticalIndex({
+      recipes: [
+        recipeMother
+          .withBasicInfo({ name: 'Baklava', course: 'dessert' })
+          .build(),
+        recipeMother.withBasicInfo('Cassoulet').withManyIngredients().build(),
+        recipeMother.withBasicInfo('Shakshuka').withManySteps().build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Baklava',
+      'Cassoulet',
+      'Shakshuka',
+    ]);
+  });
+
   it('groups recipes by first letter in alphabetical order', async () => {
     const { fixture } = mountAlphabeticalIndex({
       recipes: [shakshuka, salad, sabich],

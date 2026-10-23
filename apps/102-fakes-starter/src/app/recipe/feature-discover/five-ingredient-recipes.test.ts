@@ -22,7 +22,7 @@ const tagine = recipeMother
   .build();
 
 describe(FiveIngredientRecipes.name, () => {
-  it('shows only recipes with at most five ingredients', async () => {
+  it('searches recipes with at most five ingredients', async () => {
     const { fixture } = mountFiveIngredientRecipes();
     await fixture.whenStable();
 
@@ -32,7 +32,19 @@ describe(FiveIngredientRecipes.name, () => {
     ]);
   });
 
-  it('narrows the recipes with keywords', async () => {
+  it('shows the five-ingredient recipes', async () => {
+    const { fixture } = mountFiveIngredientRecipes({
+      recipes: [hummus, salad],
+    });
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Hummus with Ful',
+      'Burnt Aubergine with Tahini and Pomegranate',
+    ]);
+  });
+
+  it('narrows the search with keywords', async () => {
     const { fixture } = mountFiveIngredientRecipes();
     await fixture.whenStable();
 
@@ -42,7 +54,7 @@ describe(FiveIngredientRecipes.name, () => {
     expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
 
-  it('shows every five-ingredient recipe again once keywords are cleared', async () => {
+  it('searches again once keywords are cleared', async () => {
     const { fixture } = mountFiveIngredientRecipes();
     await fixture.whenStable();
 

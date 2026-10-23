@@ -38,6 +38,34 @@ const roastedAubergine = recipeMother
 const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 describe(AdminDuplicates.name, () => {
+  it('searches all recipes', async () => {
+    const { fixture } = mountAdminDuplicates({
+      recipes: [
+        recipeMother
+          .withBasicInfo({
+            name: 'Lemon and Ricotta Cheesecake',
+            course: 'dessert',
+          })
+          .build(),
+        recipeMother
+          .withBasicInfo('Ricotta & Lemon Cheesecake')
+          .withManyIngredients()
+          .build(),
+        recipeMother
+          .withBasicInfo('Cheesecake with Lemon and Ricotta')
+          .withManySteps()
+          .build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(pairTexts(fixture.nativeElement)).toEqual([
+      'Lemon and Ricotta Cheesecake ↔ Ricotta & Lemon Cheesecake (same name)',
+      'Lemon and Ricotta Cheesecake ↔ Cheesecake with Lemon and Ricotta (same name)',
+      'Ricotta & Lemon Cheesecake ↔ Cheesecake with Lemon and Ricotta (same name)',
+    ]);
+  });
+
   it('shows "no duplicates" when every recipe is distinct', async () => {
     const { fixture } = mountAdminDuplicates({ recipes: [hummus, shakshuka] });
     await fixture.whenStable();

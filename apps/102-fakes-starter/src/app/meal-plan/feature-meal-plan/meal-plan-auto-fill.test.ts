@@ -36,19 +36,7 @@ const fullWeek: WeekdayAssignments = {
 };
 
 describe(MealPlanAutoFill.name, () => {
-  it('shows a suggestion for each empty day', async () => {
-    const { fixture } = mountMealPlanAutoFill({
-      assignments: { ...fullWeek, saturday: null, sunday: null },
-    });
-    await fixture.whenStable();
-
-    expect(suggestions(fixture.nativeElement)).toEqual([
-      'Saturday: Shakshuka',
-      'Sunday: Lamb Kofte with Yogurt and Sumac',
-    ]);
-  });
-
-  it('only suggests mains', async () => {
+  it('searches mains to fill the empty days', async () => {
     const { fixture } = mountMealPlanAutoFill({
       assignments: { ...fullWeek, saturday: null, sunday: null },
       recipes: [hummus, shakshuka],
@@ -58,6 +46,18 @@ describe(MealPlanAutoFill.name, () => {
     expect(suggestions(fixture.nativeElement)).toEqual([
       'Saturday: Shakshuka',
       'Sunday: Shakshuka',
+    ]);
+  });
+
+  it('shows a suggestion for each empty day', async () => {
+    const { fixture } = mountMealPlanAutoFill({
+      assignments: { ...fullWeek, saturday: null, sunday: null },
+    });
+    await fixture.whenStable();
+
+    expect(suggestions(fixture.nativeElement)).toEqual([
+      'Saturday: Shakshuka',
+      'Sunday: Lamb Kofte with Yogurt and Sumac',
     ]);
   });
 

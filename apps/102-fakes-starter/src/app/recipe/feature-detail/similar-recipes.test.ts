@@ -23,7 +23,7 @@ const cheesecake = recipeMother
   .build();
 
 describe(SimilarRecipes.name, () => {
-  it('shows only recipes of the same course', async () => {
+  it('searches recipes of the same course', async () => {
     const { fixture } = mountSimilarRecipes(shakshuka, {
       recipes: [shakshuka, harissaChicken, cheesecake],
     });

@@ -10,6 +10,36 @@ import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminMissingIngredients } from './admin-missing-ingredients.ng';
 
 describe(AdminMissingIngredients.name, () => {
+  it('searches all recipes', async () => {
+    const lambShoulder = recipeMother
+      .withBasicInfo('Slow-Roasted Lamb Shoulder')
+      .withManyIngredients()
+      .build();
+    const { fixture } = mountAdminMissingIngredients({
+      recipes: [
+        recipeMother
+          .withBasicInfo({
+            name: 'Lemon and Ricotta Cheesecake',
+            course: 'dessert',
+          })
+          .build(),
+        /* Too many ingredients for any quick filter, one of them unnamed. */
+        {
+          ...lambShoulder,
+          ingredients: [...lambShoulder.ingredients, { name: '' }],
+        },
+        recipeMother.withBasicInfo('Hummus with Ful').withManySteps().build(),
+      ],
+    });
+    await fixture.whenStable();
+
+    expect(rowTexts(fixture.nativeElement)).toEqual([
+      'Lemon and Ricotta Cheesecake — no ingredients',
+      'Slow-Roasted Lamb Shoulder — 1 unnamed ingredient(s)',
+      'Hummus with Ful — no ingredients',
+    ]);
+  });
+
   it('shows an empty state when every recipe has ingredients', async () => {
     const { fixture } = mountAdminMissingIngredients({
       recipes: [
