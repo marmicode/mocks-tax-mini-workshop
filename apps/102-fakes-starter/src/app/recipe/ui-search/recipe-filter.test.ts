@@ -38,7 +38,7 @@ describe(RecipeFilter.name, () => {
     });
   });
 
-  it('emits no course once the course is unselected', async () => {
+  it('emits `null` when all courses are unselected', async () => {
     const { fixture, filterChanges } = mountRecipeFilter();
     await fixture.whenStable();
 
