@@ -3,7 +3,7 @@ import angular from '@analogjs/vite-plugin-angular';
 
 export default defineConfig({
   root: import.meta.dirname,
-  cacheDir: '../../node_modules/.vite/apps/102-fakes-starter',
+  cacheDir: '../../node_modules/.vite/apps/201-fake-solution',
   publicDir: 'public',
   resolve: {
     tsconfigPaths: true,

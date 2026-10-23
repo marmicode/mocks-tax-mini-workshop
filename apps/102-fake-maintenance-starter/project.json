@@ -1,11 +1,11 @@
 {
-  "name": "103-contract-tests-solution",
+  "name": "102-fake-maintenance-starter",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "prefix": "wm",
-  "sourceRoot": "apps/103-contract-tests-solution/src",
+  "sourceRoot": "apps/102-fake-maintenance-starter/src",
   "tags": ["type:app"],
-  "implicitDependencies": ["103-contract-tests-solution-*"],
+  "implicitDependencies": ["102-fake-maintenance-starter-*"],
   "targets": {
     "build": {
       "executor": "@angular/build:application",
@@ -55,10 +55,10 @@
       "defaultConfiguration": "development",
       "configurations": {
         "production": {
-          "buildTarget": "103-contract-tests-solution:build:production"
+          "buildTarget": "102-fake-maintenance-starter:build:production"
         },
         "development": {
-          "buildTarget": "103-contract-tests-solution:build:development"
+          "buildTarget": "102-fake-maintenance-starter:build:development"
         }
       }
     },
@@ -69,7 +69,7 @@
       "continuous": true,
       "executor": "@nx/web:file-server",
       "options": {
-        "buildTarget": "103-contract-tests-solution:build",
+        "buildTarget": "102-fake-maintenance-starter:build",
         "staticFilePath": "dist/{projectRoot}/browser",
         "spa": true
       }

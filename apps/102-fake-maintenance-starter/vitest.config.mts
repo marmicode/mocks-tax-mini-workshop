@@ -14,7 +14,7 @@ export default mergeConfig(
       setupFiles: ['src/test-setup.ts'],
       reporters: ['default'],
       coverage: {
-        reportsDirectory: '../../coverage/apps/101-mocks-starter',
+        reportsDirectory: '../../coverage/apps/102-fake-maintenance-starter',
         provider: 'v8',
       },
       watch: false,

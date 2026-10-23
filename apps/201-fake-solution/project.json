@@ -1,11 +1,11 @@
 {
-  "name": "102-fakes-starter",
+  "name": "201-fake-solution",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "prefix": "wm",
-  "sourceRoot": "apps/102-fakes-starter/src",
+  "sourceRoot": "apps/201-fake-solution/src",
   "tags": ["type:app"],
-  "implicitDependencies": ["102-fakes-starter-*"],
+  "implicitDependencies": ["201-fake-solution-*"],
   "targets": {
     "build": {
       "executor": "@angular/build:application",
@@ -55,10 +55,10 @@
       "defaultConfiguration": "development",
       "configurations": {
         "production": {
-          "buildTarget": "102-fakes-starter:build:production"
+          "buildTarget": "201-fake-solution:build:production"
         },
         "development": {
-          "buildTarget": "102-fakes-starter:build:development"
+          "buildTarget": "201-fake-solution:build:development"
         }
       }
     },
@@ -69,7 +69,7 @@
       "continuous": true,
       "executor": "@nx/web:file-server",
       "options": {
-        "buildTarget": "102-fakes-starter:build",
+        "buildTarget": "201-fake-solution:build",
         "staticFilePath": "dist/{projectRoot}/browser",
         "spa": true
       }

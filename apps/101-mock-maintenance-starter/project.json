@@ -1,11 +1,11 @@
 {
-  "name": "101-mocks-starter",
+  "name": "101-mock-maintenance-starter",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "prefix": "wm",
-  "sourceRoot": "apps/101-mocks-starter/src",
+  "sourceRoot": "apps/101-mock-maintenance-starter/src",
   "tags": ["type:app"],
-  "implicitDependencies": ["101-mocks-starter-*"],
+  "implicitDependencies": ["101-mock-maintenance-starter-*"],
   "targets": {
     "build": {
       "executor": "@angular/build:application",
@@ -55,10 +55,10 @@
       "defaultConfiguration": "development",
       "configurations": {
         "production": {
-          "buildTarget": "101-mocks-starter:build:production"
+          "buildTarget": "101-mock-maintenance-starter:build:production"
         },
         "development": {
-          "buildTarget": "101-mocks-starter:build:development"
+          "buildTarget": "101-mock-maintenance-starter:build:development"
         }
       },
       "options": {
@@ -72,7 +72,7 @@
       "continuous": true,
       "executor": "@nx/web:file-server",
       "options": {
-        "buildTarget": "101-mocks-starter:build",
+        "buildTarget": "101-mock-maintenance-starter:build",
         "staticFilePath": "dist/{projectRoot}/browser",
         "spa": true
       }

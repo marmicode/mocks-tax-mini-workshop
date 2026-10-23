@@ -2,8 +2,8 @@ import { type Config, type Exercise } from './core.ts';
 
 const exercises: Exercise[] = [
   {
-    id: '101-mocks',
-    name: '101 - Mocks',
+    id: '101-mock-maintenance',
+    name: '101 - Mock Maintenance',
   },
 ];
 

@@ -46,7 +46,7 @@ pnpm cook
 Or start a specific exercise:
 
 ```sh
-pnpm cook start 101-review-fatigue
+pnpm cook start 101-mock-maintenance
 ```
 
 :::warning
