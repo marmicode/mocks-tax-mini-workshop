@@ -1,16 +1,17 @@
 import { TestBed } from '@angular/core/testing';
-import { describe, it, vi } from 'vitest';
+import { describe, it } from 'vitest';
+import type { RecipeFilterCriteria } from '@whiskmate/recipe/model';
 import { RecipeFilter } from './recipe-filter.ng';
 
 describe(RecipeFilter.name, () => {
   it('emits the selected course', async () => {
-    const { fixture, filterChange } = mountRecipeFilter();
+    const { fixture, filterChanges } = mountRecipeFilter();
     await fixture.whenStable();
 
     clickCourse(fixture.nativeElement, 'starter');
     await fixture.whenStable();
 
-    expect(filterChange).toHaveBeenLastCalledWith({
+    expect(filterChanges.at(-1)).toEqual({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -20,7 +21,7 @@ describe(RecipeFilter.name, () => {
   });
 
   it('emits every selected course', async () => {
-    const { fixture, filterChange } = mountRecipeFilter();
+    const { fixture, filterChanges } = mountRecipeFilter();
     await fixture.whenStable();
 
     clickCourse(fixture.nativeElement, 'main');
@@ -28,7 +29,7 @@ describe(RecipeFilter.name, () => {
     clickCourse(fixture.nativeElement, 'dessert');
     await fixture.whenStable();
 
-    expect(filterChange).toHaveBeenLastCalledWith({
+    expect(filterChanges.at(-1)).toEqual({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -38,7 +39,7 @@ describe(RecipeFilter.name, () => {
   });
 
   it('emits no course once the course is unselected', async () => {
-    const { fixture, filterChange } = mountRecipeFilter();
+    const { fixture, filterChanges } = mountRecipeFilter();
     await fixture.whenStable();
 
     clickCourse(fixture.nativeElement, 'main');
@@ -46,8 +47,8 @@ describe(RecipeFilter.name, () => {
     clickCourse(fixture.nativeElement, 'main');
     await fixture.whenStable();
 
-    expect(filterChange).toHaveBeenCalledTimes(2);
-    expect(filterChange).toHaveBeenLastCalledWith({
+    expect(filterChanges).toHaveLength(2);
+    expect(filterChanges.at(-1)).toEqual({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -59,9 +60,11 @@ describe(RecipeFilter.name, () => {
 
 function mountRecipeFilter() {
   const fixture = TestBed.createComponent(RecipeFilter);
-  const filterChange = vi.fn();
-  fixture.componentInstance.filter.subscribe(filterChange);
-  return { fixture, filterChange };
+  const filterChanges: RecipeFilterCriteria[] = [];
+  fixture.componentInstance.filter.subscribe((filter) =>
+    filterChanges.push(filter),
+  );
+  return { fixture, filterChanges };
 }
 
 function clickCourse(root: HTMLElement, course: string): void {

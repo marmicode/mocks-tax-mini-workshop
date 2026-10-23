@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { WeekendProjects } from './weekend-projects.ng';
 
@@ -27,27 +29,10 @@ const lamb: Recipe = {
 };
 
 describe(WeekendProjects.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountWeekendProjects();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('shows the most involved recipes first', async () => {
-    const { fixture, search } = mountWeekendProjects();
-    search.mockReturnValue(of([hummus, lamb]));
+    const { fixture } = mountWeekendProjects({ recipes: [hummus, lamb] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Slow-roasted Lamb',
       'Hummus with Ful',
@@ -55,15 +40,9 @@ describe(WeekendProjects.name, () => {
   });
 
   it('shows the step count of each project', async () => {
-    const { fixture, search } = mountWeekendProjects();
-    search.mockReturnValue(of([lamb]));
+    const { fixture } = mountWeekendProjects({ recipes: [lamb] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement
         .querySelector('[data-testid="step-count"]')
@@ -72,27 +51,19 @@ describe(WeekendProjects.name, () => {
   });
 
   it('keeps only the top five projects', async () => {
-    const { fixture, search } = mountWeekendProjects();
-    search.mockReturnValue(
-      of(
-        [1, 2, 3, 4, 5, 6].map((stepCount) => ({
-          id: `recipe-${stepCount}`,
-          course: 'main' as const,
-          name: `Recipe ${stepCount}`,
-          description: null,
-          pictureUri: `https://example.com/recipe-${stepCount}.jpg`,
-          ingredients: [],
-          steps: Array.from({ length: stepCount }, () => 'Cook.'),
-        })),
-      ),
-    );
+    const { fixture } = mountWeekendProjects({
+      recipes: [1, 2, 3, 4, 5, 6].map((stepCount) => ({
+        id: `recipe-${stepCount}`,
+        course: 'main' as const,
+        name: `Recipe ${stepCount}`,
+        description: null,
+        pictureUri: `https://example.com/recipe-${stepCount}.jpg`,
+        ingredients: [],
+        steps: Array.from({ length: stepCount }, () => 'Cook.'),
+      })),
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Recipe 6',
       'Recipe 5',
@@ -103,15 +74,9 @@ describe(WeekendProjects.name, () => {
   });
 
   it('shows a message when there are no projects', async () => {
-    const { fixture, search } = mountWeekendProjects();
-    search.mockReturnValue(of([]));
+    const { fixture } = mountWeekendProjects({ recipes: [] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
         ?.textContent,
@@ -119,18 +84,18 @@ describe(WeekendProjects.name, () => {
   });
 });
 
-function mountWeekendProjects() {
+function mountWeekendProjects({
+  recipes = [hummus, lamb],
+}: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([hummus, lamb]));
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(WeekendProjects);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function recipeNames(root: HTMLElement): string[] {

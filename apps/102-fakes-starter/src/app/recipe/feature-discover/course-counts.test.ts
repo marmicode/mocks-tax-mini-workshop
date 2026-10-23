@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { CourseCounts } from './course-counts.ng';
 
@@ -37,45 +39,12 @@ const shakshuka: Recipe = {
 };
 
 describe(CourseCounts.name, () => {
-  it('searches each course', async () => {
-    const { fixture, search } = mountCourseCounts();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledTimes(3);
-    expect(search).toHaveBeenNthCalledWith(1, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['starter'],
-    });
-    expect(search).toHaveBeenNthCalledWith(2, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
-    expect(search).toHaveBeenNthCalledWith(3, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['dessert'],
-    });
-  });
-
   it('shows the recipe count of each course', async () => {
-    const { fixture, search } = mountCourseCounts();
-    search
-      .mockReturnValueOnce(of([hummus, fritters]))
-      .mockReturnValueOnce(of([shakshuka]))
-      .mockReturnValueOnce(of([]));
+    const { fixture } = mountCourseCounts({
+      recipes: [hummus, fritters, shakshuka],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['starter'],
-    });
     expect(courseCountTexts(fixture.nativeElement)).toEqual([
       'Starters (2)',
       'Mains (1)',
@@ -84,15 +53,9 @@ describe(CourseCounts.name, () => {
   });
 
   it('links each course to its page', async () => {
-    const { fixture, search } = mountCourseCounts();
+    const { fixture } = mountCourseCounts();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['dessert'],
-    });
     expect(courseCountLinks(fixture.nativeElement)).toEqual([
       '/discover/courses/starter',
       '/discover/courses/main',
@@ -101,18 +64,16 @@ describe(CourseCounts.name, () => {
   });
 });
 
-function mountCourseCounts() {
+function mountCourseCounts({ recipes = [] }: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([]));
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(CourseCounts);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function courseCountElements(root: HTMLElement): HTMLAnchorElement[] {

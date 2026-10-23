@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
-import { LocalStorage } from '@whiskmate/shared/infra';
+import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { QuickRecipes } from './quick-recipes.ng';
 
 const hummus: Recipe = {
@@ -13,8 +15,8 @@ const hummus: Recipe = {
   name: 'Hummus with Ful',
   description: null,
   pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
-  steps: [],
+  ingredients: [{ name: 'chickpeas' }, { name: 'tahini' }, { name: 'ful' }],
+  steps: ['Blend the chickpeas.', 'Warm the ful.', 'Serve.'],
 };
 
 const salad: Recipe = {
@@ -23,32 +25,40 @@ const salad: Recipe = {
   name: 'Burnt Aubergine with Tahini and Pomegranate',
   description: null,
   pictureUri: 'https://example.com/salad.jpg',
-  ingredients: [],
-  steps: [],
+  ingredients: [
+    { name: 'aubergines' },
+    { name: 'tahini' },
+    { name: 'pomegranate' },
+    { name: 'lemon' },
+    { name: 'garlic' },
+    { name: 'parsley' },
+    { name: 'olive oil' },
+  ],
+  steps: ['Burn the aubergines.', 'Dress with tahini.'],
+};
+
+const stew: Recipe = {
+  id: 'lamb-stew',
+  course: 'main',
+  name: 'Slow-cooked Lamb Stew',
+  description: null,
+  pictureUri: 'https://example.com/stew.jpg',
+  ingredients: [{ name: 'lamb' }, { name: 'onions' }],
+  steps: [
+    'Marinate.',
+    'Sear.',
+    'Sweat the onions.',
+    'Deglaze.',
+    'Simmer.',
+    'Rest.',
+  ],
 };
 
 describe(QuickRecipes.name, () => {
-  it('searches recipes with few steps', async () => {
-    const { fixture, search } = mountQuickRecipes();
+  it('shows only recipes with few steps', async () => {
+    const { fixture } = mountQuickRecipes();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 5,
-    });
-  });
-
-  it('shows the quick recipes', async () => {
-    const { fixture, search } = mountQuickRecipes();
-    search.mockReturnValue(of([hummus, salad]));
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 5,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Hummus with Ful',
       'Burnt Aubergine with Tahini and Pomegranate',
@@ -56,22 +66,17 @@ describe(QuickRecipes.name, () => {
   });
 
   it('also caps ingredients when asked', async () => {
-    const { fixture, search } = mountQuickRecipes();
+    const { fixture } = mountQuickRecipes();
     await fixture.whenStable();
 
     checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: 6,
-      maxStepCount: 5,
-    });
+    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
 
   it('stops capping ingredients once unchecked', async () => {
-    const { fixture, search } = mountQuickRecipes();
+    const { fixture } = mountQuickRecipes();
     await fixture.whenStable();
 
     checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
@@ -79,23 +84,16 @@ describe(QuickRecipes.name, () => {
     checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 5,
-    });
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Hummus with Ful',
+      'Burnt Aubergine with Tahini and Pomegranate',
+    ]);
   });
 
   it('shows a message when there are no quick recipes', async () => {
-    const { fixture, search } = mountQuickRecipes();
-    search.mockReturnValue(of([]));
+    const { fixture } = mountQuickRecipes({ recipes: [stew] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 5,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
         ?.textContent,
@@ -103,48 +101,21 @@ describe(QuickRecipes.name, () => {
   });
 
   it('mentions the step cap', async () => {
-    const { fixture, search } = mountQuickRecipes();
+    const { fixture } = mountQuickRecipes();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 5,
-    });
     expect(fixture.nativeElement.textContent).toContain(
       'Recipes with at most 5 steps.',
     );
   });
 
-  it('shows the recipes with few ingredients once capped', async () => {
-    const { fixture, search } = mountQuickRecipes();
-    await fixture.whenStable();
-
-    search.mockReturnValue(of([hummus]));
-    checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: 6,
-      maxStepCount: 5,
-    });
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
-  });
-
   it('shows a message when no quick recipe has few ingredients', async () => {
-    const { fixture, search } = mountQuickRecipes();
+    const { fixture } = mountQuickRecipes({ recipes: [salad, stew] });
     await fixture.whenStable();
 
-    search.mockReturnValue(of([]));
     checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: 6,
-      maxStepCount: 5,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([]);
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -153,27 +124,22 @@ describe(QuickRecipes.name, () => {
   });
 });
 
-function mountQuickRecipes() {
+function mountQuickRecipes({
+  recipes = [hummus, salad, stew],
+}: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
-      {
-        provide: LocalStorage,
-        useValue: {
-          getItem: vi.fn().mockReturnValue(null),
-          setItem: vi.fn(),
-        },
-      },
+      provideLocalStorageFake(),
+      provideRecipeRepositoryFake(),
     ],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([hummus, salad]));
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(QuickRecipes);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function recipeNames(root: HTMLElement): string[] {

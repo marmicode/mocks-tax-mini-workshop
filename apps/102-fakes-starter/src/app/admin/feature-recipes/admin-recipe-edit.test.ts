@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminRecipeEdit } from './admin-recipe-edit.ng';
 
@@ -21,11 +23,10 @@ const shakshuka: Recipe = {
 };
 
 describe(AdminRecipeEdit.name, () => {
-  it('fetches the recipe and prefills the form', async () => {
-    const { fixture, findById } = mountAdminRecipeEdit('shakshuka');
+  it('prefills the form with the recipe', async () => {
+    const { fixture } = mountAdminRecipeEdit('shakshuka');
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(fieldByLabel(fixture.nativeElement, 'Name').value).toBe('Shakshuka');
     expect(fieldByLabel(fixture.nativeElement, 'Course').value).toBe('main');
     expect(
@@ -37,29 +38,27 @@ describe(AdminRecipeEdit.name, () => {
   });
 
   it('does not allow changing the id', async () => {
-    const { fixture, findById } = mountAdminRecipeEdit('shakshuka');
+    const { fixture } = mountAdminRecipeEdit('shakshuka');
     await fixture.whenStable();
 
     const idField = fieldByLabel(fixture.nativeElement, 'Id');
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(idField.value).toBe('shakshuka');
     expect((idField as HTMLInputElement).readOnly).toBe(true);
   });
 
   it('saves an unchanged recipe as is', async () => {
-    const { fixture, findById, update } = mountAdminRecipeEdit('shakshuka');
+    const { fixture, recipeRepositoryFake } = mountAdminRecipeEdit('shakshuka');
     await fixture.whenStable();
 
     buttonByText(fixture.nativeElement, 'Save').click();
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-    expect(update).toHaveBeenCalledExactlyOnceWith(shakshuka);
+    expect(recipeRepositoryFake.getRecipesSync()).toEqual([shakshuka]);
   });
 
   it('updates the recipe and goes back to the list', async () => {
-    const { fixture, findById, update, navigate } =
+    const { fixture, recipeRepositoryFake, router } =
       mountAdminRecipeEdit('shakshuka');
     await fixture.whenStable();
 
@@ -70,52 +69,48 @@ describe(AdminRecipeEdit.name, () => {
     buttonByText(fixture.nativeElement, 'Save').click();
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-    expect(update).toHaveBeenCalledExactlyOnceWith({
-      id: 'shakshuka',
-      course: 'starter',
-      name: 'Green Shakshuka',
-      description: null,
-      pictureUri: 'https://example.com/shakshuka.jpg',
-      ingredients: [
-        { quantity: { amount: 3, unit: 'tbsp' }, name: 'olive oil' },
-        { quantity: { amount: 6, unit: '' }, name: 'large eggs' },
-        { name: 'fresh coriander' },
-      ],
-      steps: ['Cook the sauce.', 'Poach the eggs.'],
-    });
-    expect(navigate).toHaveBeenCalledExactlyOnceWith(['/', 'admin', 'recipes']);
+    expect(recipeRepositoryFake.getRecipesSync()).toEqual([
+      {
+        id: 'shakshuka',
+        course: 'starter',
+        name: 'Green Shakshuka',
+        description: null,
+        pictureUri: 'https://example.com/shakshuka.jpg',
+        ingredients: [
+          { quantity: { amount: 3, unit: 'tbsp' }, name: 'olive oil' },
+          { quantity: { amount: 6, unit: '' }, name: 'large eggs' },
+          { name: 'fresh coriander' },
+        ],
+        steps: ['Cook the sauce.', 'Poach the eggs.'],
+      },
+    ]);
+    expect(router.url).toBe('/admin/recipes');
   });
 
   it('shows "Recipe not found" for an unknown recipe', async () => {
-    const { fixture, findById, update } = mountAdminRecipeEdit('missing');
-    findById.mockReturnValue(of(undefined));
+    const { fixture } = mountAdminRecipeEdit('missing');
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'missing' });
     expect(fixture.nativeElement.textContent).toContain('Recipe not found');
     expect(fixture.nativeElement.querySelector('form')).toBeNull();
-    expect(update).not.toHaveBeenCalled();
   });
 });
 
 function mountAdminRecipeEdit(recipeId: string) {
-  TestBed.configureTestingModule({ providers: [provideRouter([])] });
-  const recipeRepository = TestBed.inject(RecipeRepository);
-  const findById = vi
-    .spyOn(recipeRepository, 'findById')
-    .mockReturnValue(of(shakshuka));
-  const update = vi
-    .spyOn(recipeRepository, 'update')
-    .mockImplementation((recipe) => of(recipe));
-  const navigate = vi
-    .spyOn(TestBed.inject(Router), 'navigate')
-    .mockResolvedValue(true);
+  TestBed.configureTestingModule({
+    providers: [
+      provideRouter([{ path: 'admin/recipes', children: [] }]),
+      provideRecipeRepositoryFake(),
+    ],
+  });
+  const recipeRepositoryFake = TestBed.inject(RecipeRepositoryFake);
+  recipeRepositoryFake.setRecipes([shakshuka]);
+  const router = TestBed.inject(Router);
 
   const fixture = TestBed.createComponent(AdminRecipeEdit);
   fixture.componentRef.setInput('recipeId', recipeId);
 
-  return { fixture, findById, update, navigate };
+  return { fixture, recipeRepositoryFake, router };
 }
 
 type FormControlElement =

@@ -1,26 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, it } from 'vitest';
-import { LocalStorage } from '@whiskmate/shared/infra';
+import {
+  LocalStorageFake,
+  provideLocalStorageFake,
+} from '@whiskmate/shared/infra';
 import { MealPlanStore, type WeekdayAssignments } from './meal-plan-store';
 
 const MEAL_PLAN_STORAGE_KEY = 'whiskmate:meal-plan';
 
-class MemoryStorage implements LocalStorage {
-  private readonly items = new Map<string, string>();
-
-  setItem(key: string, value: string): void {
-    this.items.set(key, value);
-  }
-
-  getItem(key: string): string | null {
-    return this.items.get(key) ?? null;
-  }
-}
-
 describe(MealPlanStore.name, () => {
   it('replaces the recipe on a weekday', () => {
-    TestBed.resetTestingModule();
-    const store = TestBed.inject(MealPlanStore);
+    const { store } = setUpMealPlanStore();
 
     store.assign({ weekday: 'monday', recipeId: 'shakshuka' });
     store.assign({ weekday: 'monday', recipeId: 'hummus' });
@@ -37,8 +27,7 @@ describe(MealPlanStore.name, () => {
   });
 
   it('clears a weekday', () => {
-    TestBed.resetTestingModule();
-    const store = TestBed.inject(MealPlanStore);
+    const { store } = setUpMealPlanStore();
     store.assign({ weekday: 'monday', recipeId: 'shakshuka' });
 
     store.clear({ weekday: 'monday' });
@@ -55,8 +44,7 @@ describe(MealPlanStore.name, () => {
   });
 
   it('allows add only when the recipe is not already planned', () => {
-    TestBed.resetTestingModule();
-    const store = TestBed.inject(MealPlanStore);
+    const { store } = setUpMealPlanStore();
     store.assign({ weekday: 'wednesday', recipeId: 'shakshuka' });
 
     expect(store.canAdd({ recipeId: 'shakshuka' })).toBe(false);
@@ -64,8 +52,6 @@ describe(MealPlanStore.name, () => {
   });
 
   it('restores assignments after reload', () => {
-    TestBed.resetTestingModule();
-    const storage = new MemoryStorage();
     const storedWeek: WeekdayAssignments = {
       monday: 'shakshuka',
       tuesday: null,
@@ -75,17 +61,32 @@ describe(MealPlanStore.name, () => {
       saturday: null,
       sunday: null,
     };
-    storage.setItem(MEAL_PLAN_STORAGE_KEY, JSON.stringify(storedWeek));
-    TestBed.overrideProvider(LocalStorage, { useValue: storage });
-    const store = TestBed.inject(MealPlanStore);
+    const { store, localStorageFake } = setUpMealPlanStore({
+      storedValue: JSON.stringify(storedWeek),
+    });
 
     expect(store.assignments()).toEqual(storedWeek);
 
     store.assign({ weekday: 'tuesday', recipeId: 'hummus' });
 
-    expect(JSON.parse(storage.getItem(MEAL_PLAN_STORAGE_KEY) ?? '')).toEqual({
+    expect(
+      JSON.parse(localStorageFake.getItem(MEAL_PLAN_STORAGE_KEY) ?? ''),
+    ).toEqual({
       ...storedWeek,
       tuesday: 'hummus',
     });
   });
 });
+
+function setUpMealPlanStore({ storedValue }: { storedValue?: string } = {}) {
+  TestBed.configureTestingModule({
+    providers: [provideLocalStorageFake()],
+  });
+  const localStorageFake = TestBed.inject(LocalStorageFake);
+  if (storedValue != null) {
+    localStorageFake.setItem(MEAL_PLAN_STORAGE_KEY, storedValue);
+  }
+  /* Instantiate the store once the storage is set up. */
+  const store = TestBed.inject(MealPlanStore);
+  return { store, localStorageFake };
+}

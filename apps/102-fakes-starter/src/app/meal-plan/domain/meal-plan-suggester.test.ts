@@ -1,10 +1,23 @@
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom, of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { firstValueFrom } from 'rxjs';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { WeekdayAssignments } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { MealPlanSuggester } from './meal-plan-suggester';
+
+const hummus: Recipe = {
+  id: 'hummus-ful',
+  course: 'starter',
+  name: 'Hummus with Ful',
+  description: null,
+  pictureUri: 'https://example.com/hummus.jpg',
+  ingredients: [],
+  steps: [],
+};
 
 const shakshuka: Recipe = {
   id: 'shakshuka',
@@ -37,22 +50,22 @@ const emptyAssignments: WeekdayAssignments = {
 };
 
 describe(MealPlanSuggester.name, () => {
-  it('searches mains', async () => {
-    const { suggester, search } = setUpMealPlanSuggester();
+  it('only suggests mains', async () => {
+    const { suggester } = setUpMealPlanSuggester([hummus]);
 
-    await firstValueFrom(suggester.suggest(emptyAssignments));
+    const suggestions = await firstValueFrom(
+      suggester.suggest(emptyAssignments),
+    );
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
+    expect(suggestions).toEqual({});
   });
 
   it('fills every empty weekday round-robin', async () => {
-    const { suggester, search } = setUpMealPlanSuggester();
-    search.mockReturnValue(of([shakshuka, harissaChicken]));
+    const { suggester } = setUpMealPlanSuggester([
+      hummus,
+      shakshuka,
+      harissaChicken,
+    ]);
 
     const suggestions = await firstValueFrom(
       suggester.suggest(emptyAssignments),
@@ -70,8 +83,7 @@ describe(MealPlanSuggester.name, () => {
   });
 
   it('does not suggest anything for planned weekdays', async () => {
-    const { suggester, search } = setUpMealPlanSuggester();
-    search.mockReturnValue(of([shakshuka, harissaChicken]));
+    const { suggester } = setUpMealPlanSuggester([shakshuka, harissaChicken]);
 
     const suggestions = await firstValueFrom(
       suggester.suggest({
@@ -85,12 +97,6 @@ describe(MealPlanSuggester.name, () => {
       }),
     );
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
     expect(suggestions).toEqual({
       saturday: shakshuka,
       sunday: harissaChicken,
@@ -98,8 +104,7 @@ describe(MealPlanSuggester.name, () => {
   });
 
   it('does not suggest recipes that are already planned', async () => {
-    const { suggester, search } = setUpMealPlanSuggester();
-    search.mockReturnValue(of([shakshuka, harissaChicken]));
+    const { suggester } = setUpMealPlanSuggester([shakshuka, harissaChicken]);
 
     const suggestions = await firstValueFrom(
       suggester.suggest({ ...emptyAssignments, monday: 'shakshuka' }),
@@ -110,8 +115,7 @@ describe(MealPlanSuggester.name, () => {
   });
 
   it('suggests nothing when there is no main left', async () => {
-    const { suggester, search } = setUpMealPlanSuggester();
-    search.mockReturnValue(of([shakshuka]));
+    const { suggester } = setUpMealPlanSuggester([shakshuka]);
 
     const suggestions = await firstValueFrom(
       suggester.suggest({ ...emptyAssignments, monday: 'shakshuka' }),
@@ -121,10 +125,11 @@ describe(MealPlanSuggester.name, () => {
   });
 });
 
-function setUpMealPlanSuggester() {
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([]));
+function setUpMealPlanSuggester(recipes: Recipe[]) {
+  TestBed.configureTestingModule({
+    providers: [provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
   const suggester = TestBed.inject(MealPlanSuggester);
-  return { suggester, search };
+  return { suggester };
 }

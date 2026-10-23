@@ -5,9 +5,12 @@ import {
   provideRouter,
   type RouterStateSnapshot,
 } from '@angular/router';
-import { firstValueFrom, isObservable, of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { firstValueFrom, isObservable } from 'rxjs';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { recipeTitleResolver } from './recipe-title.resolver';
 
@@ -23,36 +26,28 @@ const shakshuka: Recipe = {
 
 describe('recipeTitleResolver', () => {
   it('uses the recipe name as title', async () => {
-    const { findById } = setUpResolver();
-    findById.mockReturnValue(of(shakshuka));
+    setUpResolver();
 
     const title = await resolveTitle({ recipeId: 'shakshuka' });
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(title).toBe('Shakshuka · Whiskmate');
   });
 
   it('falls back to a generic title when the recipe does not exist', async () => {
-    const { findById } = setUpResolver();
-    findById.mockReturnValue(of(undefined));
+    setUpResolver();
 
     const title = await resolveTitle({ recipeId: 'missing' });
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'missing' });
     expect(title).toBe('Recipe · Whiskmate');
   });
 });
 
 function setUpResolver() {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
   });
 
-  const findById = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'findById')
-    .mockReturnValue(of(undefined));
-
-  return { findById };
+  TestBed.inject(RecipeRepositoryFake).setRecipes([shakshuka]);
 }
 
 async function resolveTitle(params: Record<string, string>) {

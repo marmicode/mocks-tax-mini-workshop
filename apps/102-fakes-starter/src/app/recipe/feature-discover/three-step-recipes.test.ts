@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { ThreeStepRecipes } from './three-step-recipes.ng';
 
@@ -26,28 +28,21 @@ const salad: Recipe = {
   steps: ['Burn the aubergine.', 'Dress with tahini.'],
 };
 
+const lamb: Recipe = {
+  id: 'slow-roasted-lamb',
+  course: 'main',
+  name: 'Slow-roasted Lamb',
+  description: null,
+  pictureUri: 'https://example.com/lamb.jpg',
+  ingredients: [],
+  steps: ['Marinate.', 'Sear.', 'Roast.', 'Rest.', 'Carve.'],
+};
+
 describe(ThreeStepRecipes.name, () => {
-  it('searches recipes with at most three steps', async () => {
-    const { fixture, search } = mountThreeStepRecipes();
+  it('shows only recipes with at most three steps', async () => {
+    const { fixture } = mountThreeStepRecipes();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 3,
-    });
-  });
-
-  it('shows the three-step recipes', async () => {
-    const { fixture, search } = mountThreeStepRecipes();
-    search.mockReturnValue(of([hummus, salad]));
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 3,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Hummus with Ful',
       'Burnt Aubergine with Tahini and Pomegranate',
@@ -55,15 +50,9 @@ describe(ThreeStepRecipes.name, () => {
   });
 
   it('shows the steps of each recipe', async () => {
-    const { fixture, search } = mountThreeStepRecipes();
-    search.mockReturnValue(of([salad]));
+    const { fixture } = mountThreeStepRecipes({ recipes: [salad] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 3,
-    });
     expect(steps(fixture.nativeElement)).toEqual([
       'Burn the aubergine.',
       'Dress with tahini.',
@@ -71,15 +60,9 @@ describe(ThreeStepRecipes.name, () => {
   });
 
   it('links each recipe to its detail page', async () => {
-    const { fixture, search } = mountThreeStepRecipes();
-    search.mockReturnValue(of([hummus]));
+    const { fixture } = mountThreeStepRecipes({ recipes: [hummus] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 3,
-    });
     expect(
       fixture.nativeElement
         .querySelector('[data-testid="recipe-name"]')
@@ -88,15 +71,9 @@ describe(ThreeStepRecipes.name, () => {
   });
 
   it('shows a message when there are no three-step recipes', async () => {
-    const { fixture, search } = mountThreeStepRecipes();
-    search.mockReturnValue(of([]));
+    const { fixture } = mountThreeStepRecipes({ recipes: [lamb] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 3,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
         ?.textContent,
@@ -104,18 +81,18 @@ describe(ThreeStepRecipes.name, () => {
   });
 });
 
-function mountThreeStepRecipes() {
+function mountThreeStepRecipes({
+  recipes = [hummus, salad, lamb],
+}: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([hummus, salad]));
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(ThreeStepRecipes);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function recipeNames(root: HTMLElement): string[] {

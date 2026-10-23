@@ -1,38 +1,24 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
+import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminIngredientHistogram } from './admin-ingredient-histogram.ng';
 
 describe(AdminIngredientHistogram.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminIngredientHistogram();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('shows an empty state when there are no recipes', async () => {
-    const { fixture, search } = mountAdminIngredientHistogram();
+    const { fixture } = mountAdminIngredientHistogram();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(emptyState(fixture.nativeElement)).toBe('No recipes yet.');
   });
 
   it('counts a single recipe', async () => {
-    const { fixture, search } = mountAdminIngredientHistogram();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminIngredientHistogram({
+      recipes: [
         {
           id: 'shakshuka',
           course: 'main',
@@ -45,24 +31,18 @@ describe(AdminIngredientHistogram.name, () => {
           ],
           steps: ['Cook.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(histogram(fixture.nativeElement)).toEqual([
       { ingredientCount: '2', recipeCount: '1' },
     ]);
   });
 
   it('groups recipes with the same ingredient count', async () => {
-    const { fixture, search } = mountAdminIngredientHistogram();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminIngredientHistogram({
+      recipes: [
         {
           id: 'hummus-ful',
           course: 'starter',
@@ -81,24 +61,18 @@ describe(AdminIngredientHistogram.name, () => {
           ingredients: [{ name: 'courgettes' }, { name: 'eggs' }],
           steps: ['Fry.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(histogram(fixture.nativeElement)).toEqual([
       { ingredientCount: '2', recipeCount: '2' },
     ]);
   });
 
   it('sorts buckets by ingredient count', async () => {
-    const { fixture, search } = mountAdminIngredientHistogram();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminIngredientHistogram({
+      recipes: [
         {
           id: 'tahini-halva-brownies',
           course: 'dessert',
@@ -140,15 +114,10 @@ describe(AdminIngredientHistogram.name, () => {
           ingredients: [{ name: 'courgettes' }],
           steps: ['Fry.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(histogram(fixture.nativeElement)).toEqual([
       { ingredientCount: '0', recipeCount: '1' },
       { ingredientCount: '1', recipeCount: '2' },
@@ -157,16 +126,17 @@ describe(AdminIngredientHistogram.name, () => {
   });
 });
 
-function mountAdminIngredientHistogram() {
-  TestBed.configureTestingModule({ providers: [provideRouter([])] });
-
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([]));
+function mountAdminIngredientHistogram({
+  recipes = [],
+}: { recipes?: Recipe[] } = {}) {
+  TestBed.configureTestingModule({
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(AdminIngredientHistogram);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function histogram(root: HTMLElement) {

@@ -1,11 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
+import { describe, it } from 'vitest';
 import { UserFavorites } from '@whiskmate/recipe/domain';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
-import { LocalStorage } from '@whiskmate/shared/infra';
+import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { RecipeDetail } from './recipe-detail.ng';
 
 const shakshuka: Recipe = {
@@ -32,20 +34,22 @@ const harissaChicken: Recipe = {
   steps: [],
 };
 
+const cheesecake: Recipe = {
+  id: 'lemon-ricotta-cheesecake',
+  course: 'dessert',
+  name: 'Lemon and Ricotta Cheesecake',
+  description: null,
+  pictureUri: 'https://example.com/cheesecake.jpg',
+  ingredients: [],
+  steps: [],
+};
+
 describe(RecipeDetail.name, () => {
-  it('fetches the recipe by id', async () => {
-    const { fixture, findById } = mountRecipeDetail('shakshuka');
-    await fixture.whenStable();
-
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-  });
-
   it('shows the recipe name, course, description and picture', async () => {
-    const { fixture, findById } = mountRecipeDetail('shakshuka');
+    const { fixture } = mountRecipeDetail('shakshuka');
     await fixture.whenStable();
 
     const root: HTMLElement = fixture.nativeElement;
-    expect(findById).toHaveBeenCalledWith({ id: 'shakshuka' });
     expect(textOf(root, 'recipe-name')).toBe('Shakshuka');
     expect(textOf(root, 'recipe-course')).toBe('main');
     expect(textOf(root, 'recipe-description')).toBe(
@@ -57,10 +61,9 @@ describe(RecipeDetail.name, () => {
   });
 
   it('shows ingredients with their quantities and steps', async () => {
-    const { fixture, findById } = mountRecipeDetail('shakshuka');
+    const { fixture } = mountRecipeDetail('shakshuka');
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledWith({ id: 'shakshuka' });
     expect(textsOf(fixture.nativeElement, 'ingredient')).toEqual([
       '3 tbsp olive oil',
       '6 large eggs',
@@ -85,18 +88,9 @@ describe(RecipeDetail.name, () => {
   });
 
   it('shows similar recipes of the same course', async () => {
-    const { fixture, findById, search } = mountRecipeDetail('shakshuka');
-    search.mockReturnValue(of([shakshuka, harissaChicken]));
+    const { fixture } = mountRecipeDetail('shakshuka');
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledTimes(1);
-    expect(search).toHaveBeenCalledTimes(1);
-    expect(search).toHaveBeenNthCalledWith(1, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
     expect(textsOf(fixture.nativeElement, 'similar-recipe')).toEqual([
       'Harissa-Roasted Chicken',
     ]);
@@ -104,55 +98,46 @@ describe(RecipeDetail.name, () => {
 
   it('adds the recipe to favorites', async () => {
     const { fixture, userFavorites } = mountRecipeDetail('shakshuka');
-    const addFavorite = vi
-      .spyOn(userFavorites, 'addFavorite')
-      .mockImplementation(() => undefined);
     await fixture.whenStable();
 
     buttonByLabel(fixture.nativeElement, 'Add to favorites').click();
     await fixture.whenStable();
 
-    expect(addFavorite).toHaveBeenCalledExactlyOnceWith('shakshuka');
+    expect(userFavorites.favoriteIds()).toEqual(new Set(['shakshuka']));
   });
 
   it('shows a message when the recipe does not exist', async () => {
-    const { fixture, findById, search } = mountRecipeDetail('missing');
-    findById.mockReturnValue(of(undefined));
+    const { fixture } = mountRecipeDetail('missing');
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'missing' });
-    expect(search).not.toHaveBeenCalled();
     expect(textOf(fixture.nativeElement, 'recipe-not-found')).toBe(
       'This recipe does not exist.',
     );
+    expect(textsOf(fixture.nativeElement, 'similar-recipe')).toEqual([]);
   });
 });
 
-function mountRecipeDetail(recipeId: string) {
+function mountRecipeDetail(
+  recipeId: string,
+  {
+    recipes = [shakshuka, harissaChicken, cheesecake],
+  }: { recipes?: Recipe[] } = {},
+) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
-      {
-        provide: LocalStorage,
-        useValue: {
-          getItem: vi.fn().mockReturnValue(null),
-          setItem: vi.fn(),
-        },
-      },
+      provideLocalStorageFake(),
+      provideRecipeRepositoryFake(),
     ],
   });
 
-  const recipeRepository = TestBed.inject(RecipeRepository);
-  const findById = vi
-    .spyOn(recipeRepository, 'findById')
-    .mockReturnValue(of(shakshuka));
-  const search = vi.spyOn(recipeRepository, 'search').mockReturnValue(of([]));
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
   const userFavorites = TestBed.inject(UserFavorites);
 
   const fixture = TestBed.createComponent(RecipeDetail);
   fixture.componentRef.setInput('recipeId', recipeId);
 
-  return { fixture, findById, search, userFavorites };
+  return { fixture, userFavorites };
 }
 
 function textOf(root: HTMLElement, testId: string): string | undefined {

@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminCourseBoard } from './admin-course-board.ng';
 
@@ -37,31 +39,6 @@ const cheesecake: Recipe = {
 };
 
 describe(AdminCourseBoard.name, () => {
-  it('searches recipes for each course', async () => {
-    const { fixture, search } = mountAdminCourseBoard();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledTimes(3);
-    expect(search).toHaveBeenNthCalledWith(1, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['starter'],
-    });
-    expect(search).toHaveBeenNthCalledWith(2, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
-    expect(search).toHaveBeenNthCalledWith(3, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['dessert'],
-    });
-  });
-
   it('shows each recipe in its course column', async () => {
     const { fixture } = mountAdminCourseBoard();
     await fixture.whenStable();
@@ -90,66 +67,46 @@ describe(AdminCourseBoard.name, () => {
   });
 
   it('moves a recipe to another course', async () => {
-    const { fixture, update } = mountAdminCourseBoard();
+    const { fixture, recipeRepositoryFake } = mountAdminCourseBoard();
     await fixture.whenStable();
 
     selectOption(moveSelect(fixture.nativeElement, 'Shakshuka'), 'starter');
     await fixture.whenStable();
 
-    expect(update).toHaveBeenCalledExactlyOnceWith({
-      id: 'shakshuka',
-      course: 'starter',
-      name: 'Shakshuka',
-      description: null,
-      pictureUri: 'https://example.com/shakshuka.jpg',
-      ingredients: [],
-      steps: [],
-    });
+    expect(recipeRepositoryFake.getRecipesSync()).toEqual([
+      hummus,
+      { ...shakshuka, course: 'starter' },
+      cheesecake,
+    ]);
   });
 
   it('refreshes the source and target columns after a move', async () => {
-    const { fixture, search } = mountAdminCourseBoard();
+    const { fixture } = mountAdminCourseBoard();
     await fixture.whenStable();
-    search.mockClear();
 
     selectOption(moveSelect(fixture.nativeElement, 'Shakshuka'), 'dessert');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
-    expect(search).toHaveBeenCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['dessert'],
-    });
+    expect(columnRecipeNames(fixture.nativeElement, 'main')).toEqual([]);
+    expect(columnRecipeNames(fixture.nativeElement, 'dessert')).toEqual([
+      'Shakshuka',
+      'Lemon and Ricotta Cheesecake',
+    ]);
   });
 });
 
-function mountAdminCourseBoard() {
-  TestBed.configureTestingModule({ providers: [provideRouter([])] });
-  const recipeRepository = TestBed.inject(RecipeRepository);
-  const search = vi
-    .spyOn(recipeRepository, 'search')
-    .mockImplementation(({ courses }) =>
-      of(
-        [hummus, shakshuka, cheesecake].filter((recipe) =>
-          courses?.includes(recipe.course),
-        ),
-      ),
-    );
-  const update = vi
-    .spyOn(recipeRepository, 'update')
-    .mockImplementation((recipe) => of(recipe));
+function mountAdminCourseBoard({
+  recipes = [hummus, shakshuka, cheesecake],
+}: { recipes?: Recipe[] } = {}) {
+  TestBed.configureTestingModule({
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
+  });
+  const recipeRepositoryFake = TestBed.inject(RecipeRepositoryFake);
+  recipeRepositoryFake.setRecipes(recipes);
 
   const fixture = TestBed.createComponent(AdminCourseBoard);
 
-  return { fixture, search, update };
+  return { fixture, recipeRepositoryFake };
 }
 
 function columnRecipeNames(root: HTMLElement, course: string): string[] {

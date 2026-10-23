@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { IngredientIndex } from './ingredient-index.ng';
 
@@ -34,26 +36,10 @@ const hummus: Recipe = {
 };
 
 describe(IngredientIndex.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountIngredientIndex();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('lists normalized ingredient names alphabetically', async () => {
-    const { fixture, search } = mountIngredientIndex();
+    const { fixture } = mountIngredientIndex();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(ingredientNames(fixture.nativeElement)).toEqual([
       'garlic',
       'red peppers',
@@ -63,26 +49,16 @@ describe(IngredientIndex.name, () => {
   });
 
   it('groups ingredients by first letter', async () => {
-    const { fixture, search } = mountIngredientIndex();
+    const { fixture } = mountIngredientIndex();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(sectionLetters(fixture.nativeElement)).toEqual(['g', 'r', 't']);
   });
 
   it('lists every recipe using an ingredient', async () => {
-    const { fixture, search } = mountIngredientIndex();
+    const { fixture } = mountIngredientIndex();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNamesFor(fixture.nativeElement, 'garlic')).toEqual([
       'Shakshuka',
       'Hummus with Ful',
@@ -90,32 +66,22 @@ describe(IngredientIndex.name, () => {
   });
 
   it('filters ingredients', async () => {
-    const { fixture, search } = mountIngredientIndex();
+    const { fixture } = mountIngredientIndex();
     await fixture.whenStable();
 
     typeInto(fixture.nativeElement.querySelector('input'), 'ta');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(ingredientNames(fixture.nativeElement)).toEqual(['tahini']);
   });
 
   it('shows a message when no ingredient matches', async () => {
-    const { fixture, search } = mountIngredientIndex();
+    const { fixture } = mountIngredientIndex();
     await fixture.whenStable();
 
     typeInto(fixture.nativeElement.querySelector('input'), 'saffron');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector(
         '[data-testid="no-ingredients-message"]',
@@ -124,24 +90,18 @@ describe(IngredientIndex.name, () => {
   });
 
   it('filters ingredients ignoring case and surrounding spaces', async () => {
-    const { fixture, search } = mountIngredientIndex();
+    const { fixture } = mountIngredientIndex();
     await fixture.whenStable();
 
     typeInto(fixture.nativeElement.querySelector('input'), '  GAR ');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(ingredientNames(fixture.nativeElement)).toEqual(['garlic']);
   });
 
   it('lists a recipe only once when it uses an ingredient twice', async () => {
-    const { fixture, search } = mountIngredientIndex();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountIngredientIndex({
+      recipes: [
         {
           ...hummus,
           ingredients: [
@@ -149,15 +109,10 @@ describe(IngredientIndex.name, () => {
             { name: '2 garlic, roasted' },
           ],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(ingredientNames(fixture.nativeElement)).toEqual(['garlic']);
     expect(recipeNamesFor(fixture.nativeElement, 'garlic')).toEqual([
       'Hummus with Ful',
@@ -165,29 +120,18 @@ describe(IngredientIndex.name, () => {
   });
 
   it('links each recipe to its detail page', async () => {
-    const { fixture, search } = mountIngredientIndex();
+    const { fixture } = mountIngredientIndex();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeLinksFor(fixture.nativeElement, 'tahini')).toEqual([
       '/recipes/hummus-ful',
     ]);
   });
 
-  it('shows a message when the repository returns no recipes', async () => {
-    const { fixture, search } = mountIngredientIndex();
-    search.mockReturnValue(of([]));
+  it('shows a message when the catalog is empty', async () => {
+    const { fixture } = mountIngredientIndex({ recipes: [] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(sectionLetters(fixture.nativeElement)).toEqual([]);
     expect(
       fixture.nativeElement.querySelector(
@@ -197,18 +141,18 @@ describe(IngredientIndex.name, () => {
   });
 });
 
-function mountIngredientIndex() {
+function mountIngredientIndex({
+  recipes = [shakshuka, hummus],
+}: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([shakshuka, hummus]));
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(IngredientIndex);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function entries(root: HTMLElement): HTMLElement[] {

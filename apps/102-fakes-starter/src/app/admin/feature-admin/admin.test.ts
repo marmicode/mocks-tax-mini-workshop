@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { Admin } from './admin.ng';
 
@@ -27,27 +29,10 @@ const shakshuka: Recipe = {
 };
 
 describe(Admin.name, () => {
-  it('searches the whole catalog to compute stats', async () => {
-    const { fixture, search } = mountAdmin();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('shows the recipe count and the count per course', async () => {
-    const { fixture, search } = mountAdmin();
-    search.mockReturnValue(of([hummus, shakshuka]));
+    const { fixture } = mountAdmin();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(tiles(fixture.nativeElement)).toEqual(
       expect.arrayContaining([
         '2 Recipes',
@@ -59,15 +44,9 @@ describe(Admin.name, () => {
   });
 
   it('shows averages and missing descriptions', async () => {
-    const { fixture, search } = mountAdmin();
-    search.mockReturnValue(of([hummus, shakshuka]));
+    const { fixture } = mountAdmin();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(tiles(fixture.nativeElement)).toEqual(
       expect.arrayContaining([
         '2.5 Avg. ingredients',
@@ -78,14 +57,9 @@ describe(Admin.name, () => {
   });
 
   it('links to every admin page', async () => {
-    const { fixture, search } = mountAdmin();
+    const { fixture } = mountAdmin();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(links(fixture.nativeElement)).toEqual([
       { label: 'Recipes', href: '/admin/recipes' },
       { label: 'New recipe', href: '/admin/recipes/new' },
@@ -116,13 +90,15 @@ describe(Admin.name, () => {
   });
 });
 
-function mountAdmin() {
-  TestBed.configureTestingModule({ providers: [provideRouter([])] });
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([]));
+function mountAdmin({
+  recipes = [hummus, shakshuka],
+}: { recipes?: Recipe[] } = {}) {
+  TestBed.configureTestingModule({
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
   const fixture = TestBed.createComponent(Admin);
-  return { fixture, search };
+  return { fixture };
 }
 
 function tiles(root: HTMLElement): string[] {

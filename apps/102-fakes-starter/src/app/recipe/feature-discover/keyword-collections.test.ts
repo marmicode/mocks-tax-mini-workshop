@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
-import { LocalStorage } from '@whiskmate/shared/infra';
+import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { KeywordCollections } from './keyword-collections.ng';
 
 const soup: Recipe = {
@@ -27,81 +29,32 @@ const cake: Recipe = {
   steps: [],
 };
 
-/**
- * Canned backend responses, keyed by the exact search request.
- */
-const responses: Record<string, Recipe[]> = {
-  '{"keywords":"soup","maxIngredientCount":null,"maxStepCount":null}': [soup],
-  '{"keywords":"salad","maxIngredientCount":null,"maxStepCount":null}': [],
-  '{"keywords":"cake","maxIngredientCount":null,"maxStepCount":null}': [cake],
-};
-
 describe(KeywordCollections.name, () => {
-  it('searches soups by default', async () => {
-    const { fixture, search } = mountKeywordCollections();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'soup',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
-  it('shows the recipes of the collection', async () => {
-    const { fixture, search } = mountKeywordCollections();
+  it('shows the soups by default', async () => {
+    const { fixture } = mountKeywordCollections();
     await fixture.whenStable();
 
     expect(recipeNames(fixture.nativeElement)).toEqual(['Red Lentil Soup']);
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'soup',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
-  it('searches salads when the salads collection is chosen', async () => {
-    const { fixture, search } = mountKeywordCollections();
-    await fixture.whenStable();
-
-    clickToggle(fixture.nativeElement, 'Salads');
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'salad',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('shows cakes when the cakes collection is chosen', async () => {
-    const { fixture, search } = mountKeywordCollections();
+    const { fixture } = mountKeywordCollections();
     await fixture.whenStable();
 
     clickToggle(fixture.nativeElement, 'Cakes');
     await fixture.whenStable();
 
     expect(recipeNames(fixture.nativeElement)).toEqual(['Orange Polenta Cake']);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'cake',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('shows a message when the collection is empty', async () => {
-    const { fixture, search } = mountKeywordCollections();
+    const { fixture } = mountKeywordCollections();
     await fixture.whenStable();
 
     clickToggle(fixture.nativeElement, 'Salads');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'salad',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(recipeNames(fixture.nativeElement)).toEqual([]);
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
         ?.textContent,
@@ -109,29 +62,22 @@ describe(KeywordCollections.name, () => {
   });
 });
 
-function mountKeywordCollections() {
+function mountKeywordCollections({
+  recipes = [soup, cake],
+}: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
-      {
-        provide: LocalStorage,
-        useValue: {
-          getItem: vi.fn().mockReturnValue(null),
-          setItem: vi.fn(),
-        },
-      },
+      provideLocalStorageFake(),
+      provideRecipeRepositoryFake(),
     ],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockImplementation((params) =>
-      of(responses[JSON.stringify(params)] ?? []),
-    );
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(KeywordCollections);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function recipeNames(root: HTMLElement): string[] {

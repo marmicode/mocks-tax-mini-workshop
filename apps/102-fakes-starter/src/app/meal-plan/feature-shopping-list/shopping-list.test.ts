@@ -1,14 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import {
   MealPlanStore,
   type WeekdayAssignments,
 } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
-import { LocalStorage } from '@whiskmate/shared/infra';
+import { provideLocalStorageFake } from '@whiskmate/shared/infra';
+import { WEEKDAYS } from '@whiskmate/shared/model';
 import { ShoppingList } from './shopping-list.ng';
 
 const shakshuka: Recipe = {
@@ -47,10 +50,9 @@ const emptyAssignments: WeekdayAssignments = {
 
 describe(ShoppingList.name, () => {
   it('shows an empty state when nothing is planned', async () => {
-    const { fixture, findById } = mountShoppingList(emptyAssignments);
+    const { fixture } = mountShoppingList(emptyAssignments);
     await fixture.whenStable();
 
-    expect(findById).not.toHaveBeenCalled();
     expect(
       fixture.nativeElement.querySelector('[data-testid="empty-shopping-list"]')
         ?.textContent,
@@ -58,14 +60,12 @@ describe(ShoppingList.name, () => {
   });
 
   it('lists the ingredients of the planned recipes', async () => {
-    const { fixture, findById } = mountShoppingList({
+    const { fixture } = mountShoppingList({
       ...emptyAssignments,
       monday: 'shakshuka',
     });
-    findById.mockReturnValue(of(shakshuka));
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(itemLabels(fixture.nativeElement)).toEqual([
       'fresh coriander, to serve',
       '6 large eggs',
@@ -75,19 +75,13 @@ describe(ShoppingList.name, () => {
   });
 
   it('merges ingredients shared by several recipes', async () => {
-    const { fixture, findById } = mountShoppingList({
+    const { fixture } = mountShoppingList({
       ...emptyAssignments,
       monday: 'shakshuka',
       tuesday: 'hummus-ful',
     });
-    findById.mockImplementation(({ id }) =>
-      of(id === 'shakshuka' ? shakshuka : hummus),
-    );
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledTimes(2);
-    expect(findById).toHaveBeenNthCalledWith(1, { id: 'shakshuka' });
-    expect(findById).toHaveBeenNthCalledWith(2, { id: 'hummus-ful' });
     expect(itemLabels(fixture.nativeElement)).toContain('5 tbsp olive oil');
     expect(fixture.nativeElement.textContent).toContain(
       'for Shakshuka, Hummus with Ful',
@@ -95,32 +89,28 @@ describe(ShoppingList.name, () => {
   });
 
   it('counts down the items left as they are checked', async () => {
-    const { fixture, findById } = mountShoppingList({
+    const { fixture } = mountShoppingList({
       ...emptyAssignments,
       monday: 'shakshuka',
     });
-    findById.mockReturnValue(of(shakshuka));
     await fixture.whenStable();
 
     checkboxes(fixture.nativeElement)[0]?.click();
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(itemsLeft(fixture.nativeElement)).toBe('2 items left');
   });
 
   it('celebrates once every item is checked', async () => {
-    const { fixture, findById } = mountShoppingList({
+    const { fixture } = mountShoppingList({
       ...emptyAssignments,
       monday: 'hummus-ful',
     });
-    findById.mockReturnValue(of(hummus));
     await fixture.whenStable();
 
     checkboxes(fixture.nativeElement)[0]?.click();
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'hummus-ful' });
     expect(itemsLeft(fixture.nativeElement)).toBe('All done 🎉');
   });
 });
@@ -129,25 +119,30 @@ function mountShoppingList(assignments: WeekdayAssignments) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
-      {
-        provide: LocalStorage,
-        useValue: {
-          getItem: vi.fn().mockReturnValue(null),
-          setItem: vi.fn(),
-        },
-      },
+      provideLocalStorageFake(),
+      provideRecipeRepositoryFake(),
     ],
   });
 
-  const findById = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'findById')
-    .mockReturnValue(of(undefined));
+  TestBed.inject(RecipeRepositoryFake).setRecipes([shakshuka, hummus]);
   const mealPlanStore = TestBed.inject(MealPlanStore);
-  vi.spyOn(mealPlanStore, 'assignments').mockReturnValue(assignments);
+  planWeek(mealPlanStore, assignments);
 
   const fixture = TestBed.createComponent(ShoppingList);
 
-  return { fixture, findById, mealPlanStore };
+  return { fixture, mealPlanStore };
+}
+
+function planWeek(
+  mealPlanStore: MealPlanStore,
+  assignments: WeekdayAssignments,
+): void {
+  for (const weekday of WEEKDAYS) {
+    const recipeId = assignments[weekday];
+    if (recipeId != null) {
+      mealPlanStore.assign({ weekday, recipeId });
+    }
+  }
 }
 
 function itemLabels(root: HTMLElement): string[] {

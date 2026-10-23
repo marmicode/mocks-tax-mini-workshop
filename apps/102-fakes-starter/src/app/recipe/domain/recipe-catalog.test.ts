@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom, of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { firstValueFrom } from 'rxjs';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { RecipeCatalog } from './recipe-catalog';
 
@@ -37,44 +40,34 @@ const cheesecake: Recipe = {
 
 describe(RecipeCatalog.name, () => {
   it('counts every recipe of the catalog', async () => {
-    const { recipeCatalog, search } = setUpRecipeCatalog();
-    search.mockReturnValue(of([hummus, shakshuka, cheesecake]));
+    const { recipeCatalog } = setUpRecipeCatalog([
+      hummus,
+      shakshuka,
+      cheesecake,
+    ]);
 
     const count = await firstValueFrom(recipeCatalog.countAll());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(count).toBe(3);
   });
 
   it('counts zero when the catalog is empty', async () => {
-    const { recipeCatalog, search } = setUpRecipeCatalog();
-    search.mockReturnValue(of([]));
+    const { recipeCatalog } = setUpRecipeCatalog([]);
 
     const count = await firstValueFrom(recipeCatalog.countAll());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(count).toBe(0);
   });
 
   it('lists recipe names alphabetically', async () => {
-    const { recipeCatalog, search } = setUpRecipeCatalog();
-    search.mockReturnValue(of([shakshuka, hummus, cheesecake]));
+    const { recipeCatalog } = setUpRecipeCatalog([
+      shakshuka,
+      hummus,
+      cheesecake,
+    ]);
 
     const names = await firstValueFrom(recipeCatalog.listNames());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(names).toEqual([
       'Hummus with Ful',
       'Lemon and Ricotta Cheesecake',
@@ -83,40 +76,34 @@ describe(RecipeCatalog.name, () => {
   });
 
   it('lists each recipe name once', async () => {
-    const { recipeCatalog, search } = setUpRecipeCatalog();
-    search.mockReturnValue(
-      of([shakshuka, { ...shakshuka, id: 'shakshuka-2' }]),
-    );
+    const { recipeCatalog } = setUpRecipeCatalog([
+      shakshuka,
+      { ...shakshuka, id: 'shakshuka-2' },
+    ]);
 
     const names = await firstValueFrom(recipeCatalog.listNames());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(names).toEqual(['Shakshuka']);
   });
 
   it('lists the recipes of a course', async () => {
-    const { recipeCatalog, search } = setUpRecipeCatalog();
-    search.mockReturnValue(of([hummus, shakshuka, cheesecake]));
+    const { recipeCatalog } = setUpRecipeCatalog([
+      hummus,
+      shakshuka,
+      cheesecake,
+    ]);
 
     const recipes = await firstValueFrom(recipeCatalog.listByCourse('main'));
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipes).toEqual([shakshuka]);
   });
 });
 
-function setUpRecipeCatalog() {
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([]));
+function setUpRecipeCatalog(recipes: Recipe[]) {
+  TestBed.configureTestingModule({
+    providers: [provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
   const recipeCatalog = TestBed.inject(RecipeCatalog);
-  return { recipeCatalog, search };
+  return { recipeCatalog };
 }

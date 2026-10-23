@@ -1,26 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
+import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminLongNames } from './admin-long-names.ng';
 
 describe(AdminLongNames.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminLongNames();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('shows an empty state when every name is short enough', async () => {
-    const { fixture, search } = mountAdminLongNames();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminLongNames({
+      recipes: [
         {
           id: 'shakshuka',
           course: 'main',
@@ -30,24 +21,18 @@ describe(AdminLongNames.name, () => {
           ingredients: [{ name: 'eggs' }],
           steps: ['Cook.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(emptyState(fixture.nativeElement)).toBe(
       'Every name fits within 30 characters.',
     );
   });
 
   it('lists names longer than 30 characters by default', async () => {
-    const { fixture, search } = mountAdminLongNames();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminLongNames({
+      recipes: [
         {
           id: 'slow-roasted-lamb-shoulder-with-pomegranate',
           course: 'main',
@@ -66,24 +51,18 @@ describe(AdminLongNames.name, () => {
           ingredients: [{ name: 'chickpeas' }],
           steps: ['Blend.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Slow-Roasted Lamb Shoulder with Pomegranate (43)',
     ]);
   });
 
   it('sorts the longest names first', async () => {
-    const { fixture, search } = mountAdminLongNames();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminLongNames({
+      recipes: [
         {
           id: 'tahini-and-halva-brownies-with-sea-salt',
           course: 'dessert',
@@ -102,25 +81,19 @@ describe(AdminLongNames.name, () => {
           ingredients: [{ name: 'lamb shoulder' }],
           steps: ['Roast.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Slow-Roasted Lamb Shoulder with Pomegranate (43)',
       'Tahini and Halva Brownies with Sea Salt (39)',
     ]);
   });
 
-  it('applies a custom max length without searching again', async () => {
-    const { fixture, search } = mountAdminLongNames();
-    search.mockReturnValue(
-      of([
+  it('applies a custom max length', async () => {
+    const { fixture } = mountAdminLongNames({
+      recipes: [
         {
           id: 'hummus-with-ful',
           course: 'starter',
@@ -139,8 +112,8 @@ describe(AdminLongNames.name, () => {
           ingredients: [{ name: 'eggs' }],
           steps: ['Cook.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
     const input = maxLengthInput(fixture.nativeElement);
@@ -148,25 +121,19 @@ describe(AdminLongNames.name, () => {
     input.dispatchEvent(new Event('input'));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual(['Hummus with Ful (15)']);
   });
 });
 
-function mountAdminLongNames() {
-  TestBed.configureTestingModule({ providers: [provideRouter([])] });
-
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([]));
+function mountAdminLongNames({ recipes = [] }: { recipes?: Recipe[] } = {}) {
+  TestBed.configureTestingModule({
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(AdminLongNames);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function rowTexts(root: HTMLElement): string[] {

@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminRecipeList } from './admin-recipe-list.ng';
 
@@ -26,26 +28,29 @@ const cheesecake: Recipe = {
   steps: ['Bake.'],
 };
 
-const catalog = [shakshuka, cheesecake];
+const hummus: Recipe = {
+  id: 'hummus-ful',
+  course: 'starter',
+  name: 'Hummus with Ful',
+  description: null,
+  pictureUri: 'https://example.com/hummus.jpg',
+  ingredients: [{ name: 'chickpeas' }, { name: 'tahini' }],
+  steps: ['Blend.'],
+};
 
 describe(AdminRecipeList.name, () => {
   it('lists all recipes on load', async () => {
-    const { fixture, search } = mountAdminRecipeList();
+    const { fixture } = mountAdminRecipeList();
     await fixture.whenStable();
 
     expect(rows(fixture.nativeElement)).toEqual([
       ['Shakshuka', 'main', '2', '3'],
       ['Lemon and Ricotta Cheesecake', 'dessert', '1', '1'],
     ]);
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('searches by keywords', async () => {
-    const { fixture, search } = mountAdminRecipeList();
+    const { fixture } = mountAdminRecipeList();
     await fixture.whenStable();
 
     typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'lemon');
@@ -54,21 +59,10 @@ describe(AdminRecipeList.name, () => {
     expect(rows(fixture.nativeElement)).toEqual([
       ['Lemon and Ricotta Cheesecake', 'dessert', '1', '1'],
     ]);
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenNthCalledWith(1, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(search).toHaveBeenNthCalledWith(2, {
-      keywords: 'lemon',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('searches by course', async () => {
-    const { fixture, search } = mountAdminRecipeList();
+    const { fixture } = mountAdminRecipeList();
     await fixture.whenStable();
 
     selectCourse(fixture.nativeElement, 'dessert');
@@ -77,17 +71,10 @@ describe(AdminRecipeList.name, () => {
     expect(rows(fixture.nativeElement)).toEqual([
       ['Lemon and Ricotta Cheesecake', 'dessert', '1', '1'],
     ]);
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenNthCalledWith(2, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['dessert'],
-    });
   });
 
   it('stops filtering by course when "All courses" is selected', async () => {
-    const { fixture, search } = mountAdminRecipeList();
+    const { fixture } = mountAdminRecipeList();
     await fixture.whenStable();
 
     selectCourse(fixture.nativeElement, 'dessert');
@@ -99,22 +86,12 @@ describe(AdminRecipeList.name, () => {
       ['Shakshuka', 'main', '2', '3'],
       ['Lemon and Ricotta Cheesecake', 'dessert', '1', '1'],
     ]);
-    expect(search).toHaveBeenCalledTimes(3);
-    expect(search).toHaveBeenLastCalledWith(
-      expect.not.objectContaining({ courses: expect.anything() }),
-    );
   });
 
   it('links to the edit and delete pages of each recipe', async () => {
-    const { fixture, search } = mountAdminRecipeList();
-    search.mockReturnValue(of([shakshuka]));
+    const { fixture } = mountAdminRecipeList({ recipes: [shakshuka] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(linkByText(fixture.nativeElement, 'Edit').getAttribute('href')).toBe(
       '/admin/recipes/shakshuka/edit',
     );
@@ -127,36 +104,26 @@ describe(AdminRecipeList.name, () => {
   });
 
   it('shows "No recipes found" when nothing matches', async () => {
-    const { fixture, search } = mountAdminRecipeList();
+    const { fixture } = mountAdminRecipeList();
     await fixture.whenStable();
 
     typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'xyz');
     await fixture.whenStable();
 
     expect(fixture.nativeElement.textContent).toContain('No recipes found');
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'xyz',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('shows the number of recipes found', async () => {
-    const { fixture, search } = mountAdminRecipeList();
+    const { fixture } = mountAdminRecipeList();
     await fixture.whenStable();
 
     expect(
       fixture.nativeElement.querySelector('.count')?.textContent?.trim(),
     ).toBe('2 recipe(s)');
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('renders the recipes matching the keywords', async () => {
-    const { fixture, search } = mountAdminRecipeList();
+    const { fixture } = mountAdminRecipeList();
     await fixture.whenStable();
 
     typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'ricotta');
@@ -165,15 +132,10 @@ describe(AdminRecipeList.name, () => {
     expect(rows(fixture.nativeElement)).toEqual([
       ['Lemon and Ricotta Cheesecake', 'dessert', '1', '1'],
     ]);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'ricotta',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('combines keywords and course', async () => {
-    const { fixture, search } = mountAdminRecipeList();
+    const { fixture } = mountAdminRecipeList();
     await fixture.whenStable();
 
     typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'shak');
@@ -184,52 +146,38 @@ describe(AdminRecipeList.name, () => {
     expect(rows(fixture.nativeElement)).toEqual([
       ['Shakshuka', 'main', '2', '3'],
     ]);
-    expect(search).toHaveBeenCalledTimes(3);
-    expect(search).toHaveBeenNthCalledWith(3, {
-      keywords: 'shak',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
   });
 
   it('keeps keywords when "All courses" is selected again', async () => {
-    const { fixture, search } = mountAdminRecipeList();
+    const { fixture } = mountAdminRecipeList({
+      recipes: [shakshuka, cheesecake, hummus],
+    });
     await fixture.whenStable();
 
-    selectCourse(fixture.nativeElement, 'starter');
+    selectCourse(fixture.nativeElement, 'dessert');
     await fixture.whenStable();
     typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'hummus');
     await fixture.whenStable();
+    expect(rows(fixture.nativeElement)).toEqual([]);
+
     selectCourse(fixture.nativeElement, '');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledTimes(4);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'hummus',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(rows(fixture.nativeElement)).toEqual([
+      ['Hummus with Ful', 'starter', '2', '1'],
+    ]);
   });
 });
 
-function mountAdminRecipeList() {
-  TestBed.configureTestingModule({ providers: [provideRouter([])] });
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockImplementation((params) => {
-      const recipes =
-        'courses' in params
-          ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
-          : catalog;
-      return of(
-        recipes.filter((recipe) =>
-          recipe.name.toLowerCase().includes(params.keywords.toLowerCase()),
-        ),
-      );
-    });
+function mountAdminRecipeList({
+  recipes = [shakshuka, cheesecake],
+}: { recipes?: Recipe[] } = {}) {
+  TestBed.configureTestingModule({
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
   const fixture = TestBed.createComponent(AdminRecipeList);
-  return { fixture, search };
+  return { fixture };
 }
 
 function rows(root: HTMLElement): string[][] {

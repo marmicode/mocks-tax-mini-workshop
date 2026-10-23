@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom, of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { firstValueFrom } from 'rxjs';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { WeekdayAssignments } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { ShoppingListBuilder } from './shopping-list-builder';
@@ -44,24 +47,21 @@ const emptyAssignments: WeekdayAssignments = {
 };
 
 describe(ShoppingListBuilder.name, () => {
-  it('does not fetch anything when nothing is planned', async () => {
-    const { builder, findById } = setUpShoppingListBuilder();
+  it('builds an empty list when nothing is planned', async () => {
+    const { builder } = setUpShoppingListBuilder();
 
     const items = await firstValueFrom(builder.build(emptyAssignments));
 
-    expect(findById).not.toHaveBeenCalled();
     expect(items).toEqual([]);
   });
 
   it('lists the ingredients of a planned recipe sorted by name', async () => {
-    const { builder, findById } = setUpShoppingListBuilder();
-    findById.mockReturnValue(of(shakshuka));
+    const { builder } = setUpShoppingListBuilder();
 
     const items = await firstValueFrom(
       builder.build({ ...emptyAssignments, monday: 'shakshuka' }),
     );
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(items).toEqual([
       { name: 'fresh coriander, to serve', from: ['Shakshuka'] },
       {
@@ -78,10 +78,7 @@ describe(ShoppingListBuilder.name, () => {
   });
 
   it('merges ingredients with the same name and unit', async () => {
-    const { builder, findById } = setUpShoppingListBuilder();
-    findById.mockImplementation(({ id }) =>
-      of(id === 'shakshuka' ? shakshuka : hummus),
-    );
+    const { builder } = setUpShoppingListBuilder();
 
     const items = await firstValueFrom(
       builder.build({
@@ -91,9 +88,6 @@ describe(ShoppingListBuilder.name, () => {
       }),
     );
 
-    expect(findById).toHaveBeenCalledTimes(2);
-    expect(findById).toHaveBeenNthCalledWith(1, { id: 'shakshuka' });
-    expect(findById).toHaveBeenNthCalledWith(2, { id: 'hummus-ful' });
     expect(items.find((item) => item.name === 'olive oil')).toEqual({
       name: 'olive oil',
       quantity: { amount: 5, unit: 'tbsp' },
@@ -102,8 +96,7 @@ describe(ShoppingListBuilder.name, () => {
   });
 
   it('doubles quantities when a recipe is planned twice', async () => {
-    const { builder, findById } = setUpShoppingListBuilder();
-    findById.mockReturnValue(of(hummus));
+    const { builder } = setUpShoppingListBuilder();
 
     const items = await firstValueFrom(
       builder.build({
@@ -113,7 +106,6 @@ describe(ShoppingListBuilder.name, () => {
       }),
     );
 
-    expect(findById).toHaveBeenCalledTimes(2);
     expect(items.find((item) => item.name === 'tahini')).toEqual({
       name: 'tahini',
       quantity: { amount: 200, unit: 'g' },
@@ -122,22 +114,21 @@ describe(ShoppingListBuilder.name, () => {
   });
 
   it('skips recipes that no longer exist', async () => {
-    const { builder, findById } = setUpShoppingListBuilder();
-    findById.mockReturnValue(of(undefined));
+    const { builder } = setUpShoppingListBuilder();
 
     const items = await firstValueFrom(
       builder.build({ ...emptyAssignments, monday: 'missing' }),
     );
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'missing' });
     expect(items).toEqual([]);
   });
 });
 
 function setUpShoppingListBuilder() {
-  const findById = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'findById')
-    .mockReturnValue(of(undefined));
+  TestBed.configureTestingModule({
+    providers: [provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes([shakshuka, hummus]);
   const builder = TestBed.inject(ShoppingListBuilder);
-  return { builder, findById };
+  return { builder };
 }

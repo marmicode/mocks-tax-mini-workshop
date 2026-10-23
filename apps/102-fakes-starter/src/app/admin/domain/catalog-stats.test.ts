@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom, of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { firstValueFrom } from 'rxjs';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { CatalogStats } from './catalog-stats';
 
@@ -36,73 +39,37 @@ const kofte: Recipe = {
 };
 
 describe(CatalogStats.name, () => {
-  it('searches the whole catalog', async () => {
-    const { catalogStats, search } = setUpCatalogStats();
-
-    await firstValueFrom(catalogStats.stats());
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('counts recipes per course', async () => {
-    const { catalogStats, search } = setUpCatalogStats();
-    search.mockReturnValue(of([hummus, shakshuka, kofte]));
+    const { catalogStats } = setUpCatalogStats([hummus, shakshuka, kofte]);
 
     const stats = await firstValueFrom(catalogStats.stats());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(stats.recipeCount).toBe(3);
     expect(stats.countByCourse).toEqual({ starter: 1, main: 2, dessert: 0 });
   });
 
   it('computes average ingredient and step counts', async () => {
-    const { catalogStats, search } = setUpCatalogStats();
-    search.mockReturnValue(of([hummus, shakshuka, kofte]));
+    const { catalogStats } = setUpCatalogStats([hummus, shakshuka, kofte]);
 
     const stats = await firstValueFrom(catalogStats.stats());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(stats.averageIngredientCount).toBe(2);
     expect(stats.averageStepCount).toBe(2);
   });
 
   it('counts recipes with a missing or blank description', async () => {
-    const { catalogStats, search } = setUpCatalogStats();
-    search.mockReturnValue(of([hummus, shakshuka, kofte]));
+    const { catalogStats } = setUpCatalogStats([hummus, shakshuka, kofte]);
 
     const stats = await firstValueFrom(catalogStats.stats());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(stats.missingDescriptionCount).toBe(2);
   });
 
   it('returns zeros for an empty catalog', async () => {
-    const { catalogStats, search } = setUpCatalogStats();
-    search.mockReturnValue(of([]));
+    const { catalogStats } = setUpCatalogStats([]);
 
     const stats = await firstValueFrom(catalogStats.stats());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(stats).toEqual({
       recipeCount: 0,
       countByCourse: { starter: 0, main: 0, dessert: 0 },
@@ -113,31 +80,19 @@ describe(CatalogStats.name, () => {
   });
 
   it('computes fractional averages', async () => {
-    const { catalogStats, search } = setUpCatalogStats();
-    search.mockReturnValue(of([hummus, shakshuka]));
+    const { catalogStats } = setUpCatalogStats([hummus, shakshuka]);
 
     const stats = await firstValueFrom(catalogStats.stats());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(stats.averageIngredientCount).toBe(2.5);
     expect(stats.averageStepCount).toBe(2);
   });
 
   it('summarizes a single described recipe', async () => {
-    const { catalogStats, search } = setUpCatalogStats();
-    search.mockReturnValue(of([hummus]));
+    const { catalogStats } = setUpCatalogStats([hummus]);
 
     const stats = await firstValueFrom(catalogStats.stats());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(stats).toEqual({
       recipeCount: 1,
       countByCourse: { starter: 1, main: 0, dessert: 0 },
@@ -147,25 +102,24 @@ describe(CatalogStats.name, () => {
     });
   });
 
-  it('searches the catalog again every time stats are requested', async () => {
-    const { catalogStats, search } = setUpCatalogStats();
-    search.mockReturnValue(of([kofte]));
+  it('reflects catalog changes every time stats are requested', async () => {
+    const { catalogStats, recipeRepositoryFake } = setUpCatalogStats([kofte]);
 
-    await firstValueFrom(catalogStats.stats());
-    const stats = await firstValueFrom(catalogStats.stats());
+    const statsBefore = await firstValueFrom(catalogStats.stats());
+    recipeRepositoryFake.setRecipes([kofte, hummus]);
+    const statsAfter = await firstValueFrom(catalogStats.stats());
 
-    expect(search.mock.calls).toEqual([
-      [{ keywords: '', maxIngredientCount: null, maxStepCount: null }],
-      [{ keywords: '', maxIngredientCount: null, maxStepCount: null }],
-    ]);
-    expect(stats.recipeCount).toBe(1);
+    expect(statsBefore.recipeCount).toBe(1);
+    expect(statsAfter.recipeCount).toBe(2);
   });
 });
 
-function setUpCatalogStats() {
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([]));
+function setUpCatalogStats(recipes: Recipe[]) {
+  TestBed.configureTestingModule({
+    providers: [provideRecipeRepositoryFake()],
+  });
+  const recipeRepositoryFake = TestBed.inject(RecipeRepositoryFake);
+  recipeRepositoryFake.setRecipes(recipes);
   const catalogStats = TestBed.inject(CatalogStats);
-  return { catalogStats, search };
+  return { catalogStats, recipeRepositoryFake };
 }

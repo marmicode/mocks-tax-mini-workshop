@@ -1,9 +1,11 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { RecipeQuickSearch } from './recipe-quick-search.ng';
 
@@ -27,22 +29,22 @@ const roastedAubergine: Recipe = {
   steps: [],
 };
 
-const SEARCH_PARAM_KEYS = ['keywords', 'maxIngredientCount', 'maxStepCount'];
-
 describe(RecipeQuickSearch.name, () => {
-  it('does not search with less than 2 characters', async () => {
-    const { fixture, search } = mountQuickSearch();
+  it('suggests nothing with less than 2 characters', async () => {
+    const { fixture } = mountQuickSearch();
     await fixture.whenStable();
 
     typeInto(quickSearchInput(fixture.nativeElement), 'a');
     await fixture.whenStable();
 
-    expect(search).not.toHaveBeenCalled();
     expect(suggestionNames(fixture.nativeElement)).toEqual([]);
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="quick-search-empty"]'),
+    ).toBeNull();
   });
 
-  it('searches by keywords', async () => {
-    const { fixture, search } = mountQuickSearch();
+  it('suggests the recipes matching the keywords', async () => {
+    const { fixture } = mountQuickSearch();
     await fixture.whenStable();
 
     typeInto(quickSearchInput(fixture.nativeElement), 'aub');
@@ -52,34 +54,21 @@ describe(RecipeQuickSearch.name, () => {
       'Burnt Aubergine with Tahini and Pomegranate',
       'Roasted Aubergine with Tahini and Pine Nuts',
     ]);
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'aub',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('shows at most 5 suggestions', async () => {
-    const { fixture, search } = mountQuickSearch();
-    search.mockReturnValue(
-      of(
-        Array.from({ length: 7 }, (_, index) => ({
-          ...burntAubergine,
-          id: `aubergine-${index}`,
-          name: `Aubergine ${index}`,
-        })),
-      ),
-    );
+    const { fixture } = mountQuickSearch({
+      recipes: Array.from({ length: 7 }, (_, index) => ({
+        ...burntAubergine,
+        id: `aubergine-${index}`,
+        name: `Aubergine ${index}`,
+      })),
+    });
     await fixture.whenStable();
 
     typeInto(quickSearchInput(fixture.nativeElement), 'aub');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'aub',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(suggestionNames(fixture.nativeElement)).toHaveLength(5);
   });
 
@@ -96,7 +85,7 @@ describe(RecipeQuickSearch.name, () => {
   });
 
   it('says when nothing matches', async () => {
-    const { fixture, search } = mountQuickSearch();
+    const { fixture } = mountQuickSearch();
     await fixture.whenStable();
 
     typeInto(quickSearchInput(fixture.nativeElement), 'xyz');
@@ -106,11 +95,6 @@ describe(RecipeQuickSearch.name, () => {
       fixture.nativeElement.querySelector('[data-testid="quick-search-empty"]')
         ?.textContent,
     ).toContain('No recipes found');
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'xyz',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('clears the search once a suggestion is picked', async () => {
@@ -126,42 +110,38 @@ describe(RecipeQuickSearch.name, () => {
     expect(suggestionNames(fixture.nativeElement)).toEqual([]);
   });
 
-  it('trims keywords before searching', async () => {
-    const { fixture, search } = mountQuickSearch();
+  it('ignores surrounding spaces and case', async () => {
+    const { fixture } = mountQuickSearch();
     await fixture.whenStable();
 
-    typeInto(quickSearchInput(fixture.nativeElement), '  tahini  ');
+    typeInto(quickSearchInput(fixture.nativeElement), '  TAHINI  ');
     await fixture.whenStable();
 
     expect(suggestionNames(fixture.nativeElement)).toEqual([
       'Burnt Aubergine with Tahini and Pomegranate',
       'Roasted Aubergine with Tahini and Pine Nuts',
     ]);
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'tahini',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
-  it('waits for 2 non-blank characters before searching', async () => {
-    const { fixture, search } = mountQuickSearch();
+  it('waits for 2 non-blank characters before suggesting', async () => {
+    const { fixture } = mountQuickSearch();
     await fixture.whenStable();
 
     typeInto(quickSearchInput(fixture.nativeElement), 'a ');
     await fixture.whenStable();
+    expect(suggestionNames(fixture.nativeElement)).toEqual([]);
+
     typeInto(quickSearchInput(fixture.nativeElement), 'au');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'au',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(suggestionNames(fixture.nativeElement)).toEqual([
+      'Burnt Aubergine with Tahini and Pomegranate',
+      'Roasted Aubergine with Tahini and Pine Nuts',
+    ]);
   });
 
   it('refines suggestions while typing', async () => {
-    const { fixture, search } = mountQuickSearch();
+    const { fixture } = mountQuickSearch();
     await fixture.whenStable();
 
     typeInto(quickSearchInput(fixture.nativeElement), 'aub');
@@ -172,21 +152,10 @@ describe(RecipeQuickSearch.name, () => {
     expect(suggestionNames(fixture.nativeElement)).toEqual([
       'Roasted Aubergine with Tahini and Pine Nuts',
     ]);
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenNthCalledWith(1, {
-      keywords: 'aub',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(search).toHaveBeenNthCalledWith(2, {
-      keywords: 'pine',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('hides suggestions once keywords become too short again', async () => {
-    const { fixture, search } = mountQuickSearch();
+    const { fixture } = mountQuickSearch();
     await fixture.whenStable();
 
     typeInto(quickSearchInput(fixture.nativeElement), 'aub');
@@ -194,11 +163,6 @@ describe(RecipeQuickSearch.name, () => {
     typeInto(quickSearchInput(fixture.nativeElement), 'a');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'aub',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(suggestionNames(fixture.nativeElement)).toEqual([]);
     expect(
       fixture.nativeElement.querySelector('[data-testid="quick-search-empty"]'),
@@ -209,36 +173,21 @@ describe(RecipeQuickSearch.name, () => {
 @Component({ template: '' })
 class Blank {}
 
-function mountQuickSearch() {
+function mountQuickSearch({
+  recipes = [burntAubergine, roastedAubergine],
+}: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
-    providers: [provideRouter([{ path: '**', component: Blank }])],
+    providers: [
+      provideRouter([{ path: '**', component: Blank }]),
+      provideRecipeRepositoryFake(),
+    ],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockImplementation((params) => {
-      /* Fail fast on params this stub does not know how to handle. */
-      const unexpectedKeys = Object.keys(params).filter(
-        (key) => !SEARCH_PARAM_KEYS.includes(key),
-      );
-      if (unexpectedKeys.length > 0) {
-        return throwError(
-          () =>
-            new Error(`Unexpected search params: ${unexpectedKeys.join(', ')}`),
-        );
-      }
-
-      const keywords = params.keywords.toLowerCase();
-      return of(
-        [burntAubergine, roastedAubergine].filter((recipe) =>
-          recipe.name.toLowerCase().includes(keywords),
-        ),
-      );
-    });
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(RecipeQuickSearch);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function quickSearchInput(root: HTMLElement): HTMLInputElement {

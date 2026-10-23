@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { RecipeScaler } from './recipe-scaler.ng';
 
@@ -22,12 +24,9 @@ const cheesecake: Recipe = {
 
 describe(RecipeScaler.name, () => {
   it('shows quantities for 4 servings by default', async () => {
-    const { fixture, findById } = mountRecipeScaler('lemon-ricotta-cheesecake');
+    const { fixture } = mountRecipeScaler('lemon-ricotta-cheesecake');
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({
-      id: 'lemon-ricotta-cheesecake',
-    });
     expect(scaledIngredients(fixture.nativeElement)).toEqual([
       '250 g ricotta',
       '3 eggs',
@@ -36,15 +35,12 @@ describe(RecipeScaler.name, () => {
   });
 
   it('doubles quantities for 8 servings', async () => {
-    const { fixture, findById } = mountRecipeScaler('lemon-ricotta-cheesecake');
+    const { fixture } = mountRecipeScaler('lemon-ricotta-cheesecake');
     await fixture.whenStable();
 
     typeInto(servingsInput(fixture.nativeElement), '8');
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({
-      id: 'lemon-ricotta-cheesecake',
-    });
     expect(scaledIngredients(fixture.nativeElement)).toEqual([
       '500 g ricotta',
       '6 eggs',
@@ -77,11 +73,9 @@ describe(RecipeScaler.name, () => {
   });
 
   it('shows a message when the recipe does not exist', async () => {
-    const { fixture, findById } = mountRecipeScaler('missing');
-    findById.mockReturnValue(of(undefined));
+    const { fixture } = mountRecipeScaler('missing');
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'missing' });
     expect(
       fixture.nativeElement.querySelector('[data-testid="recipe-not-found"]')
         ?.textContent,
@@ -91,17 +85,15 @@ describe(RecipeScaler.name, () => {
 
 function mountRecipeScaler(recipeId: string) {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
   });
 
-  const findById = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'findById')
-    .mockReturnValue(of(cheesecake));
+  TestBed.inject(RecipeRepositoryFake).setRecipes([cheesecake]);
 
   const fixture = TestBed.createComponent(RecipeScaler);
   fixture.componentRef.setInput('recipeId', recipeId);
 
-  return { fixture, findById };
+  return { fixture };
 }
 
 function scaledIngredients(root: HTMLElement): string[] {

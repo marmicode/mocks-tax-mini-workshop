@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminRecipeCreate } from './admin-recipe-create.ng';
 
@@ -32,7 +34,7 @@ const falafel: Recipe = {
 
 describe(AdminRecipeCreate.name, () => {
   it('derives the id from the name and checks it is available', async () => {
-    const { fixture, findById } = mountAdminRecipeCreate();
+    const { fixture } = mountAdminRecipeCreate();
     await fixture.whenStable();
 
     typeInto(fieldByLabel(fixture.nativeElement, 'Name'), 'Falafel Bowl');
@@ -41,15 +43,13 @@ describe(AdminRecipeCreate.name, () => {
     expect(fieldByLabel(fixture.nativeElement, 'Id').value).toBe(
       'falafel-bowl',
     );
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'falafel-bowl' });
     expect(fixture.nativeElement.textContent).not.toContain(
       'This id is already taken',
     );
   });
 
   it('warns when the id is already taken and prevents creation', async () => {
-    const { fixture, findById, create } = mountAdminRecipeCreate();
-    findById.mockReturnValue(of(shakshuka));
+    const { fixture, recipeRepositoryFake } = mountAdminRecipeCreate();
     await fixture.whenStable();
 
     typeInto(fieldByLabel(fixture.nativeElement, 'Name'), 'Shakshuka');
@@ -57,16 +57,15 @@ describe(AdminRecipeCreate.name, () => {
     buttonByText(fixture.nativeElement, 'Create').click();
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(fixture.nativeElement.textContent).toContain(
       'This id is already taken',
     );
     expect(buttonByText(fixture.nativeElement, 'Create').disabled).toBe(true);
-    expect(create).not.toHaveBeenCalled();
+    expect(recipeRepositoryFake.getRecipesSync()).toEqual([shakshuka]);
   });
 
   it('keeps a hand-edited id when the name changes', async () => {
-    const { fixture, findById } = mountAdminRecipeCreate();
+    const { fixture } = mountAdminRecipeCreate();
     await fixture.whenStable();
 
     typeInto(fieldByLabel(fixture.nativeElement, 'Id'), 'my-falafel');
@@ -75,11 +74,22 @@ describe(AdminRecipeCreate.name, () => {
     await fixture.whenStable();
 
     expect(fieldByLabel(fixture.nativeElement, 'Id').value).toBe('my-falafel');
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'my-falafel' });
+  });
+
+  it('checks that a hand-edited id is available', async () => {
+    const { fixture } = mountAdminRecipeCreate();
+    await fixture.whenStable();
+
+    typeInto(fieldByLabel(fixture.nativeElement, 'Id'), 'shakshuka');
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.textContent).toContain(
+      'This id is already taken',
+    );
   });
 
   it('creates the recipe and goes back to the list', async () => {
-    const { fixture, findById, create, navigate } = mountAdminRecipeCreate();
+    const { fixture, recipeRepositoryFake, router } = mountAdminRecipeCreate();
     await fixture.whenStable();
 
     fillRecipeForm(fixture.nativeElement);
@@ -87,39 +97,35 @@ describe(AdminRecipeCreate.name, () => {
     buttonByText(fixture.nativeElement, 'Create').click();
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenLastCalledWith({ id: 'falafel-bowl' });
-    expect(create).toHaveBeenCalledExactlyOnceWith(falafel);
-    expect(navigate).toHaveBeenCalledExactlyOnceWith(['/', 'admin', 'recipes']);
+    expect(recipeRepositoryFake.getRecipesSync()).toEqual([shakshuka, falafel]);
+    expect(router.url).toBe('/admin/recipes');
   });
 
   it('does not create a recipe without a name', async () => {
-    const { fixture, findById, create } = mountAdminRecipeCreate();
+    const { fixture, recipeRepositoryFake } = mountAdminRecipeCreate();
     await fixture.whenStable();
 
     buttonByText(fixture.nativeElement, 'Create').click();
     await fixture.whenStable();
 
-    expect(findById).not.toHaveBeenCalled();
-    expect(create).not.toHaveBeenCalled();
+    expect(recipeRepositoryFake.getRecipesSync()).toEqual([shakshuka]);
   });
 });
 
 function mountAdminRecipeCreate() {
-  TestBed.configureTestingModule({ providers: [provideRouter([])] });
-  const recipeRepository = TestBed.inject(RecipeRepository);
-  const findById = vi
-    .spyOn(recipeRepository, 'findById')
-    .mockReturnValue(of(undefined));
-  const create = vi
-    .spyOn(recipeRepository, 'create')
-    .mockImplementation((recipe) => of(recipe));
-  const navigate = vi
-    .spyOn(TestBed.inject(Router), 'navigate')
-    .mockResolvedValue(true);
+  TestBed.configureTestingModule({
+    providers: [
+      provideRouter([{ path: 'admin/recipes', children: [] }]),
+      provideRecipeRepositoryFake(),
+    ],
+  });
+  const recipeRepositoryFake = TestBed.inject(RecipeRepositoryFake);
+  recipeRepositoryFake.setRecipes([shakshuka]);
+  const router = TestBed.inject(Router);
 
   const fixture = TestBed.createComponent(AdminRecipeCreate);
 
-  return { fixture, findById, create, navigate };
+  return { fixture, recipeRepositoryFake, router };
 }
 
 function fillRecipeForm(root: HTMLElement): void {

@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { SimilarRecipes } from './similar-recipes.ng';
 
@@ -67,47 +69,34 @@ const cheesecake: Recipe = {
 };
 
 describe(SimilarRecipes.name, () => {
-  it('searches recipes of the same course', async () => {
-    const { fixture, search } = mountSimilarRecipes(shakshuka);
+  it('shows only recipes of the same course', async () => {
+    const { fixture } = mountSimilarRecipes(shakshuka, {
+      recipes: [shakshuka, harissaChicken, cheesecake],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
+    expect(similarNames(fixture.nativeElement)).toEqual([
+      'Harissa-Roasted Chicken',
+    ]);
   });
 
   it('excludes the current recipe', async () => {
-    const { fixture, search } = mountSimilarRecipes(shakshuka);
-    search.mockReturnValue(of([shakshuka, harissaChicken]));
+    const { fixture } = mountSimilarRecipes(shakshuka, {
+      recipes: [shakshuka, harissaChicken],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
     expect(similarNames(fixture.nativeElement)).toEqual([
       'Harissa-Roasted Chicken',
     ]);
   });
 
   it('shows at most three similar recipes', async () => {
-    const { fixture, search } = mountSimilarRecipes(shakshuka);
-    search.mockReturnValue(
-      of([shakshuka, harissaChicken, lambKofte, cauliflowerCake, filoPie]),
-    );
+    const { fixture } = mountSimilarRecipes(shakshuka, {
+      recipes: [shakshuka, harissaChicken, lambKofte, cauliflowerCake, filoPie],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
     expect(similarNames(fixture.nativeElement)).toEqual([
       'Harissa-Roasted Chicken',
       'Lamb Kofte',
@@ -116,49 +105,40 @@ describe(SimilarRecipes.name, () => {
   });
 
   it('links to the similar recipe', async () => {
-    const { fixture, search } = mountSimilarRecipes(shakshuka);
-    search.mockReturnValue(of([harissaChicken]));
+    const { fixture } = mountSimilarRecipes(shakshuka, {
+      recipes: [shakshuka, harissaChicken],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
     expect(similarLinks(fixture.nativeElement)[0]?.getAttribute('href')).toBe(
       '/recipes/harissa-chicken',
     );
   });
 
   it('renders nothing when the recipe is the only one of its course', async () => {
-    const { fixture, search } = mountSimilarRecipes(cheesecake);
-    search.mockReturnValue(of([cheesecake]));
+    const { fixture } = mountSimilarRecipes(cheesecake, {
+      recipes: [shakshuka, cheesecake],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['dessert'],
-    });
     expect(fixture.nativeElement.textContent.trim()).toBe('');
   });
 });
 
-function mountSimilarRecipes(recipe: Recipe) {
+function mountSimilarRecipes(
+  recipe: Recipe,
+  { recipes }: { recipes: Recipe[] },
+) {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([]));
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(SimilarRecipes);
   fixture.componentRef.setInput('recipe', recipe);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function similarLinks(root: HTMLElement): HTMLAnchorElement[] {

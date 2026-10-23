@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminQualityReport } from './admin-quality-report.ng';
 
@@ -43,73 +45,40 @@ const sketchyFritters: Recipe = {
 };
 
 describe(AdminQualityReport.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminQualityReport();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('gives a perfect score to a complete recipe', async () => {
-    const { fixture, search } = mountAdminQualityReport();
-    search.mockReturnValue(of([shakshuka]));
+    const { fixture } = mountAdminQualityReport({ recipes: [shakshuka] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual(['Shakshuka 100% ✅']);
   });
 
   it('reports a missing description', async () => {
-    const { fixture, search } = mountAdminQualityReport();
-    search.mockReturnValue(of([brownies]));
+    const { fixture } = mountAdminQualityReport({ recipes: [brownies] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Tahini and Halva Brownies 75% Missing description',
     ]);
   });
 
   it('reports every issue of a sketchy recipe', async () => {
-    const { fixture, search } = mountAdminQualityReport();
-    search.mockReturnValue(of([sketchyFritters]));
+    const { fixture } = mountAdminQualityReport({ recipes: [sketchyFritters] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Courgette Fritters 0% Missing description Fewer than 3 steps Most ingredients have no quantity Picture is not served over https',
     ]);
   });
 
   it('shows only recipes with issues when filtered', async () => {
-    const { fixture, search } = mountAdminQualityReport();
-    search.mockReturnValue(of([shakshuka, brownies, sketchyFritters]));
+    const { fixture } = mountAdminQualityReport({
+      recipes: [shakshuka, brownies, sketchyFritters],
+    });
     await fixture.whenStable();
 
     checkboxByLabel(fixture.nativeElement, 'Only recipes with issues').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowNames(fixture.nativeElement)).toEqual([
       'Tahini and Halva Brownies',
       'Courgette Fritters',
@@ -117,20 +86,16 @@ describe(AdminQualityReport.name, () => {
   });
 
   it('shows every recipe again once the filter is unchecked', async () => {
-    const { fixture, search } = mountAdminQualityReport();
-    search.mockReturnValue(of([shakshuka, brownies]));
-    await fixture.whenStable();
-
-    checkboxByLabel(fixture.nativeElement, 'Only recipes with issues').click();
-    await fixture.whenStable();
-    checkboxByLabel(fixture.nativeElement, 'Only recipes with issues').click();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
+    const { fixture } = mountAdminQualityReport({
+      recipes: [shakshuka, brownies],
     });
+    await fixture.whenStable();
+
+    checkboxByLabel(fixture.nativeElement, 'Only recipes with issues').click();
+    await fixture.whenStable();
+    checkboxByLabel(fixture.nativeElement, 'Only recipes with issues').click();
+    await fixture.whenStable();
+
     expect(rowNames(fixture.nativeElement)).toEqual([
       'Shakshuka',
       'Tahini and Halva Brownies',
@@ -138,9 +103,8 @@ describe(AdminQualityReport.name, () => {
   });
 
   it('tolerates up to half of the ingredients without quantity', async () => {
-    const { fixture, search } = mountAdminQualityReport();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminQualityReport({
+      recipes: [
         {
           ...shakshuka,
           ingredients: [
@@ -148,45 +112,32 @@ describe(AdminQualityReport.name, () => {
             { name: 'salt' },
           ],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual(['Shakshuka 100% ✅']);
   });
 
   it('reports a blank description and too few steps', async () => {
-    const { fixture, search } = mountAdminQualityReport();
-    search.mockReturnValue(
-      of([{ ...shakshuka, description: '   ', steps: ['Cook.', 'Serve.'] }]),
-    );
+    const { fixture } = mountAdminQualityReport({
+      recipes: [
+        { ...shakshuka, description: '   ', steps: ['Cook.', 'Serve.'] },
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Shakshuka 50% Missing description Fewer than 3 steps',
     ]);
   });
 
   it('links each recipe to its edit page', async () => {
-    const { fixture, search } = mountAdminQualityReport();
-    search.mockReturnValue(of([shakshuka, brownies]));
+    const { fixture } = mountAdminQualityReport({
+      recipes: [shakshuka, brownies],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       rows(fixture.nativeElement).map((row) =>
         row.querySelector('a')?.getAttribute('href'),
@@ -198,16 +149,17 @@ describe(AdminQualityReport.name, () => {
   });
 });
 
-function mountAdminQualityReport() {
-  TestBed.configureTestingModule({ providers: [provideRouter([])] });
-
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([]));
+function mountAdminQualityReport({
+  recipes = [],
+}: { recipes?: Recipe[] } = {}) {
+  TestBed.configureTestingModule({
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(AdminQualityReport);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function rows(root: HTMLElement): HTMLElement[] {

@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom, of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { firstValueFrom } from 'rxjs';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { WeekdayAssignments } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { MealPlanExporter } from './meal-plan-exporter';
@@ -37,12 +40,11 @@ const emptyAssignments: WeekdayAssignments = {
 };
 
 describe(MealPlanExporter.name, () => {
-  it('exports an empty week without fetching recipes', async () => {
-    const { exporter, findById } = setUpMealPlanExporter();
+  it('exports an empty week', async () => {
+    const { exporter } = setUpMealPlanExporter();
 
     const text = await firstValueFrom(exporter.toText(emptyAssignments));
 
-    expect(findById).not.toHaveBeenCalled();
     expect(text).toBe(
       [
         'Monday: —',
@@ -57,10 +59,7 @@ describe(MealPlanExporter.name, () => {
   });
 
   it('exports the name of each planned recipe', async () => {
-    const { exporter, findById } = setUpMealPlanExporter();
-    findById.mockImplementation(({ id }) =>
-      of(id === 'shakshuka' ? shakshuka : cheesecake),
-    );
+    const { exporter } = setUpMealPlanExporter();
 
     const text = await firstValueFrom(
       exporter.toText({
@@ -70,11 +69,6 @@ describe(MealPlanExporter.name, () => {
       }),
     );
 
-    expect(findById).toHaveBeenCalledTimes(2);
-    expect(findById).toHaveBeenNthCalledWith(1, { id: 'shakshuka' });
-    expect(findById).toHaveBeenNthCalledWith(2, {
-      id: 'lemon-ricotta-cheesecake',
-    });
     expect(text.split('\n')).toEqual([
       'Monday: Shakshuka',
       'Tuesday: —',
@@ -87,22 +81,21 @@ describe(MealPlanExporter.name, () => {
   });
 
   it('exports a missing recipe as an empty day', async () => {
-    const { exporter, findById } = setUpMealPlanExporter();
-    findById.mockReturnValue(of(undefined));
+    const { exporter } = setUpMealPlanExporter();
 
     const text = await firstValueFrom(
       exporter.toText({ ...emptyAssignments, tuesday: 'missing' }),
     );
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'missing' });
     expect(text.split('\n')[1]).toBe('Tuesday: —');
   });
 });
 
 function setUpMealPlanExporter() {
-  const findById = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'findById')
-    .mockReturnValue(of(undefined));
+  TestBed.configureTestingModule({
+    providers: [provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes([shakshuka, cheesecake]);
   const exporter = TestBed.inject(MealPlanExporter);
-  return { exporter, findById };
+  return { exporter };
 }

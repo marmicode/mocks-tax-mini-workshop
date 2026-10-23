@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { RecipeCookingMode } from './recipe-cooking-mode.ng';
 
@@ -20,11 +22,10 @@ const hummus: Recipe = {
 };
 
 describe(RecipeCookingMode.name, () => {
-  it('fetches the recipe and starts at the first step', async () => {
-    const { fixture, findById } = mountCookingMode('hummus-ful');
+  it('starts at the first step of the recipe', async () => {
+    const { fixture } = mountCookingMode('hummus-ful');
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'hummus-ful' });
     expect(textOf(fixture.nativeElement, 'step-counter')).toBe('Step 1 of 3');
     expect(textOf(fixture.nativeElement, 'current-step')).toBe(
       'Blitz the chickpeas.',
@@ -33,13 +34,12 @@ describe(RecipeCookingMode.name, () => {
   });
 
   it('goes to the next step', async () => {
-    const { fixture, findById } = mountCookingMode('hummus-ful');
+    const { fixture } = mountCookingMode('hummus-ful');
     await fixture.whenStable();
 
     buttonByText(fixture.nativeElement, 'Next').click();
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'hummus-ful' });
     expect(textOf(fixture.nativeElement, 'step-counter')).toBe('Step 2 of 3');
     expect(textOf(fixture.nativeElement, 'current-step')).toBe(
       'Add the tahini.',
@@ -86,11 +86,9 @@ describe(RecipeCookingMode.name, () => {
   });
 
   it('shows a message when the recipe does not exist', async () => {
-    const { fixture, findById } = mountCookingMode('missing');
-    findById.mockReturnValue(of(undefined));
+    const { fixture } = mountCookingMode('missing');
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'missing' });
     expect(textOf(fixture.nativeElement, 'recipe-not-found')).toBe(
       'This recipe does not exist.',
     );
@@ -99,17 +97,15 @@ describe(RecipeCookingMode.name, () => {
 
 function mountCookingMode(recipeId: string) {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
   });
 
-  const findById = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'findById')
-    .mockReturnValue(of(hummus));
+  TestBed.inject(RecipeRepositoryFake).setRecipes([hummus]);
 
   const fixture = TestBed.createComponent(RecipeCookingMode);
   fixture.componentRef.setInput('recipeId', recipeId);
 
-  return { fixture, findById };
+  return { fixture };
 }
 
 function textOf(root: HTMLElement, testId: string): string | undefined {

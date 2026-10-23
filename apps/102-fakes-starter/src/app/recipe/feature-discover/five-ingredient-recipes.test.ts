@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
-import { LocalStorage } from '@whiskmate/shared/infra';
+import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { FiveIngredientRecipes } from './five-ingredient-recipes.ng';
 
 const hummus: Recipe = {
@@ -13,7 +15,7 @@ const hummus: Recipe = {
   name: 'Hummus with Ful',
   description: null,
   pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
+  ingredients: [{ name: 'chickpeas' }, { name: 'tahini' }],
   steps: [],
 };
 
@@ -23,55 +25,55 @@ const salad: Recipe = {
   name: 'Burnt Aubergine with Tahini and Pomegranate',
   description: null,
   pictureUri: 'https://example.com/salad.jpg',
-  ingredients: [],
+  ingredients: [
+    { name: 'aubergine' },
+    { name: 'tahini' },
+    { name: 'pomegranate' },
+  ],
+  steps: [],
+};
+
+const tagine: Recipe = {
+  id: 'lamb-tagine',
+  course: 'main',
+  name: 'Lamb Tagine',
+  description: null,
+  pictureUri: 'https://example.com/tagine.jpg',
+  ingredients: [
+    { name: 'lamb' },
+    { name: 'onions' },
+    { name: 'apricots' },
+    { name: 'almonds' },
+    { name: 'cinnamon' },
+    { name: 'cumin' },
+    { name: 'honey' },
+  ],
   steps: [],
 };
 
 describe(FiveIngredientRecipes.name, () => {
-  it('searches recipes with at most five ingredients', async () => {
-    const { fixture, search } = mountFiveIngredientRecipes();
+  it('shows only recipes with at most five ingredients', async () => {
+    const { fixture } = mountFiveIngredientRecipes();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: 5,
-      maxStepCount: null,
-    });
-  });
-
-  it('shows the five-ingredient recipes', async () => {
-    const { fixture, search } = mountFiveIngredientRecipes();
-    search.mockReturnValue(of([hummus, salad]));
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: 5,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Hummus with Ful',
       'Burnt Aubergine with Tahini and Pomegranate',
     ]);
   });
 
-  it('narrows the search with keywords', async () => {
-    const { fixture, search } = mountFiveIngredientRecipes();
+  it('narrows the recipes with keywords', async () => {
+    const { fixture } = mountFiveIngredientRecipes();
     await fixture.whenStable();
 
     typeKeywords(fixture.nativeElement, 'hummus');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'hummus',
-      maxIngredientCount: 5,
-      maxStepCount: null,
-    });
+    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
 
-  it('searches again once keywords are cleared', async () => {
-    const { fixture, search } = mountFiveIngredientRecipes();
+  it('shows every five-ingredient recipe again once keywords are cleared', async () => {
+    const { fixture } = mountFiveIngredientRecipes();
     await fixture.whenStable();
 
     typeKeywords(fixture.nativeElement, 'salad');
@@ -79,23 +81,16 @@ describe(FiveIngredientRecipes.name, () => {
     typeKeywords(fixture.nativeElement, '');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: 5,
-      maxStepCount: null,
-    });
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Hummus with Ful',
+      'Burnt Aubergine with Tahini and Pomegranate',
+    ]);
   });
 
   it('shows a message when there are no five-ingredient recipes', async () => {
-    const { fixture, search } = mountFiveIngredientRecipes();
-    search.mockReturnValue(of([]));
+    const { fixture } = mountFiveIngredientRecipes({ recipes: [tagine] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: 5,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
         ?.textContent,
@@ -103,27 +98,22 @@ describe(FiveIngredientRecipes.name, () => {
   });
 });
 
-function mountFiveIngredientRecipes() {
+function mountFiveIngredientRecipes({
+  recipes = [hummus, salad, tagine],
+}: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
-      {
-        provide: LocalStorage,
-        useValue: {
-          getItem: vi.fn().mockReturnValue(null),
-          setItem: vi.fn(),
-        },
-      },
+      provideLocalStorageFake(),
+      provideRecipeRepositoryFake(),
     ],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([hummus, salad]));
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(FiveIngredientRecipes);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function recipeNames(root: HTMLElement): string[] {

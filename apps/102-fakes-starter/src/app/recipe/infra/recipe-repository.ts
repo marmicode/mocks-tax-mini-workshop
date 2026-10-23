@@ -24,8 +24,23 @@ export function createRecipeSearchParams(
   };
 }
 
+export interface RecipeRepositoryDef {
+  search(params: RecipeSearchParams): Observable<Recipe[]>;
+
+  /**
+   * Undefined when the id is not in the catalog.
+   */
+  findById(params: { id: string }): Observable<Recipe | undefined>;
+
+  create(recipe: Recipe): Observable<Recipe>;
+
+  update(recipe: Recipe): Observable<Recipe>;
+
+  remove(params: { id: string }): Observable<void>;
+}
+
 @Injectable({ providedIn: 'root' })
-export class RecipeRepository {
+export class RecipeRepository implements RecipeRepositoryDef {
   private _http = inject(HttpClient);
 
   search(params: RecipeSearchParams): Observable<Recipe[]> {

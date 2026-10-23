@@ -1,10 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
-import { ClockAdapter } from '@whiskmate/shared/infra';
+import {
+  ClockAdapterFake,
+  provideClockAdapterFake,
+} from '@whiskmate/shared/infra';
 import { RecipeOfTheDay } from './recipe-of-the-day.ng';
 
 const shakshuka: Recipe = {
@@ -38,27 +43,11 @@ const cheesecake: Recipe = {
 };
 
 describe(RecipeOfTheDay.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 1));
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('picks the recipe matching the day of the year', async () => {
     /* January 2nd is the 2nd day of the year: 2 % 3 = 2. */
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 2));
+    const { fixture } = mountRecipeOfTheDay(new Date(2026, 0, 2));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeName(fixture.nativeElement)).toBe(
       'Lemon and Ricotta Cheesecake',
     );
@@ -66,27 +55,17 @@ describe(RecipeOfTheDay.name, () => {
 
   it('picks another recipe the next day', async () => {
     /* January 3rd is the 3rd day of the year: 3 % 3 = 0. */
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 3));
+    const { fixture } = mountRecipeOfTheDay(new Date(2026, 0, 3));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeName(fixture.nativeElement)).toBe('Shakshuka');
   });
 
   it('shows the description, picture and a link to the recipe', async () => {
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 3));
+    const { fixture } = mountRecipeOfTheDay(new Date(2026, 0, 3));
     await fixture.whenStable();
 
     const root: HTMLElement = fixture.nativeElement;
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       root.querySelector('[data-testid="recipe-description"]')?.textContent,
     ).toContain('Eggs poached in a spiced tomato sauce.');
@@ -99,15 +78,11 @@ describe(RecipeOfTheDay.name, () => {
   });
 
   it('shows a message when there are no recipes', async () => {
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 3));
-    search.mockReturnValue(of([]));
+    const { fixture } = mountRecipeOfTheDay(new Date(2026, 0, 3), {
+      recipes: [],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
         ?.textContent,
@@ -116,14 +91,9 @@ describe(RecipeOfTheDay.name, () => {
 
   it('hides the description when the recipe has none', async () => {
     /* January 1st is the 1st day of the year: 1 % 3 = 1. */
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 1));
+    const { fixture } = mountRecipeOfTheDay(new Date(2026, 0, 1));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeName(fixture.nativeElement)).toBe('Hummus with Ful');
     expect(
       fixture.nativeElement.querySelector('[data-testid="recipe-description"]'),
@@ -131,14 +101,9 @@ describe(RecipeOfTheDay.name, () => {
   });
 
   it("shows the course of today's pick", async () => {
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 1));
+    const { fixture } = mountRecipeOfTheDay(new Date(2026, 0, 1));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('.eyebrow')?.textContent?.trim(),
     ).toBe("Today's pick · starter");
@@ -146,46 +111,42 @@ describe(RecipeOfTheDay.name, () => {
 
   it('counts days across months', async () => {
     /* February 1st is the 32nd day of the year: 32 % 3 = 2. */
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 1, 1));
+    const { fixture } = mountRecipeOfTheDay(new Date(2026, 1, 1));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeName(fixture.nativeElement)).toBe(
       'Lemon and Ricotta Cheesecake',
     );
   });
 
   it('always picks the only recipe of the catalog', async () => {
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 11, 31));
-    search.mockReturnValue(of([hummus]));
+    const { fixture } = mountRecipeOfTheDay(new Date(2026, 11, 31), {
+      recipes: [hummus],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeName(fixture.nativeElement)).toBe('Hummus with Ful');
   });
 });
 
-function mountRecipeOfTheDay(now: Date) {
+function mountRecipeOfTheDay(
+  now: Date,
+  { recipes = [shakshuka, hummus, cheesecake] }: { recipes?: Recipe[] } = {},
+) {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [
+      provideRouter([]),
+      provideClockAdapterFake(),
+      provideRecipeRepositoryFake(),
+    ],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([shakshuka, hummus, cheesecake]));
-  vi.spyOn(TestBed.inject(ClockAdapter), 'now').mockReturnValue(now);
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
+  TestBed.inject(ClockAdapterFake).setNow(now);
 
   const fixture = TestBed.createComponent(RecipeOfTheDay);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function recipeName(root: HTMLElement): string | undefined {

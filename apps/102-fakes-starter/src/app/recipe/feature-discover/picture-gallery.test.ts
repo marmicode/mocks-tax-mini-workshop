@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { PictureGallery } from './picture-gallery.ng';
 
@@ -27,27 +29,10 @@ const salad: Recipe = {
 };
 
 describe(PictureGallery.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountPictureGallery();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('shows the picture of each recipe', async () => {
-    const { fixture, search } = mountPictureGallery();
-    search.mockReturnValue(of([hummus, salad]));
+    const { fixture } = mountPictureGallery({ recipes: [hummus, salad] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(pictureSources(fixture.nativeElement)).toEqual([
       'https://example.com/hummus.jpg',
       'https://example.com/salad.jpg',
@@ -55,30 +40,18 @@ describe(PictureGallery.name, () => {
   });
 
   it('describes each picture with the recipe name', async () => {
-    const { fixture, search } = mountPictureGallery();
-    search.mockReturnValue(of([salad]));
+    const { fixture } = mountPictureGallery({ recipes: [salad] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('img')?.getAttribute('alt'),
     ).toBe('Burnt Aubergine with Tahini and Pomegranate');
   });
 
   it('links each picture to the recipe detail page', async () => {
-    const { fixture, search } = mountPictureGallery();
-    search.mockReturnValue(of([hummus]));
+    const { fixture } = mountPictureGallery({ recipes: [hummus] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement
         .querySelector('[data-testid="gallery-item"]')
@@ -87,15 +60,9 @@ describe(PictureGallery.name, () => {
   });
 
   it('shows a message when there are no pictures', async () => {
-    const { fixture, search } = mountPictureGallery();
-    search.mockReturnValue(of([]));
+    const { fixture } = mountPictureGallery({ recipes: [] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
         ?.textContent,
@@ -103,18 +70,18 @@ describe(PictureGallery.name, () => {
   });
 });
 
-function mountPictureGallery() {
+function mountPictureGallery({
+  recipes = [hummus, salad],
+}: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([hummus, salad]));
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(PictureGallery);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function pictureSources(root: HTMLElement): string[] {

@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { Pantry } from './pantry.ng';
 
@@ -44,50 +46,35 @@ const cheesecake: Recipe = {
 };
 
 describe(Pantry.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountPantry();
+  it('shows a hint until an ingredient is added', async () => {
+    const { fixture } = mountPantry();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="pantry-hint"]'),
     ).not.toBeNull();
   });
 
   it('shows recipes using an ingredient I have', async () => {
-    const { fixture, search } = mountPantry();
+    const { fixture } = mountPantry();
     await fixture.whenStable();
 
     addIngredient(fixture.nativeElement, 'Ricotta');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(matchedRecipeNames(fixture.nativeElement)).toEqual([
       'Lemon and Ricotta Cheesecake',
     ]);
   });
 
   it('ranks recipes by number of matching ingredients', async () => {
-    const { fixture, search } = mountPantry();
+    const { fixture } = mountPantry();
     await fixture.whenStable();
 
     addIngredient(fixture.nativeElement, 'garlic');
     addIngredient(fixture.nativeElement, 'eggs');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(matchedRecipeNames(fixture.nativeElement)).toEqual([
       'Shakshuka',
       'Hummus with Ful',
@@ -99,17 +86,12 @@ describe(Pantry.name, () => {
   });
 
   it('shows missing ingredients', async () => {
-    const { fixture, search } = mountPantry();
+    const { fixture } = mountPantry();
     await fixture.whenStable();
 
     addIngredient(fixture.nativeElement, 'garlic');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(textsOf(fixture.nativeElement, 'missing-ingredients')).toEqual([
       'Missing: tahini',
       'Missing: red peppers, large eggs',
@@ -117,7 +99,7 @@ describe(Pantry.name, () => {
   });
 
   it('removes an ingredient', async () => {
-    const { fixture, search } = mountPantry();
+    const { fixture } = mountPantry();
     await fixture.whenStable();
 
     addIngredient(fixture.nativeElement, 'garlic');
@@ -128,28 +110,18 @@ describe(Pantry.name, () => {
       ?.click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(matchedRecipeNames(fixture.nativeElement)).toEqual([
       'Lemon and Ricotta Cheesecake',
     ]);
   });
 
   it('tells when no recipe uses my ingredients', async () => {
-    const { fixture, search } = mountPantry();
+    const { fixture } = mountPantry();
     await fixture.whenStable();
 
     addIngredient(fixture.nativeElement, 'saffron');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-match-message"]')
         ?.textContent,
@@ -157,7 +129,7 @@ describe(Pantry.name, () => {
   });
 
   it('ignores blank and duplicate ingredients', async () => {
-    const { fixture, search } = mountPantry();
+    const { fixture } = mountPantry();
     await fixture.whenStable();
 
     addIngredient(fixture.nativeElement, 'garlic');
@@ -165,26 +137,16 @@ describe(Pantry.name, () => {
     addIngredient(fixture.nativeElement, '   ');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(itemLabels(fixture.nativeElement)).toEqual(['Remove garlic']);
   });
 
   it('does not show missing ingredients when I have them all', async () => {
-    const { fixture, search } = mountPantry();
+    const { fixture } = mountPantry();
     await fixture.whenStable();
 
     addIngredient(fixture.nativeElement, 'ricotta');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(textsOf(fixture.nativeElement, 'match-count')).toEqual([
       '1/1 ingredients',
     ]);
@@ -192,7 +154,7 @@ describe(Pantry.name, () => {
   });
 
   it('shows the hint again once the last ingredient is removed', async () => {
-    const { fixture, search } = mountPantry();
+    const { fixture } = mountPantry();
     await fixture.whenStable();
 
     addIngredient(fixture.nativeElement, 'tahini');
@@ -202,30 +164,19 @@ describe(Pantry.name, () => {
       ?.click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(matchedRecipeNames(fixture.nativeElement)).toEqual([]);
     expect(
       fixture.nativeElement.querySelector('[data-testid="pantry-hint"]'),
     ).not.toBeNull();
   });
 
-  it('tells when the repository returns no recipes', async () => {
-    const { fixture, search } = mountPantry();
-    search.mockReturnValue(of([]));
+  it('tells when the catalog is empty', async () => {
+    const { fixture } = mountPantry({ recipes: [] });
     await fixture.whenStable();
 
     addIngredient(fixture.nativeElement, 'garlic');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-match-message"]')
         ?.textContent,
@@ -233,18 +184,18 @@ describe(Pantry.name, () => {
   });
 });
 
-function mountPantry() {
+function mountPantry({
+  recipes = [shakshuka, hummus, cheesecake],
+}: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([shakshuka, hummus, cheesecake]));
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(Pantry);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function addIngredient(root: HTMLElement, ingredient: string): void {

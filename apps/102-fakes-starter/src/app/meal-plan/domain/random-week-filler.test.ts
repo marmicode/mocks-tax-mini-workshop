@@ -1,10 +1,16 @@
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom, of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { firstValueFrom } from 'rxjs';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { WeekdayAssignments } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
-import { RandomAdapter } from '@whiskmate/shared/infra';
+import {
+  provideRandomAdapterFake,
+  RandomAdapterFake,
+} from '@whiskmate/shared/infra';
 import { RandomWeekFiller } from './random-week-filler';
 
 const hummus: Recipe = {
@@ -14,9 +20,10 @@ const hummus: Recipe = {
   description: null,
   pictureUri: 'https://example.com/hummus.jpg',
   ingredients: [],
-  steps: [],
+  steps: ['Blend.'],
 };
 
+/* A long recipe: 6 steps. */
 const shakshuka: Recipe = {
   id: 'shakshuka',
   course: 'main',
@@ -24,9 +31,17 @@ const shakshuka: Recipe = {
   description: null,
   pictureUri: 'https://example.com/shakshuka.jpg',
   ingredients: [],
-  steps: [],
+  steps: [
+    'Heat the oil.',
+    'Cook the onions.',
+    'Add the peppers.',
+    'Pour the tomatoes.',
+    'Poach the eggs.',
+    'Serve.',
+  ],
 };
 
+/* A quick recipe: 3 steps. */
 const lambKofte: Recipe = {
   id: 'lamb-kofte',
   course: 'main',
@@ -34,7 +49,7 @@ const lambKofte: Recipe = {
   description: null,
   pictureUri: 'https://example.com/lamb-kofte.jpg',
   ingredients: [],
-  steps: [],
+  steps: ['Mix.', 'Shape.', 'Grill.'],
 };
 
 const fullWeek: WeekdayAssignments = {
@@ -48,54 +63,45 @@ const fullWeek: WeekdayAssignments = {
 };
 
 describe(RandomWeekFiller.name, () => {
-  it('searches every recipe of the catalog', async () => {
-    const { randomWeekFiller, search } = setUpRandomWeekFiller();
-
-    await firstValueFrom(randomWeekFiller.fill({ ...fullWeek, sunday: null }));
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
+  it('picks among every main of the catalog', async () => {
+    const { randomWeekFiller } = setUpRandomWeekFiller({
+      catalog: [hummus, shakshuka, lambKofte],
     });
+
+    const suggestions = await firstValueFrom(
+      randomWeekFiller.fill({ ...fullWeek, sunday: null }),
+    );
+
+    expect(suggestions).toEqual({ sunday: shakshuka });
   });
 
-  it('only searches quick recipes when asked', async () => {
-    const { randomWeekFiller, search } = setUpRandomWeekFiller();
+  it('only picks quick recipes when asked', async () => {
+    const { randomWeekFiller } = setUpRandomWeekFiller({
+      catalog: [hummus, shakshuka, lambKofte],
+    });
 
-    await firstValueFrom(
+    const suggestions = await firstValueFrom(
       randomWeekFiller.fill({ ...fullWeek, sunday: null }, { quickOnly: true }),
     );
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 4,
-    });
+    expect(suggestions).toEqual({ sunday: lambKofte });
   });
 
   it('picks a random main for each empty day without repeating it', async () => {
-    const { randomWeekFiller, search, pick } = setUpRandomWeekFiller({
+    const { randomWeekFiller, randomAdapterFake } = setUpRandomWeekFiller({
       catalog: [hummus, shakshuka, lambKofte],
     });
-    pick.mockImplementation((recipes) => recipes.at(-1));
+    randomAdapterFake.setPickIndex(-1);
 
     const suggestions = await firstValueFrom(
       randomWeekFiller.fill({ ...fullWeek, saturday: null, sunday: null }),
     );
 
-    expect(pick).toHaveBeenNthCalledWith(1, [shakshuka, lambKofte]);
-    expect(pick).toHaveBeenNthCalledWith(2, [shakshuka]);
     expect(suggestions).toEqual({ saturday: lambKofte, sunday: shakshuka });
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('does not pick recipes that are already planned', async () => {
-    const { randomWeekFiller, search, pick } = setUpRandomWeekFiller({
+    const { randomWeekFiller } = setUpRandomWeekFiller({
       catalog: [shakshuka, lambKofte],
     });
 
@@ -107,17 +113,11 @@ describe(RandomWeekFiller.name, () => {
       }),
     );
 
-    expect(pick).toHaveBeenCalledExactlyOnceWith([lambKofte]);
     expect(suggestions).toEqual({ sunday: lambKofte });
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('leaves days empty once mains run out', async () => {
-    const { randomWeekFiller, search } = setUpRandomWeekFiller({
+    const { randomWeekFiller } = setUpRandomWeekFiller({
       catalog: [shakshuka],
     });
 
@@ -126,29 +126,17 @@ describe(RandomWeekFiller.name, () => {
     );
 
     expect(suggestions).toEqual({ saturday: shakshuka });
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 });
 
 function setUpRandomWeekFiller({
   catalog = [shakshuka],
 }: { catalog?: Recipe[] } = {}) {
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockImplementation(({ courses }) => {
-      /* The filler picks mains itself, it never asks for a course. */
-      if (courses != null) {
-        throw new Error('Invalid call');
-      }
-      return of(catalog);
-    });
-  const pick = vi
-    .spyOn(TestBed.inject(RandomAdapter), 'pick')
-    .mockImplementation((items) => items[0]);
+  TestBed.configureTestingModule({
+    providers: [provideRandomAdapterFake(), provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes(catalog);
+  const randomAdapterFake = TestBed.inject(RandomAdapterFake);
   const randomWeekFiller = TestBed.inject(RandomWeekFiller);
-  return { randomWeekFiller, search, pick };
+  return { randomWeekFiller, randomAdapterFake };
 }

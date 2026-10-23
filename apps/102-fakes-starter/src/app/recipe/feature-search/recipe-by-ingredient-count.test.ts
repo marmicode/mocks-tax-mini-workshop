@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
-import { LocalStorage } from '@whiskmate/shared/infra';
+import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { RecipeByIngredientCount } from './recipe-by-ingredient-count.ng';
 
 const hummus: Recipe = {
@@ -13,7 +15,7 @@ const hummus: Recipe = {
   name: 'Hummus with Ful',
   description: null,
   pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
+  ingredients: [{ name: 'chickpeas' }, { name: 'tahini' }],
   steps: [],
 };
 
@@ -23,32 +25,38 @@ const shakshuka: Recipe = {
   name: 'Shakshuka',
   description: null,
   pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
+  ingredients: [
+    { name: 'eggs' },
+    { name: 'tomatoes' },
+    { name: 'peppers' },
+    { name: 'onion' },
+  ],
+  steps: [],
+};
+
+const cheesecake: Recipe = {
+  id: 'lemon-ricotta-cheesecake',
+  course: 'dessert',
+  name: 'Lemon and Ricotta Cheesecake',
+  description: null,
+  pictureUri: 'https://example.com/cheesecake.jpg',
+  ingredients: [
+    { name: 'ricotta' },
+    { name: 'eggs' },
+    { name: 'sugar' },
+    { name: 'lemons' },
+    { name: 'flour' },
+    { name: 'butter' },
+    { name: 'vanilla' },
+  ],
   steps: [],
 };
 
 describe(RecipeByIngredientCount.name, () => {
-  it('searches recipes with at most 5 ingredients by default', async () => {
-    const { fixture, search } = mountRecipeByIngredientCount();
+  it('shows recipes with at most 5 ingredients by default', async () => {
+    const { fixture } = mountRecipeByIngredientCount();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: 5,
-      maxStepCount: null,
-    });
-  });
-
-  it('shows the matching recipes', async () => {
-    const { fixture, search } = mountRecipeByIngredientCount();
-    search.mockReturnValue(of([hummus, shakshuka]));
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: 5,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Hummus with Ful',
       'Shakshuka',
@@ -56,87 +64,73 @@ describe(RecipeByIngredientCount.name, () => {
   });
 
   it('counts the matching recipes', async () => {
-    const { fixture, search } = mountRecipeByIngredientCount();
-    search.mockReturnValue(of([shakshuka]));
+    const { fixture } = mountRecipeByIngredientCount();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: 5,
-      maxStepCount: null,
-    });
     expect(recipeCount(fixture.nativeElement)).toBe(
-      '1 recipes with at most 5 ingredients',
+      '2 recipes with at most 5 ingredients',
     );
   });
 
-  it('searches with fewer ingredients when asked', async () => {
-    const { fixture, search } = mountRecipeByIngredientCount();
+  it('shows fewer recipes when asked for fewer ingredients', async () => {
+    const { fixture } = mountRecipeByIngredientCount();
     await fixture.whenStable();
 
     buttonByText(fixture.nativeElement, 'At most 3 ingredients').click();
     await fixture.whenStable();
 
-    expect(search.mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          {
-            "keywords": "",
-            "maxIngredientCount": 5,
-            "maxStepCount": null,
-          },
-        ],
-        [
-          {
-            "keywords": "",
-            "maxIngredientCount": 3,
-            "maxStepCount": null,
-          },
-        ],
-      ]
-    `);
+    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
+    expect(recipeCount(fixture.nativeElement)).toBe(
+      '1 recipes with at most 3 ingredients',
+    );
   });
 
-  it('searches with more ingredients when asked', async () => {
-    const { fixture, search } = mountRecipeByIngredientCount();
+  it('shows more recipes when asked for more ingredients', async () => {
+    const { fixture } = mountRecipeByIngredientCount();
     await fixture.whenStable();
 
-    search.mockReturnValue(of([]));
     buttonByText(fixture.nativeElement, 'At most 8 ingredients').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: 8,
-      maxStepCount: null,
-    });
+    expect(recipeNames(fixture.nativeElement)).toEqual([
+      'Hummus with Ful',
+      'Shakshuka',
+      'Lemon and Ricotta Cheesecake',
+    ]);
     expect(recipeCount(fixture.nativeElement)).toBe(
-      '0 recipes with at most 8 ingredients',
+      '3 recipes with at most 8 ingredients',
+    );
+  });
+
+  it('counts zero recipes when none matches', async () => {
+    const { fixture } = mountRecipeByIngredientCount({
+      recipes: [cheesecake],
+    });
+    await fixture.whenStable();
+
+    expect(recipeNames(fixture.nativeElement)).toEqual([]);
+    expect(recipeCount(fixture.nativeElement)).toBe(
+      '0 recipes with at most 5 ingredients',
     );
   });
 });
 
-function mountRecipeByIngredientCount() {
+function mountRecipeByIngredientCount({
+  recipes = [hummus, shakshuka, cheesecake],
+}: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
-      {
-        provide: LocalStorage,
-        useValue: {
-          getItem: vi.fn().mockReturnValue(null),
-          setItem: vi.fn(),
-        },
-      },
+      provideLocalStorageFake(),
+      provideRecipeRepositoryFake(),
     ],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([hummus]));
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(RecipeByIngredientCount);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function recipeNames(root: HTMLElement): string[] {

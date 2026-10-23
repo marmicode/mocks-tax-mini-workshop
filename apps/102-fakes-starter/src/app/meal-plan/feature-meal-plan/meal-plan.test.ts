@@ -1,14 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import {
   MealPlanStore,
   type WeekdayAssignments,
 } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
-import { LocalStorage } from '@whiskmate/shared/infra';
+import { provideLocalStorageFake } from '@whiskmate/shared/infra';
+import { WEEKDAYS } from '@whiskmate/shared/model';
 import { MealPlan } from './meal-plan.ng';
 
 const shakshuka: Recipe = {
@@ -42,56 +45,37 @@ const emptyAssignments: WeekdayAssignments = {
 };
 
 describe(MealPlan.name, () => {
-  it('does not fetch any recipe when nothing is planned', async () => {
-    const { fixture, findById } = mountMealPlan(emptyAssignments);
+  it('shows every day as empty when nothing is planned', async () => {
+    const { fixture } = mountMealPlan(emptyAssignments);
     await fixture.whenStable();
 
-    expect(findById).not.toHaveBeenCalled();
     expect(dayElements(fixture.nativeElement)).toHaveLength(7);
     for (const day of dayElements(fixture.nativeElement)) {
       expect(day.textContent?.toLowerCase()).toContain('no recipe is planned');
     }
   });
 
-  it('fetches the planned recipe by id', async () => {
-    const { fixture, findById } = mountMealPlan({
-      ...emptyAssignments,
-      monday: 'shakshuka',
-    });
-    findById.mockReturnValue(of(shakshuka));
-    await fixture.whenStable();
-
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-  });
-
-  it('fetches each planned recipe', async () => {
-    const { fixture, findById } = mountMealPlan({
+  it('shows each planned recipe', async () => {
+    const { fixture } = mountMealPlan({
       ...emptyAssignments,
       monday: 'shakshuka',
       friday: 'lemon-ricotta-cheesecake',
     });
-    findById.mockImplementation(({ id }) =>
-      of(id === 'shakshuka' ? shakshuka : cheesecake),
-    );
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledTimes(2);
-    expect(findById).toHaveBeenNthCalledWith(1, { id: 'shakshuka' });
-    expect(findById).toHaveBeenNthCalledWith(2, {
-      id: 'lemon-ricotta-cheesecake',
-    });
+    const [monday, , , , friday] = dayElements(fixture.nativeElement);
+    expect(monday?.textContent).toContain('Shakshuka');
+    expect(friday?.textContent).toContain('Lemon and Ricotta Cheesecake');
   });
 
   it('shows the name and picture of a planned recipe', async () => {
-    const { fixture, findById } = mountMealPlan({
+    const { fixture } = mountMealPlan({
       ...emptyAssignments,
       monday: 'shakshuka',
     });
-    findById.mockReturnValue(of(shakshuka));
     await fixture.whenStable();
 
     const [monday, ...otherDays] = dayElements(fixture.nativeElement);
-    expect(findById).toHaveBeenCalledWith({ id: 'shakshuka' });
     expect(monday?.textContent).toContain('Shakshuka');
     expect(monday?.querySelector('img')?.getAttribute('src')).toBe(
       'https://example.com/shakshuka.jpg',
@@ -102,15 +86,13 @@ describe(MealPlan.name, () => {
   });
 
   it('renders a missing recipe as an empty day', async () => {
-    const { fixture, findById } = mountMealPlan({
+    const { fixture } = mountMealPlan({
       ...emptyAssignments,
       monday: 'missing',
     });
-    findById.mockReturnValue(of(undefined));
     await fixture.whenStable();
 
     const [monday] = dayElements(fixture.nativeElement);
-    expect(findById).toHaveBeenCalledWith({ id: 'missing' });
     expect(monday?.textContent).toContain('Monday');
     expect(monday?.textContent?.toLowerCase()).toContain(
       'no recipe is planned',
@@ -118,29 +100,27 @@ describe(MealPlan.name, () => {
   });
 
   it('clears a day', async () => {
-    const { fixture, findById, mealPlanStore } = mountMealPlan({
+    const { fixture, mealPlanStore } = mountMealPlan({
       ...emptyAssignments,
       monday: 'shakshuka',
     });
-    findById.mockReturnValue(of(shakshuka));
-    const clear = vi
-      .spyOn(mealPlanStore, 'clear')
-      .mockImplementation(() => undefined);
     await fixture.whenStable();
 
     fixture.nativeElement.querySelector('button')?.click();
     await fixture.whenStable();
 
-    expect(findById).toHaveBeenCalledWith({ id: 'shakshuka' });
-    expect(clear).toHaveBeenCalledExactlyOnceWith({ weekday: 'monday' });
+    expect(mealPlanStore.assignments().monday).toBeNull();
+    const [monday] = dayElements(fixture.nativeElement);
+    expect(monday?.textContent?.toLowerCase()).toContain(
+      'no recipe is planned',
+    );
   });
 
   it('links each empty day to the recipe picker', async () => {
-    const { fixture, findById } = mountMealPlan({
+    const { fixture } = mountMealPlan({
       ...emptyAssignments,
       monday: 'shakshuka',
     });
-    findById.mockReturnValue(of(shakshuka));
     await fixture.whenStable();
 
     const pickLinks = [...fixture.nativeElement.querySelectorAll('a')].filter(
@@ -161,25 +141,30 @@ function mountMealPlan(assignments: WeekdayAssignments) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
-      {
-        provide: LocalStorage,
-        useValue: {
-          getItem: vi.fn().mockReturnValue(null),
-          setItem: vi.fn(),
-        },
-      },
+      provideLocalStorageFake(),
+      provideRecipeRepositoryFake(),
     ],
   });
 
-  const findById = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'findById')
-    .mockReturnValue(of(undefined));
+  TestBed.inject(RecipeRepositoryFake).setRecipes([shakshuka, cheesecake]);
   const mealPlanStore = TestBed.inject(MealPlanStore);
-  vi.spyOn(mealPlanStore, 'assignments').mockReturnValue(assignments);
+  planWeek(mealPlanStore, assignments);
 
   const fixture = TestBed.createComponent(MealPlan);
 
-  return { fixture, findById, mealPlanStore };
+  return { fixture, mealPlanStore };
+}
+
+function planWeek(
+  mealPlanStore: MealPlanStore,
+  assignments: WeekdayAssignments,
+): void {
+  for (const weekday of WEEKDAYS) {
+    const recipeId = assignments[weekday];
+    if (recipeId != null) {
+      mealPlanStore.assign({ weekday, recipeId });
+    }
+  }
 }
 
 function dayElements(root: HTMLElement): HTMLElement[] {

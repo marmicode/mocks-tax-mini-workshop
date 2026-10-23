@@ -1,26 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
+import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminPictureAudit } from './admin-picture-audit.ng';
 
 describe(AdminPictureAudit.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminPictureAudit();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('accepts https and local pictures', async () => {
-    const { fixture, search } = mountAdminPictureAudit();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminPictureAudit({
+      recipes: [
         {
           id: 'shakshuka',
           course: 'main',
@@ -39,22 +30,16 @@ describe(AdminPictureAudit.name, () => {
           ingredients: [{ name: 'tahini' }],
           steps: ['Bake.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(emptyState(fixture.nativeElement)).toBe('All pictures are safe.');
   });
 
   it('flags pictures served over plain http', async () => {
-    const { fixture, search } = mountAdminPictureAudit();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminPictureAudit({
+      recipes: [
         {
           id: 'courgette-fritters',
           course: 'starter',
@@ -64,24 +49,18 @@ describe(AdminPictureAudit.name, () => {
           ingredients: [{ name: 'courgettes' }],
           steps: ['Fry.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Courgette Fritters http://example.com/fritters.jpg Not served over https',
     ]);
   });
 
   it('flags missing pictures', async () => {
-    const { fixture, search } = mountAdminPictureAudit();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminPictureAudit({
+      recipes: [
         {
           id: 'hummus-ful',
           course: 'starter',
@@ -91,24 +70,18 @@ describe(AdminPictureAudit.name, () => {
           ingredients: [{ name: 'chickpeas' }],
           steps: ['Blend.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Hummus with Ful Missing picture',
     ]);
   });
 
   it('flags pictures from unknown locations', async () => {
-    const { fixture, search } = mountAdminPictureAudit();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminPictureAudit({
+      recipes: [
         {
           id: 'shakshuka',
           course: 'main',
@@ -118,31 +91,25 @@ describe(AdminPictureAudit.name, () => {
           ingredients: [{ name: 'eggs' }],
           steps: ['Cook.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Shakshuka ftp://example.com/shakshuka.jpg Unknown location',
     ]);
   });
 });
 
-function mountAdminPictureAudit() {
-  TestBed.configureTestingModule({ providers: [provideRouter([])] });
-
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([]));
+function mountAdminPictureAudit({ recipes = [] }: { recipes?: Recipe[] } = {}) {
+  TestBed.configureTestingModule({
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(AdminPictureAudit);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function rowTexts(root: HTMLElement): string[] {

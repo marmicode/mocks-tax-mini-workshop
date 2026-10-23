@@ -7,9 +7,12 @@ import {
   type RouterStateSnapshot,
   UrlTree,
 } from '@angular/router';
-import { firstValueFrom, isObservable, of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { firstValueFrom, isObservable } from 'rxjs';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { recipeExistsGuard } from './recipe-exists.guard';
 
@@ -25,47 +28,37 @@ const shakshuka: Recipe = {
 
 describe('recipeExistsGuard', () => {
   it('lets the user in when the recipe exists', async () => {
-    const { findById } = setUpGuard();
-    findById.mockReturnValue(of(shakshuka));
+    setUpGuard();
 
     const result = await runGuard({ recipeId: 'shakshuka' });
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(result).toBe(true);
   });
 
   it('redirects home when the recipe does not exist', async () => {
-    const { findById } = setUpGuard();
-    findById.mockReturnValue(of(undefined));
+    setUpGuard();
 
     const result = await runGuard({ recipeId: 'missing' });
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'missing' });
     expect(result).toBeInstanceOf(UrlTree);
     expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/');
   });
 
-  it('looks up an empty id when the param is missing', async () => {
-    const { findById } = setUpGuard();
-    findById.mockReturnValue(of(undefined));
+  it('redirects home when the param is missing', async () => {
+    setUpGuard();
 
     const result = await runGuard({});
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: '' });
     expect(result).toBeInstanceOf(UrlTree);
   });
 });
 
 function setUpGuard() {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
   });
 
-  const findById = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'findById')
-    .mockReturnValue(of(undefined));
-
-  return { findById };
+  TestBed.inject(RecipeRepositoryFake).setRecipes([shakshuka]);
 }
 
 async function runGuard(params: Record<string, string>) {

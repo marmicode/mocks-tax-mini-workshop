@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AlphabeticalIndex } from './alphabetical-index.ng';
 
@@ -37,47 +39,27 @@ const sabich: Recipe = {
 };
 
 describe(AlphabeticalIndex.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountAlphabeticalIndex();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('groups recipes by first letter in alphabetical order', async () => {
-    const { fixture, search } = mountAlphabeticalIndex();
-    search.mockReturnValue(of([shakshuka, salad, sabich]));
+    const { fixture } = mountAlphabeticalIndex({
+      recipes: [shakshuka, salad, sabich],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(letters(fixture.nativeElement)).toEqual(['B', 'S']);
   });
 
   it('sorts recipes by name within a letter', async () => {
-    const { fixture, search } = mountAlphabeticalIndex();
-    search.mockReturnValue(of([shakshuka, sabich]));
+    const { fixture } = mountAlphabeticalIndex({
+      recipes: [shakshuka, sabich],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual(['Sabich', 'Shakshuka']);
   });
 
   it('puts recipes not starting with a letter at the end', async () => {
-    const { fixture, search } = mountAlphabeticalIndex();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAlphabeticalIndex({
+      recipes: [
         {
           id: '7-hour-lamb',
           course: 'main',
@@ -88,28 +70,17 @@ describe(AlphabeticalIndex.name, () => {
           steps: [],
         },
         shakshuka,
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(letters(fixture.nativeElement)).toEqual(['S', '#']);
   });
 
   it('links each recipe to its detail page', async () => {
-    const { fixture, search } = mountAlphabeticalIndex();
-    search.mockReturnValue(of([sabich]));
+    const { fixture } = mountAlphabeticalIndex({ recipes: [sabich] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement
         .querySelector('[data-testid="recipe-name"]')
@@ -118,15 +89,9 @@ describe(AlphabeticalIndex.name, () => {
   });
 
   it('shows a message when there are no recipes', async () => {
-    const { fixture, search } = mountAlphabeticalIndex();
-    search.mockReturnValue(of([]));
+    const { fixture } = mountAlphabeticalIndex({ recipes: [] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
         ?.textContent,
@@ -134,18 +99,18 @@ describe(AlphabeticalIndex.name, () => {
   });
 });
 
-function mountAlphabeticalIndex() {
+function mountAlphabeticalIndex({
+  recipes = [shakshuka, salad],
+}: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([shakshuka, salad]));
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(AlphabeticalIndex);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function letters(root: HTMLElement): string[] {

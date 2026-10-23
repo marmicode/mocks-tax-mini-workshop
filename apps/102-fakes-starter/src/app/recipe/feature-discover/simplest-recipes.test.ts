@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { SimplestRecipes } from './simplest-recipes.ng';
 
@@ -27,27 +29,10 @@ const salad: Recipe = {
 };
 
 describe(SimplestRecipes.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountSimplestRecipes();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('shows recipes with the fewest ingredients first', async () => {
-    const { fixture, search } = mountSimplestRecipes();
-    search.mockReturnValue(of([hummus, salad]));
+    const { fixture } = mountSimplestRecipes({ recipes: [hummus, salad] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Burnt Aubergine with Tahini and Pomegranate',
       'Hummus with Ful',
@@ -55,9 +40,8 @@ describe(SimplestRecipes.name, () => {
   });
 
   it('sorts recipes with as many ingredients by name', async () => {
-    const { fixture, search } = mountSimplestRecipes();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountSimplestRecipes({
+      recipes: [
         {
           id: 'shakshuka',
           course: 'main',
@@ -68,15 +52,10 @@ describe(SimplestRecipes.name, () => {
           steps: [],
         },
         salad,
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Burnt Aubergine with Tahini and Pomegranate',
       'Shakshuka',
@@ -84,15 +63,9 @@ describe(SimplestRecipes.name, () => {
   });
 
   it('shows the ingredient count of each recipe', async () => {
-    const { fixture, search } = mountSimplestRecipes();
-    search.mockReturnValue(of([hummus]));
+    const { fixture } = mountSimplestRecipes({ recipes: [hummus] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement
         .querySelector('[data-testid="ingredient-count"]')
@@ -101,15 +74,9 @@ describe(SimplestRecipes.name, () => {
   });
 
   it('shows a message when there are no recipes', async () => {
-    const { fixture, search } = mountSimplestRecipes();
-    search.mockReturnValue(of([]));
+    const { fixture } = mountSimplestRecipes({ recipes: [] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
         ?.textContent,
@@ -117,18 +84,18 @@ describe(SimplestRecipes.name, () => {
   });
 });
 
-function mountSimplestRecipes() {
+function mountSimplestRecipes({
+  recipes = [hummus, salad],
+}: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([hummus, salad]));
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(SimplestRecipes);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function recipeNames(root: HTMLElement): string[] {

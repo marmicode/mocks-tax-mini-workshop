@@ -1,16 +1,34 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import {
   MealPlanStore,
   type WeekdayAssignments,
 } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
-import { LocalStorage, RandomAdapter } from '@whiskmate/shared/infra';
+import {
+  provideLocalStorageFake,
+  provideRandomAdapterFake,
+  RandomAdapterFake,
+} from '@whiskmate/shared/infra';
+import { WEEKDAYS } from '@whiskmate/shared/model';
 import { MealPlanRandomWeek } from './meal-plan-random-week.ng';
 
+const hummus: Recipe = {
+  id: 'hummus-ful',
+  course: 'starter',
+  name: 'Hummus with Ful',
+  description: null,
+  pictureUri: 'https://example.com/hummus.jpg',
+  ingredients: [],
+  steps: ['Blend.'],
+};
+
+/* A long recipe: 6 steps. */
 const shakshuka: Recipe = {
   id: 'shakshuka',
   course: 'main',
@@ -18,9 +36,17 @@ const shakshuka: Recipe = {
   description: null,
   pictureUri: 'https://example.com/shakshuka.jpg',
   ingredients: [],
-  steps: [],
+  steps: [
+    'Heat the oil.',
+    'Cook the onions.',
+    'Add the peppers.',
+    'Pour the tomatoes.',
+    'Poach the eggs.',
+    'Serve.',
+  ],
 };
 
+/* A quick recipe: 3 steps. */
 const lambKofte: Recipe = {
   id: 'lamb-kofte',
   course: 'main',
@@ -28,7 +54,7 @@ const lambKofte: Recipe = {
   description: null,
   pictureUri: 'https://example.com/lamb-kofte.jpg',
   ingredients: [],
-  steps: [],
+  steps: ['Mix.', 'Shape.', 'Grill.'],
 };
 
 const fullWeek: WeekdayAssignments = {
@@ -43,19 +69,11 @@ const fullWeek: WeekdayAssignments = {
 
 describe(MealPlanRandomWeek.name, () => {
   it('shows a random main for each empty day', async () => {
-    const { fixture, search } = mountMealPlanRandomWeek({
-      ...fullWeek,
-      saturday: null,
-      sunday: null,
+    const { fixture } = mountMealPlanRandomWeek({
+      assignments: { ...fullWeek, saturday: null, sunday: null },
     });
-    search.mockReturnValue(of([shakshuka, lambKofte]));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(randomPicks(fixture.nativeElement)).toEqual([
       'Saturday: Shakshuka',
       'Sunday: Lamb Kofte with Yogurt and Sumac',
@@ -63,116 +81,97 @@ describe(MealPlanRandomWeek.name, () => {
   });
 
   it('only picks quick recipes when asked', async () => {
-    const { fixture, search } = mountMealPlanRandomWeek({
-      ...fullWeek,
-      sunday: null,
+    const { fixture } = mountMealPlanRandomWeek({
+      assignments: { ...fullWeek, sunday: null },
     });
     await fixture.whenStable();
+    expect(randomPicks(fixture.nativeElement)).toEqual(['Sunday: Shakshuka']);
 
     checkboxByLabel(fixture.nativeElement, 'Quick recipes only').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 4,
-    });
+    expect(randomPicks(fixture.nativeElement)).toEqual([
+      'Sunday: Lamb Kofte with Yogurt and Sumac',
+    ]);
   });
 
   it('shuffles the picks again', async () => {
-    const { fixture, search, pick } = mountMealPlanRandomWeek({
-      ...fullWeek,
-      sunday: null,
+    const { fixture, randomAdapterFake } = mountMealPlanRandomWeek({
+      assignments: { ...fullWeek, sunday: null },
     });
-    search.mockReturnValue(of([shakshuka, lambKofte]));
     await fixture.whenStable();
+    expect(randomPicks(fixture.nativeElement)).toEqual(['Sunday: Shakshuka']);
 
-    pick.mockImplementation((recipes) => recipes.at(-1));
+    randomAdapterFake.setPickIndex(-1);
     buttonByText(fixture.nativeElement, 'Shuffle').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(randomPicks(fixture.nativeElement)).toEqual([
       'Sunday: Lamb Kofte with Yogurt and Sumac',
     ]);
   });
 
   it('applies the picks and goes back to the meal plan', async () => {
-    const { fixture, search, mealPlanStore, router } = mountMealPlanRandomWeek({
-      ...fullWeek,
-      friday: null,
+    const { fixture, mealPlanStore, router } = mountMealPlanRandomWeek({
+      assignments: { ...fullWeek, friday: null },
+      recipes: [lambKofte],
     });
-    search.mockReturnValue(of([lambKofte]));
-    const assign = vi
-      .spyOn(mealPlanStore, 'assign')
-      .mockImplementation(() => undefined);
-    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     await fixture.whenStable();
 
     buttonByText(fixture.nativeElement, 'Apply').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(assign).toHaveBeenCalledExactlyOnceWith({
-      weekday: 'friday',
-      recipeId: 'lamb-kofte',
-    });
-    expect(navigate).toHaveBeenCalledExactlyOnceWith(['/', 'meal-plan']);
+    expect(mealPlanStore.assignments().friday).toBe('lamb-kofte');
+    expect(router.url).toBe('/meal-plan');
   });
 
   it('says there is nothing to pick when the week is full', async () => {
-    const { fixture, search } = mountMealPlanRandomWeek(fullWeek);
-    search.mockReturnValue(of([shakshuka]));
+    const { fixture } = mountMealPlanRandomWeek({ assignments: fullWeek });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-picks"]'),
     ).not.toBeNull();
   });
 });
 
-function mountMealPlanRandomWeek(assignments: WeekdayAssignments) {
+function mountMealPlanRandomWeek({
+  assignments,
+  recipes = [hummus, shakshuka, lambKofte],
+}: {
+  assignments: WeekdayAssignments;
+  recipes?: Recipe[];
+}) {
   TestBed.configureTestingModule({
     providers: [
-      provideRouter([]),
-      {
-        provide: LocalStorage,
-        useValue: {
-          getItem: vi.fn().mockReturnValue(null),
-          setItem: vi.fn(),
-        },
-      },
+      provideRouter([{ path: 'meal-plan', children: [] }]),
+      provideLocalStorageFake(),
+      provideRandomAdapterFake(),
+      provideRecipeRepositoryFake(),
     ],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([shakshuka]));
-  const pick = vi
-    .spyOn(TestBed.inject(RandomAdapter), 'pick')
-    .mockImplementation((items) => items[0]);
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
+  const randomAdapterFake = TestBed.inject(RandomAdapterFake);
   const mealPlanStore = TestBed.inject(MealPlanStore);
-  vi.spyOn(mealPlanStore, 'assignments').mockReturnValue(assignments);
+  planWeek(mealPlanStore, assignments);
   const router = TestBed.inject(Router);
 
   const fixture = TestBed.createComponent(MealPlanRandomWeek);
 
-  return { fixture, search, pick, mealPlanStore, router };
+  return { fixture, randomAdapterFake, mealPlanStore, router };
+}
+
+function planWeek(
+  mealPlanStore: MealPlanStore,
+  assignments: WeekdayAssignments,
+): void {
+  for (const weekday of WEEKDAYS) {
+    const recipeId = assignments[weekday];
+    if (recipeId != null) {
+      mealPlanStore.assign({ weekday, recipeId });
+    }
+  }
 }
 
 function randomPicks(root: HTMLElement): string[] {

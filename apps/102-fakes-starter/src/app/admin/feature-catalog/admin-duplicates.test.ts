@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminDuplicates } from './admin-duplicates.ng';
 
@@ -69,27 +71,10 @@ const shakshuka: Recipe = {
 };
 
 describe(AdminDuplicates.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminDuplicates();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('shows "no duplicates" when every recipe is distinct', async () => {
-    const { fixture, search } = mountAdminDuplicates();
-    search.mockReturnValue(of([hummus, shakshuka]));
+    const { fixture } = mountAdminDuplicates({ recipes: [hummus, shakshuka] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-duplicates"]')
         ?.textContent,
@@ -97,38 +82,29 @@ describe(AdminDuplicates.name, () => {
   });
 
   it('pairs recipes with the same normalized name', async () => {
-    const { fixture, search } = mountAdminDuplicates();
-    search.mockReturnValue(of([hummus, shakshuka, fulHummus]));
+    const { fixture } = mountAdminDuplicates({
+      recipes: [hummus, shakshuka, fulHummus],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(pairTexts(fixture.nativeElement)).toEqual([
       'Hummus with Ful ↔ Ful & Hummus (same name)',
     ]);
   });
 
   it('pairs recipes sharing most of their ingredients', async () => {
-    const { fixture, search } = mountAdminDuplicates();
-    search.mockReturnValue(of([aubergine, roastedAubergine, shakshuka]));
+    const { fixture } = mountAdminDuplicates({
+      recipes: [aubergine, roastedAubergine, shakshuka],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(pairTexts(fixture.nativeElement)).toEqual([
       'Burnt Aubergine Salad ↔ Roasted Aubergine with Tahini (same ingredients)',
     ]);
   });
 
   it('links each duplicate to its edit page', async () => {
-    const { fixture, search } = mountAdminDuplicates();
-    search.mockReturnValue(of([hummus, fulHummus]));
+    const { fixture } = mountAdminDuplicates({ recipes: [hummus, fulHummus] });
     await fixture.whenStable();
 
     const links = [
@@ -136,11 +112,6 @@ describe(AdminDuplicates.name, () => {
         '[data-testid="duplicate-pair"] a',
       ),
     ].map((link) => (link as HTMLAnchorElement).getAttribute('href'));
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(links).toEqual([
       '/admin/recipes/hummus-ful/edit',
       '/admin/recipes/ful-and-hummus/edit',
@@ -148,15 +119,9 @@ describe(AdminDuplicates.name, () => {
   });
 
   it('shows "no duplicates" when the catalog is empty', async () => {
-    const { fixture, search } = mountAdminDuplicates();
-    search.mockReturnValue(of([]));
+    const { fixture } = mountAdminDuplicates({ recipes: [] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(pairTexts(fixture.nativeElement)).toEqual([]);
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-duplicates"]')
@@ -165,9 +130,8 @@ describe(AdminDuplicates.name, () => {
   });
 
   it('does not pair recipes sharing only some of their ingredients', async () => {
-    const { fixture, search } = mountAdminDuplicates();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminDuplicates({
+      recipes: [
         aubergine,
         {
           ...roastedAubergine,
@@ -179,53 +143,39 @@ describe(AdminDuplicates.name, () => {
             { name: 'mint' },
           ],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-duplicates"]'),
     ).not.toBeNull();
   });
 
   it('reports same-name recipes as name duplicates even if ingredients match too', async () => {
-    const { fixture, search } = mountAdminDuplicates();
-    search.mockReturnValue(
-      of([hummus, { ...hummus, id: 'hummus-copy', name: 'hummus with ful!' }]),
-    );
+    const { fixture } = mountAdminDuplicates({
+      recipes: [
+        hummus,
+        { ...hummus, id: 'hummus-copy', name: 'hummus with ful!' },
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(pairTexts(fixture.nativeElement)).toEqual([
       'Hummus with Ful ↔ hummus with ful! (same name)',
     ]);
   });
 
   it('pairs every combination of duplicates', async () => {
-    const { fixture, search } = mountAdminDuplicates();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminDuplicates({
+      recipes: [
         hummus,
         fulHummus,
         { ...fulHummus, id: 'ful-with-hummus', name: 'Ful with Hummus' },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(pairTexts(fixture.nativeElement)).toEqual([
       'Hummus with Ful ↔ Ful & Hummus (same name)',
       'Hummus with Ful ↔ Ful with Hummus (same name)',
@@ -234,16 +184,15 @@ describe(AdminDuplicates.name, () => {
   });
 });
 
-function mountAdminDuplicates() {
-  TestBed.configureTestingModule({ providers: [provideRouter([])] });
-
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([]));
+function mountAdminDuplicates({ recipes = [] }: { recipes?: Recipe[] } = {}) {
+  TestBed.configureTestingModule({
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(AdminDuplicates);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function pairTexts(root: HTMLElement): string[] {

@@ -1,26 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
+import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminMissingSteps } from './admin-missing-steps.ng';
 
 describe(AdminMissingSteps.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminMissingSteps();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('shows an empty state when every recipe has steps', async () => {
-    const { fixture, search } = mountAdminMissingSteps();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminMissingSteps({
+      recipes: [
         {
           id: 'shakshuka',
           course: 'main',
@@ -30,22 +21,16 @@ describe(AdminMissingSteps.name, () => {
           ingredients: [{ name: 'eggs' }],
           steps: ['Cook the sauce.', 'Crack the eggs.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(emptyState(fixture.nativeElement)).toBe('Every recipe has steps.');
   });
 
   it('lists recipes without any step', async () => {
-    const { fixture, search } = mountAdminMissingSteps();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminMissingSteps({
+      recipes: [
         {
           id: 'hummus-ful',
           course: 'starter',
@@ -55,22 +40,16 @@ describe(AdminMissingSteps.name, () => {
           ingredients: [{ name: 'chickpeas' }],
           steps: [],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
 
   it('lists recipes with only blank steps', async () => {
-    const { fixture, search } = mountAdminMissingSteps();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminMissingSteps({
+      recipes: [
         {
           id: 'courgette-fritters',
           course: 'starter',
@@ -80,24 +59,18 @@ describe(AdminMissingSteps.name, () => {
           ingredients: [{ name: 'courgettes' }],
           steps: ['', '  '],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Courgette Fritters (2 blank)',
     ]);
   });
 
   it('ignores recipes with at least one real step', async () => {
-    const { fixture, search } = mountAdminMissingSteps();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminMissingSteps({
+      recipes: [
         {
           id: 'tahini-halva-brownies',
           course: 'dessert',
@@ -116,29 +89,23 @@ describe(AdminMissingSteps.name, () => {
           ingredients: [{ name: 'chickpeas' }],
           steps: [],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
 });
 
-function mountAdminMissingSteps() {
-  TestBed.configureTestingModule({ providers: [provideRouter([])] });
-
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([]));
+function mountAdminMissingSteps({ recipes = [] }: { recipes?: Recipe[] } = {}) {
+  TestBed.configureTestingModule({
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(AdminMissingSteps);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function rowTexts(root: HTMLElement): string[] {

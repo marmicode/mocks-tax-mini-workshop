@@ -1,12 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
+import { describe, it } from 'vitest';
 import { UserFavorites } from '@whiskmate/recipe/domain';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import { MealPlanStore } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
-import { LocalStorage } from '@whiskmate/shared/infra';
+import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { Favorites } from './favorites.ng';
 
 const shakshuka: Recipe = {
@@ -30,40 +32,19 @@ const cheesecake: Recipe = {
 };
 
 describe(Favorites.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountFavorites([]);
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('shows only favorite recipes', async () => {
-    const { fixture, search } = mountFavorites([cheesecake.id]);
+    const { fixture } = mountFavorites({ favoriteIds: [cheesecake.id] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Lemon and Ricotta Cheesecake',
     ]);
   });
 
   it('shows a message when there are no favorites', async () => {
-    const { fixture, search } = mountFavorites([]);
+    const { fixture } = mountFavorites({ favoriteIds: [] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([]);
     expect(
       fixture.nativeElement.querySelector(
@@ -73,48 +54,35 @@ describe(Favorites.name, () => {
   });
 
   it('removes a recipe from favorites', async () => {
-    const { fixture, search, userFavorites } = mountFavorites([shakshuka.id]);
-    const removeFavorite = vi
-      .spyOn(userFavorites, 'removeFavorite')
-      .mockImplementation(() => undefined);
+    const { fixture, userFavorites } = mountFavorites({
+      favoriteIds: [shakshuka.id],
+    });
     await fixture.whenStable();
 
     buttonByLabel(fixture.nativeElement, 'Remove from favorites').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(removeFavorite).toHaveBeenCalledExactlyOnceWith('shakshuka');
+    expect(userFavorites.favoriteIds()).toEqual(new Set());
   });
 
-  it('disables add when the store says the recipe cannot be added', async () => {
-    const { fixture, search, mealPlanStore } = mountFavorites([shakshuka.id]);
-    const canAdd = vi.spyOn(mealPlanStore, 'canAdd').mockReturnValue(false);
+  it('disables add when the recipe is already planned', async () => {
+    const { fixture, mealPlanStore } = mountFavorites({
+      favoriteIds: [shakshuka.id],
+    });
+    mealPlanStore.assign({ weekday: 'monday', recipeId: 'shakshuka' });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(canAdd).toHaveBeenCalledWith({ recipeId: 'shakshuka' });
     expect(
       buttonByText(fixture.nativeElement, 'add to meal plan').disabled,
     ).toBe(true);
   });
 
   it('shows every favorite recipe', async () => {
-    const { fixture, search } = mountFavorites([cheesecake.id, shakshuka.id]);
+    const { fixture } = mountFavorites({
+      favoriteIds: [cheesecake.id, shakshuka.id],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Shakshuka',
       'Lemon and Ricotta Cheesecake',
@@ -122,14 +90,9 @@ describe(Favorites.name, () => {
   });
 
   it('ignores favorites that are no longer in the catalog', async () => {
-    const { fixture, search } = mountFavorites(['deleted-recipe']);
+    const { fixture } = mountFavorites({ favoriteIds: ['deleted-recipe'] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([]);
     expect(
       fixture.nativeElement.querySelector(
@@ -139,11 +102,9 @@ describe(Favorites.name, () => {
   });
 
   it('assigns a favorite recipe to the picked weekday', async () => {
-    const { fixture, search, mealPlanStore } = mountFavorites([shakshuka.id]);
-    vi.spyOn(mealPlanStore, 'canAdd').mockReturnValue(true);
-    const assign = vi
-      .spyOn(mealPlanStore, 'assign')
-      .mockImplementation(() => undefined);
+    const { fixture, mealPlanStore } = mountFavorites({
+      favoriteIds: [shakshuka.id],
+    });
     await fixture.whenStable();
 
     buttonByText(fixture.nativeElement, 'add to meal plan').click();
@@ -151,27 +112,16 @@ describe(Favorites.name, () => {
     buttonByText(fixture.nativeElement, 'friday').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(assign).toHaveBeenCalledExactlyOnceWith({
-      weekday: 'friday',
-      recipeId: 'shakshuka',
-    });
+    expect(mealPlanStore.assignments().friday).toBe('shakshuka');
   });
 
-  it('shows a message when the repository returns no recipes', async () => {
-    const { fixture, search } = mountFavorites([shakshuka.id]);
-    search.mockReturnValue(of([]));
+  it('shows a message when the catalog is empty', async () => {
+    const { fixture } = mountFavorites({
+      favoriteIds: [shakshuka.id],
+      recipes: [],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector(
         '[data-testid="no-favorites-message"]',
@@ -180,30 +130,31 @@ describe(Favorites.name, () => {
   });
 });
 
-function mountFavorites(favoriteIds: string[]) {
+function mountFavorites({
+  favoriteIds,
+  recipes = [shakshuka, cheesecake],
+}: {
+  favoriteIds: string[];
+  recipes?: Recipe[];
+}) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
-      {
-        provide: LocalStorage,
-        useValue: {
-          getItem: vi.fn().mockReturnValue(null),
-          setItem: vi.fn(),
-        },
-      },
+      provideLocalStorageFake(),
+      provideRecipeRepositoryFake(),
     ],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([shakshuka, cheesecake]));
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
   const userFavorites = TestBed.inject(UserFavorites);
-  vi.spyOn(userFavorites, 'favoriteIds').mockReturnValue(new Set(favoriteIds));
+  for (const favoriteId of favoriteIds) {
+    userFavorites.addFavorite(favoriteId);
+  }
   const mealPlanStore = TestBed.inject(MealPlanStore);
 
   const fixture = TestBed.createComponent(Favorites);
 
-  return { fixture, search, userFavorites, mealPlanStore };
+  return { fixture, userFavorites, mealPlanStore };
 }
 
 function recipeNames(root: HTMLElement): string[] {

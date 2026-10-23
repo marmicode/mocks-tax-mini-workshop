@@ -1,26 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
+import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminMissingIngredients } from './admin-missing-ingredients.ng';
 
 describe(AdminMissingIngredients.name, () => {
-  it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminMissingIngredients();
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-  });
-
   it('shows an empty state when every recipe has ingredients', async () => {
-    const { fixture, search } = mountAdminMissingIngredients();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminMissingIngredients({
+      recipes: [
         {
           id: 'shakshuka',
           course: 'main',
@@ -30,24 +21,18 @@ describe(AdminMissingIngredients.name, () => {
           ingredients: [{ name: 'eggs' }, { name: 'tomatoes' }],
           steps: ['Cook.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(emptyState(fixture.nativeElement)).toBe(
       'Every recipe has ingredients.',
     );
   });
 
   it('lists recipes without any ingredient', async () => {
-    const { fixture, search } = mountAdminMissingIngredients();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminMissingIngredients({
+      recipes: [
         {
           id: 'courgette-fritters',
           course: 'starter',
@@ -57,24 +42,18 @@ describe(AdminMissingIngredients.name, () => {
           ingredients: [],
           steps: ['Fry.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Courgette Fritters — no ingredients',
     ]);
   });
 
   it('lists recipes with unnamed ingredients', async () => {
-    const { fixture, search } = mountAdminMissingIngredients();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminMissingIngredients({
+      recipes: [
         {
           id: 'tahini-halva-brownies',
           course: 'dessert',
@@ -84,24 +63,18 @@ describe(AdminMissingIngredients.name, () => {
           ingredients: [{ name: 'butter' }, { name: '' }, { name: ' ' }],
           steps: ['Bake.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Tahini and Halva Brownies — 2 unnamed ingredient(s)',
     ]);
   });
 
   it('only lists incomplete recipes', async () => {
-    const { fixture, search } = mountAdminMissingIngredients();
-    search.mockReturnValue(
-      of([
+    const { fixture } = mountAdminMissingIngredients({
+      recipes: [
         {
           id: 'hummus-ful',
           course: 'starter',
@@ -120,31 +93,27 @@ describe(AdminMissingIngredients.name, () => {
           ingredients: [],
           steps: ['Fry.'],
         },
-      ]),
-    );
+      ],
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Courgette Fritters — no ingredients',
     ]);
   });
 });
 
-function mountAdminMissingIngredients() {
-  TestBed.configureTestingModule({ providers: [provideRouter([])] });
-
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([]));
+function mountAdminMissingIngredients({
+  recipes = [],
+}: { recipes?: Recipe[] } = {}) {
+  TestBed.configureTestingModule({
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
   const fixture = TestBed.createComponent(AdminMissingIngredients);
 
-  return { fixture, search };
+  return { fixture };
 }
 
 function rowTexts(root: HTMLElement): string[] {

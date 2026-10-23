@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { RecipeCompare } from './recipe-compare.ng';
 
@@ -32,16 +34,9 @@ const hummus: Recipe = {
 
 describe(RecipeCompare.name, () => {
   it('lists all recipes in the pickers', async () => {
-    const { fixture, search, findById } = mountRecipeCompare({});
+    const { fixture } = mountRecipeCompare({});
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledTimes(1);
-    expect(search).toHaveBeenNthCalledWith(1, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(findById).not.toHaveBeenCalled();
     expect(optionLabels(selects(fixture.nativeElement)[0])).toEqual([
       'Pick a recipe',
       'Shakshuka',
@@ -49,37 +44,14 @@ describe(RecipeCompare.name, () => {
     ]);
   });
 
-  it('fetches both compared recipes', async () => {
-    const { fixture, search, findById } = mountRecipeCompare({
-      left: 'shakshuka',
-      right: 'hummus-ful',
-    });
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledTimes(1);
-    expect(search).toHaveBeenNthCalledWith(1, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(findById).toHaveBeenCalledTimes(2);
-    expect(findById).toHaveBeenNthCalledWith(1, { id: 'shakshuka' });
-    expect(findById).toHaveBeenNthCalledWith(2, { id: 'hummus-ful' });
-  });
-
   it('compares course, ingredient count and step count', async () => {
-    const { fixture, search } = mountRecipeCompare({
+    const { fixture } = mountRecipeCompare({
       left: 'shakshuka',
       right: 'hummus-ful',
     });
     await fixture.whenStable();
 
     const root: HTMLElement = fixture.nativeElement;
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(textOf(root, 'left-name')).toBe('Shakshuka');
     expect(textOf(root, 'right-name')).toBe('Hummus with Ful');
     expect(cellsOf(root, 'course-row')).toEqual(['main', 'starter']);
@@ -104,10 +76,7 @@ describe(RecipeCompare.name, () => {
   });
 
   it('navigates when a recipe is picked', async () => {
-    const { fixture, search } = mountRecipeCompare({});
-    const navigate = vi
-      .spyOn(TestBed.inject(Router), 'navigate')
-      .mockResolvedValue(true);
+    const { fixture, router } = mountRecipeCompare({});
     await fixture.whenStable();
 
     const [leftSelect] = selects(fixture.nativeElement);
@@ -115,81 +84,49 @@ describe(RecipeCompare.name, () => {
     leftSelect.dispatchEvent(new Event('change'));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(navigate).toHaveBeenCalledExactlyOnceWith(['/', 'compare'], {
-      queryParams: { left: 'hummus-ful' },
-      queryParamsHandling: 'merge',
-    });
+    expect(router.url).toBe('/compare?left=hummus-ful');
   });
 
   it('preselects the compared recipes in the pickers', async () => {
-    const { fixture, search } = mountRecipeCompare({
+    const { fixture } = mountRecipeCompare({
       left: 'hummus-ful',
       right: 'shakshuka',
     });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       selects(fixture.nativeElement).map((select) => select.value),
     ).toEqual(['hummus-ful', 'shakshuka']);
   });
 
   it('does not compare until both recipes are picked', async () => {
-    const { fixture, search, findById } = mountRecipeCompare({
+    const { fixture } = mountRecipeCompare({
       left: 'shakshuka',
     });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
   });
 
   it('tells when recipes share no ingredients', async () => {
-    const { fixture, search, findById } = mountRecipeCompare({
+    const { fixture } = mountRecipeCompare({
       left: 'shakshuka',
       right: 'hummus-ful',
+      recipes: [shakshuka, { ...hummus, ingredients: [{ name: 'tahini' }] }],
     });
-    findById.mockImplementation(({ id }) =>
-      of(
-        id === 'shakshuka'
-          ? shakshuka
-          : { ...hummus, ingredients: [{ name: 'tahini' }] },
-      ),
-    );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(textOf(fixture.nativeElement, 'no-shared-ingredients')).toBe(
       'No shared ingredients.',
     );
   });
 
   it('clears a side when "Pick a recipe" is chosen', async () => {
-    const { fixture, search } = mountRecipeCompare({
+    const { fixture, router } = mountRecipeCompare({
       left: 'shakshuka',
       right: 'hummus-ful',
     });
-    const navigate = vi
-      .spyOn(TestBed.inject(Router), 'navigate')
-      .mockResolvedValue(true);
+    await router.navigateByUrl('/compare?left=shakshuka&right=hummus-ful');
     await fixture.whenStable();
 
     const [, rightSelect] = selects(fixture.nativeElement);
@@ -197,44 +134,34 @@ describe(RecipeCompare.name, () => {
     rightSelect.dispatchEvent(new Event('change'));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(navigate).toHaveBeenCalledExactlyOnceWith(['/', 'compare'], {
-      queryParams: { right: null },
-      queryParamsHandling: 'merge',
-    });
+    expect(router.url).toBe('/compare?left=shakshuka');
   });
 });
 
 function mountRecipeCompare({
   left,
   right,
+  recipes = [shakshuka, hummus],
 }: {
   left?: string;
   right?: string;
+  recipes?: Recipe[];
 }) {
   TestBed.configureTestingModule({
-    providers: [provideRouter([])],
+    providers: [
+      provideRouter([{ path: 'compare', children: [] }]),
+      provideRecipeRepositoryFake(),
+    ],
   });
 
-  const recipeRepository = TestBed.inject(RecipeRepository);
-  const search = vi
-    .spyOn(recipeRepository, 'search')
-    .mockReturnValue(of([shakshuka, hummus]));
-  const findById = vi
-    .spyOn(recipeRepository, 'findById')
-    .mockImplementation(({ id }) =>
-      of([shakshuka, hummus].find((recipe) => recipe.id === id)),
-    );
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
+  const router = TestBed.inject(Router);
 
   const fixture = TestBed.createComponent(RecipeCompare);
   fixture.componentRef.setInput('left', left);
   fixture.componentRef.setInput('right', right);
 
-  return { fixture, search, findById };
+  return { fixture, router };
 }
 
 function selects(root: HTMLElement): HTMLSelectElement[] {

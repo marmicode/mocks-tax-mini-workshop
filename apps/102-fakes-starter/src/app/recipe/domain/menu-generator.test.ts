@@ -1,9 +1,15 @@
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom, of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { firstValueFrom } from 'rxjs';
+import { describe, it } from 'vitest';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
-import { RandomAdapter } from '@whiskmate/shared/infra';
+import {
+  provideRandomAdapterFake,
+  RandomAdapterFake,
+} from '@whiskmate/shared/infra';
 import { MenuGenerator } from './menu-generator';
 
 const hummus: Recipe = {
@@ -47,39 +53,24 @@ const cheesecake: Recipe = {
 };
 
 describe(MenuGenerator.name, () => {
-  it('searches recipes for each course', async () => {
-    const { menuGenerator, search } = setUpMenuGenerator();
-
-    await firstValueFrom(menuGenerator.generate());
-
-    expect(search).toHaveBeenCalledTimes(3);
-    expect(search).toHaveBeenCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['starter'],
-    });
-    expect(search).toHaveBeenCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
-    expect(search).toHaveBeenCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['dessert'],
-    });
-  });
-
-  it('picks one recipe per course', async () => {
-    const { menuGenerator, pick } = setUpMenuGenerator();
-    pick.mockImplementation((recipes) => recipes.at(-1));
+  it('picks one recipe of each course', async () => {
+    const { menuGenerator } = setUpMenuGenerator();
 
     const menu = await firstValueFrom(menuGenerator.generate());
 
-    expect(pick).toHaveBeenCalledWith([hummus, fritters]);
+    expect(menu).toEqual({
+      starter: hummus,
+      main: shakshuka,
+      dessert: cheesecake,
+    });
+  });
+
+  it('picks randomly among the recipes of a course', async () => {
+    const { menuGenerator, randomAdapterFake } = setUpMenuGenerator();
+    randomAdapterFake.setPickIndex(-1);
+
+    const menu = await firstValueFrom(menuGenerator.generate());
+
     expect(menu).toEqual({
       starter: fritters,
       main: shakshuka,
@@ -88,70 +79,44 @@ describe(MenuGenerator.name, () => {
   });
 
   it('leaves a course empty when the catalog has no recipe for it', async () => {
-    const { menuGenerator, search } = setUpMenuGenerator();
-    search.mockImplementation(({ courses }) =>
-      of(courses?.includes('dessert') ? [] : [shakshuka]),
-    );
+    const { menuGenerator } = setUpMenuGenerator({
+      recipes: [hummus, shakshuka],
+    });
 
     const menu = await firstValueFrom(menuGenerator.generate());
 
-    expect(search).toHaveBeenCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['dessert'],
-    });
     expect(menu.dessert).toBeNull();
   });
 
   it('regenerates a course with another recipe', async () => {
-    const { menuGenerator, search, pick } = setUpMenuGenerator();
+    const { menuGenerator } = setUpMenuGenerator();
 
     const starter = await firstValueFrom(
       menuGenerator.regenerate('starter', hummus),
     );
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['starter'],
-    });
-    expect(pick).toHaveBeenCalledExactlyOnceWith([fritters]);
     expect(starter).toEqual(fritters);
   });
 
   it('keeps the current recipe when it is the only one of its course', async () => {
-    const { menuGenerator, search, pick } = setUpMenuGenerator();
+    const { menuGenerator } = setUpMenuGenerator();
 
     const main = await firstValueFrom(
       menuGenerator.regenerate('main', shakshuka),
     );
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
-    expect(pick).not.toHaveBeenCalled();
     expect(main).toEqual(shakshuka);
   });
 });
 
-function setUpMenuGenerator() {
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockImplementation(({ courses }) =>
-      of(
-        [hummus, fritters, shakshuka, cheesecake].filter((recipe) =>
-          courses?.includes(recipe.course),
-        ),
-      ),
-    );
-  const pick = vi
-    .spyOn(TestBed.inject(RandomAdapter), 'pick')
-    .mockImplementation((items) => items[0]);
+function setUpMenuGenerator({
+  recipes = [hummus, fritters, shakshuka, cheesecake],
+}: { recipes?: Recipe[] } = {}) {
+  TestBed.configureTestingModule({
+    providers: [provideRecipeRepositoryFake(), provideRandomAdapterFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
+  const randomAdapterFake = TestBed.inject(RandomAdapterFake);
   const menuGenerator = TestBed.inject(MenuGenerator);
-  return { menuGenerator, search, pick };
+  return { menuGenerator, randomAdapterFake };
 }

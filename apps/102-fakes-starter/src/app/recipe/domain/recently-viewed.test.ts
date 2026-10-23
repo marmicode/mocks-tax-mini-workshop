@@ -1,7 +1,12 @@
 import { TestBed } from '@angular/core/testing';
-import { describe, it, vi } from 'vitest';
-import { LocalStorage } from '@whiskmate/shared/infra';
+import { describe, it } from 'vitest';
+import {
+  LocalStorageFake,
+  provideLocalStorageFake,
+} from '@whiskmate/shared/infra';
 import { RecentlyViewed } from './recently-viewed';
+
+const RECENTLY_VIEWED_STORAGE_KEY = 'whiskmate:recently-viewed';
 
 describe(RecentlyViewed.name, () => {
   it('tracks the most recently viewed recipe first', () => {
@@ -24,7 +29,7 @@ describe(RecentlyViewed.name, () => {
   });
 
   it('keeps the 8 most recent recipes and persists them', () => {
-    const { recentlyViewed, setItem } = setUpRecentlyViewed(
+    const { recentlyViewed, localStorageFake } = setUpRecentlyViewed(
       JSON.stringify(['1', '2', '3', '4', '5', '6', '7', '8']),
     );
 
@@ -32,25 +37,19 @@ describe(RecentlyViewed.name, () => {
 
     const ids = ['9', '1', '2', '3', '4', '5', '6', '7'];
     expect(recentlyViewed.ids()).toEqual(ids);
-    expect(setItem).toHaveBeenCalledExactlyOnceWith(
-      'whiskmate:recently-viewed',
+    expect(localStorageFake.getItem(RECENTLY_VIEWED_STORAGE_KEY)).toBe(
       JSON.stringify(ids),
     );
   });
 });
 
 function setUpRecentlyViewed(storedValue: string | null) {
-  const setItem = vi.fn();
   TestBed.configureTestingModule({
-    providers: [
-      {
-        provide: LocalStorage,
-        useValue: {
-          getItem: vi.fn().mockReturnValue(storedValue),
-          setItem,
-        },
-      },
-    ],
+    providers: [provideLocalStorageFake()],
   });
-  return { recentlyViewed: TestBed.inject(RecentlyViewed), setItem };
+  const localStorageFake = TestBed.inject(LocalStorageFake);
+  if (storedValue != null) {
+    localStorageFake.setItem(RECENTLY_VIEWED_STORAGE_KEY, storedValue);
+  }
+  return { recentlyViewed: TestBed.inject(RecentlyViewed), localStorageFake };
 }

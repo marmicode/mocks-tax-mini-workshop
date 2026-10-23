@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  provideRecipeRepositoryFake,
+  RecipeRepositoryFake,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminImport } from './admin-import.ng';
 
@@ -32,14 +34,14 @@ const brownies: Recipe = {
 };
 
 describe(AdminImport.name, () => {
-  it('does not search recipes before importing', async () => {
-    const { fixture, search } = mountAdminImport();
+  it('does not touch the catalog before importing', async () => {
+    const { fixture, recipeRepositoryFake } = mountAdminImport();
     await fixture.whenStable();
 
     pasteJson(fixture.nativeElement, JSON.stringify([brownies]));
     await fixture.whenStable();
 
-    expect(search).not.toHaveBeenCalled();
+    expect(recipeRepositoryFake.getRecipesSync()).toEqual([shakshuka]);
     expect(textByTestId(fixture.nativeElement, 'import-ready')).toBe(
       '1 valid recipe(s) ready to import',
     );
@@ -73,7 +75,7 @@ describe(AdminImport.name, () => {
   });
 
   it('creates new recipes and updates existing ones', async () => {
-    const { fixture, search, create, update } = mountAdminImport();
+    const { fixture, recipeRepositoryFake } = mountAdminImport();
     await fixture.whenStable();
 
     pasteJson(
@@ -84,33 +86,30 @@ describe(AdminImport.name, () => {
     buttonByText(fixture.nativeElement, 'Import').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(update).toHaveBeenCalledExactlyOnceWith({
-      id: 'shakshuka',
-      course: 'main',
-      name: 'Shakshuka',
-      description: 'Eggs poached in a spiced tomato sauce.',
-      pictureUri: 'https://example.com/shakshuka.jpg',
-      ingredients: [],
-      steps: [],
-    });
-    expect(create).toHaveBeenCalledExactlyOnceWith({
-      id: 'tahini-halva-brownies',
-      course: 'dessert',
-      name: 'Tahini and Halva Brownies',
-      description: null,
-      pictureUri: '/images/tahini-halva-brownies.svg',
-      ingredients: [{ name: 'tahini', quantity: { amount: 80, unit: 'g' } }],
-      steps: ['Bake.'],
-    });
+    expect(recipeRepositoryFake.getRecipesSync()).toEqual([
+      {
+        id: 'shakshuka',
+        course: 'main',
+        name: 'Shakshuka',
+        description: 'Eggs poached in a spiced tomato sauce.',
+        pictureUri: 'https://example.com/shakshuka.jpg',
+        ingredients: [],
+        steps: [],
+      },
+      {
+        id: 'tahini-halva-brownies',
+        course: 'dessert',
+        name: 'Tahini and Halva Brownies',
+        description: null,
+        pictureUri: '/images/tahini-halva-brownies.svg',
+        ingredients: [{ name: 'tahini', quantity: { amount: 80, unit: 'g' } }],
+        steps: ['Bake.'],
+      },
+    ]);
   });
 
   it('shows how many recipes were created and updated', async () => {
-    const { fixture, search } = mountAdminImport();
+    const { fixture } = mountAdminImport();
     await fixture.whenStable();
 
     pasteJson(
@@ -121,19 +120,15 @@ describe(AdminImport.name, () => {
     buttonByText(fixture.nativeElement, 'Import').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(textByTestId(fixture.nativeElement, 'import-summary')).toBe(
       '1 created, 1 updated',
     );
   });
 
   it('creates every recipe when the catalog is empty', async () => {
-    const { fixture, search, create, update } = mountAdminImport();
-    search.mockReturnValue(of([]));
+    const { fixture, recipeRepositoryFake } = mountAdminImport({
+      recipes: [],
+    });
     await fixture.whenStable();
 
     pasteJson(
@@ -144,21 +139,19 @@ describe(AdminImport.name, () => {
     buttonByText(fixture.nativeElement, 'Import').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(create).toHaveBeenCalledTimes(2);
-    expect(update).not.toHaveBeenCalled();
+    expect(recipeRepositoryFake.getRecipesSync()).toEqual([
+      updatedShakshuka,
+      brownies,
+    ]);
     expect(textByTestId(fixture.nativeElement, 'import-summary')).toBe(
       '2 created, 0 updated',
     );
   });
 
   it('updates every recipe that already exists', async () => {
-    const { fixture, search, create, update } = mountAdminImport();
-    search.mockReturnValue(of([shakshuka, brownies]));
+    const { fixture, recipeRepositoryFake } = mountAdminImport({
+      recipes: [shakshuka, brownies],
+    });
     await fixture.whenStable();
 
     pasteJson(
@@ -169,20 +162,17 @@ describe(AdminImport.name, () => {
     buttonByText(fixture.nativeElement, 'Import').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(create).not.toHaveBeenCalled();
-    expect(update).toHaveBeenCalledTimes(2);
+    expect(recipeRepositoryFake.getRecipesSync()).toEqual([
+      updatedShakshuka,
+      brownies,
+    ]);
     expect(textByTestId(fixture.nativeElement, 'import-summary')).toBe(
       '0 created, 2 updated',
     );
   });
 
   it('hides the summary once the JSON is edited again', async () => {
-    const { fixture, search } = mountAdminImport();
+    const { fixture } = mountAdminImport();
     await fixture.whenStable();
 
     pasteJson(fixture.nativeElement, JSON.stringify([brownies]));
@@ -192,11 +182,6 @@ describe(AdminImport.name, () => {
     pasteJson(fixture.nativeElement, JSON.stringify([shakshuka, brownies]));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement.querySelector('[data-testid="import-summary"]'),
     ).toBeNull();
@@ -206,7 +191,7 @@ describe(AdminImport.name, () => {
   });
 
   it('imports recipes from a picked file', async () => {
-    const { fixture, search, create } = mountAdminImport();
+    const { fixture, recipeRepositoryFake } = mountAdminImport();
     await fixture.whenStable();
 
     await pickFile(
@@ -219,39 +204,25 @@ describe(AdminImport.name, () => {
     buttonByText(fixture.nativeElement, 'Import').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(create).toHaveBeenCalledExactlyOnceWith({
-      id: 'tahini-halva-brownies',
-      course: 'dessert',
-      name: 'Tahini and Halva Brownies',
-      description: null,
-      pictureUri: '/images/tahini-halva-brownies.svg',
-      ingredients: [{ name: 'tahini', quantity: { amount: 80, unit: 'g' } }],
-      steps: ['Bake.'],
-    });
+    expect(recipeRepositoryFake.getRecipesSync()).toEqual([
+      shakshuka,
+      brownies,
+    ]);
   });
 });
 
-function mountAdminImport() {
-  TestBed.configureTestingModule({ providers: [provideRouter([])] });
-  const recipeRepository = TestBed.inject(RecipeRepository);
-  const search = vi
-    .spyOn(recipeRepository, 'search')
-    .mockReturnValue(of([shakshuka]));
-  const create = vi
-    .spyOn(recipeRepository, 'create')
-    .mockImplementation((recipe) => of(recipe));
-  const update = vi
-    .spyOn(recipeRepository, 'update')
-    .mockImplementation((recipe) => of(recipe));
+function mountAdminImport({
+  recipes = [shakshuka],
+}: { recipes?: Recipe[] } = {}) {
+  TestBed.configureTestingModule({
+    providers: [provideRouter([]), provideRecipeRepositoryFake()],
+  });
+  const recipeRepositoryFake = TestBed.inject(RecipeRepositoryFake);
+  recipeRepositoryFake.setRecipes(recipes);
 
   const fixture = TestBed.createComponent(AdminImport);
 
-  return { fixture, search, create, update };
+  return { fixture, recipeRepositoryFake };
 }
 
 function pasteJson(root: HTMLElement, json: string): void {
