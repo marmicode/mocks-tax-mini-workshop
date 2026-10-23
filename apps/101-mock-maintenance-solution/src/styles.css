@@ -1,0 +1,243 @@
+/*
+ * Global look & feel.
+ * Native elements are styled with Angular Material's system variables so that
+ * pages that don't use Material components still match the theme.
+ */
+
+:root {
+  --wm-radius: 12px;
+  --wm-page-width: 1200px;
+  --wm-shadow: 0 1px 2px rgb(0 0 0 / 8%), 0 2px 8px rgb(0 0 0 / 6%);
+}
+
+body {
+  background-color: var(--mat-sys-surface-container-lowest);
+}
+
+/* Every routed page is centered with a comfortable max width. */
+router-outlet + * {
+  box-sizing: border-box;
+  margin: 0 auto;
+  max-width: var(--wm-page-width);
+  padding: 1.5rem;
+}
+
+h2 {
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-headline-small);
+  margin: 0.5rem 0 1.25rem;
+}
+
+h3 {
+  font: var(--mat-sys-title-medium);
+  margin: 1rem 0 0.5rem;
+}
+
+a {
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Native buttons look like Material tonal buttons. */
+button:not(
+  .mat-mdc-button-base,
+  .mat-mdc-icon-button,
+  .mat-button-toggle-button,
+  .wm-plain
+) {
+  align-items: center;
+  background: var(--mat-sys-secondary-container);
+  border: none;
+  border-radius: 999px;
+  color: var(--mat-sys-on-secondary-container);
+  cursor: pointer;
+  display: inline-flex;
+  font: var(--mat-sys-label-large);
+  gap: 0.25rem;
+  height: 36px;
+  justify-content: center;
+  padding: 0 1rem;
+  transition:
+    box-shadow 120ms,
+    filter 120ms;
+  white-space: nowrap;
+}
+
+button:not(
+    .mat-mdc-button-base,
+    .mat-mdc-icon-button,
+    .mat-button-toggle-button,
+    .wm-plain
+  ):hover:not(:disabled) {
+  box-shadow: var(--wm-shadow);
+  filter: brightness(0.96);
+}
+
+button:not(
+    .mat-mdc-button-base,
+    .mat-mdc-icon-button,
+    .mat-button-toggle-button,
+    .wm-plain
+  ):disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+button[type='submit']:not(.mat-mdc-button-base, .wm-plain) {
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+}
+
+/* Native form fields look like Material outlined fields. */
+input:not(
+  [type='checkbox'],
+  [type='radio'],
+  [type='file'],
+  .mat-mdc-input-element
+),
+select:not(.mat-mdc-select, [matNativeControl]),
+textarea:not(.mat-mdc-input-element) {
+  background: var(--mat-sys-surface);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-large);
+  min-height: 40px;
+  padding: 0.4rem 0.75rem;
+}
+
+input:not(
+    [type='checkbox'],
+    [type='radio'],
+    [type='file'],
+    .mat-mdc-input-element
+  ):focus,
+select:not(.mat-mdc-select, [matNativeControl]):focus,
+textarea:not(.mat-mdc-input-element):focus {
+  border-color: var(--mat-sys-primary);
+  outline: 2px solid color-mix(in srgb, var(--mat-sys-primary) 25%, transparent);
+}
+
+/* Tables */
+table {
+  background: var(--mat-sys-surface);
+  border-collapse: collapse;
+  border-radius: var(--wm-radius);
+  box-shadow: var(--wm-shadow);
+  overflow: hidden;
+  width: 100%;
+}
+
+th {
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-title-small);
+  text-align: left;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  padding: 0.6rem 0.9rem;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  background: var(--mat-sys-surface-container-low);
+}
+
+pre {
+  background: var(--mat-sys-surface-container);
+  border-radius: var(--wm-radius);
+  overflow: auto;
+  padding: 1rem;
+}
+
+/*
+ * Reusable classes.
+ * - `.wm-button` turns a link into a tonal button,
+ *   `.wm-button-primary` / `.wm-button-outlined` / `.wm-button-danger` are variants
+ *   (they also apply to native buttons).
+ * - `.wm-toolbar` lays out a row of actions.
+ * - `.wm-surface` is a white rounded card.
+ * - `.wm-grid` is a responsive grid of cards.
+ * - `.wm-chip` is a small rounded label.
+ * - `.wm-muted` is secondary text.
+ */
+a.wm-button {
+  align-items: center;
+  background: var(--mat-sys-secondary-container);
+  border-radius: 999px;
+  color: var(--mat-sys-on-secondary-container);
+  display: inline-flex;
+  font: var(--mat-sys-label-large);
+  gap: 0.25rem;
+  height: 36px;
+  padding: 0 1rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.wm-button:hover {
+  box-shadow: var(--wm-shadow);
+  filter: brightness(0.96);
+  text-decoration: none;
+}
+
+.wm-button-primary:is(a, button) {
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+}
+
+.wm-button-outlined:is(a, button) {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--mat-sys-outline);
+  color: var(--mat-sys-primary);
+}
+
+.wm-button-danger:is(a, button) {
+  background: var(--mat-sys-error);
+  color: var(--mat-sys-on-error);
+}
+
+.wm-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.wm-surface {
+  background: var(--mat-sys-surface);
+  border-radius: var(--wm-radius);
+  box-shadow: var(--wm-shadow);
+  padding: 1rem 1.25rem;
+}
+
+.wm-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.wm-chip {
+  background: var(--mat-sys-tertiary-container);
+  border-radius: 999px;
+  color: var(--mat-sys-on-tertiary-container);
+  display: inline-block;
+  font: var(--mat-sys-label-medium);
+  padding: 0.2rem 0.7rem;
+}
+
+.wm-muted {
+  color: var(--mat-sys-on-surface-variant);
+}
