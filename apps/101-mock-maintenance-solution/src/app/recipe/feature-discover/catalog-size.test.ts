@@ -1,7 +1,8 @@
 import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { type Observable, of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
+import type { RecipeSearchParams } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { CatalogSize } from './catalog-size.ng';
 
@@ -34,35 +35,32 @@ describe(CatalogSize.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
   });
 
   it('shows the number of recipes', async () => {
     const { fixture, post } = mountCatalogSize();
-    post.mockReturnValue(of([hummus, salad]));
+    post.mockImplementation(
+      searchHandler((params) =>
+        params.courses
+          ? [hummus, salad].filter((recipe) =>
+              params.courses?.includes(recipe.course),
+            )
+          : [hummus, salad],
+      ),
+    );
     await fixture.whenStable();
 
-    expect(post).toHaveBeenCalledExactlyOnceWith('/api/recipes/search', {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(textOf(fixture.nativeElement, 'catalog-size')).toBe('2 recipes');
   });
 
   it('uses the singular for a single recipe', async () => {
     const { fixture, post } = mountCatalogSize();
-    post.mockReturnValue(of([hummus]));
+    post.mockImplementation(
+      searchHandler((params) => (isWholeCatalogSearch(params) ? [hummus] : [])),
+    );
     await fixture.whenStable();
 
-    expect(post).toHaveBeenCalledExactlyOnceWith('/api/recipes/search', {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(textOf(fixture.nativeElement, 'catalog-size')).toBe('1 recipe');
   });
 
@@ -71,12 +69,9 @@ describe(CatalogSize.name, () => {
     post.mockReturnValue(of([hummus, salad]));
     await fixture.whenStable();
 
-    expect(post).toHaveBeenCalledExactlyOnceWith('/api/recipes/search', {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(searchKey(post.mock.calls[0])).toBe(
+      '/api/recipes/search?keywords=&maxIngredientCount=&maxStepCount=',
+    );
     expect(textOf(fixture.nativeElement, 'ingredient-count')).toBe(
       'Using 3 distinct ingredients.',
     );
@@ -91,8 +86,10 @@ describe(CatalogSize.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
+    await expect(JSON.stringify(post.mock.calls, null, 2)).toMatchFileSnapshot(
+      './__snapshots__/catalog-size-empty.calls.json',
+    );
     expect(textOf(fixture.nativeElement, 'no-recipes-message')).toBe(
       'The catalog is empty.',
     );
@@ -104,7 +101,12 @@ function mountCatalogSize() {
 
   const post = vi
     .spyOn(TestBed.inject(HttpClient), 'post')
-    .mockReturnValue(of([hummus, salad]));
+    .mockImplementation((url: string, body: unknown) => {
+      if (url !== '/api/recipes/search' || 'courses' in (body as object)) {
+        throw new Error(`unexpected POST ${url} ${JSON.stringify(body)}`);
+      }
+      return of([hummus, salad]);
+    });
 
   const fixture = TestBed.createComponent(CatalogSize);
 
@@ -113,4 +115,25 @@ function mountCatalogSize() {
 
 function textOf(root: HTMLElement, testId: string): string | undefined {
   return root.querySelector(`[data-testid="${testId}"]`)?.textContent?.trim();
+}
+
+function searchHandler(
+  respond: (params: RecipeSearchParams) => Recipe[],
+): (url: string, body: unknown) => Observable<Recipe[]> {
+  return (url, body) =>
+    url === '/api/recipes/search'
+      ? of(respond(body as RecipeSearchParams))
+      : throwError(() => new Error(`unexpected POST ${url}`));
+}
+
+function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
+  return Object.values(params).every((value) => value === '' || value === null);
+}
+
+function searchKey([url, body]: unknown[]): string {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(body as RecipeSearchParams)) {
+    query.append(key, value == null ? '' : String(value));
+  }
+  return `${url}?${query}`;
 }

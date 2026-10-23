@@ -2,7 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { ThreeStepRecipes } from './three-step-recipes.ng';
 
@@ -31,25 +34,28 @@ describe(ThreeStepRecipes.name, () => {
     const { fixture, search } = mountThreeStepRecipes();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 3,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('shows the three-step recipes', async () => {
     const { fixture, search } = mountThreeStepRecipes();
-    search.mockReturnValue(of([hummus, salad]));
+    search.mockImplementation(
+      (params) =>
+        ({
+          [JSON.stringify({
+            keywords: '',
+            maxIngredientCount: null,
+            maxStepCount: 3,
+          })]: of([hummus, salad]),
+          [JSON.stringify({
+            keywords: '',
+            maxIngredientCount: null,
+            maxStepCount: 2,
+          })]: of([salad]),
+        })[JSON.stringify(params)] ?? of([]),
+    );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 3,
-      courses: [],
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Hummus with Ful',
       'Burnt Aubergine with Tahini and Pomegranate',
@@ -58,15 +64,17 @@ describe(ThreeStepRecipes.name, () => {
 
   it('shows the steps of each recipe', async () => {
     const { fixture, search } = mountThreeStepRecipes();
-    search.mockReturnValue(of([salad]));
+    search.mockImplementation((params) => {
+      expect(params).toEqual({
+        keywords: '',
+        maxIngredientCount: null,
+        maxStepCount: 3,
+      });
+      return of([salad]);
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 3,
-      courses: [],
-    });
+    expect(search).toHaveBeenCalledOnce();
     expect(steps(fixture.nativeElement)).toEqual([
       'Burn the aubergine.',
       'Dress with tahini.',
@@ -75,15 +83,11 @@ describe(ThreeStepRecipes.name, () => {
 
   it('links each recipe to its detail page', async () => {
     const { fixture, search } = mountThreeStepRecipes();
-    search.mockReturnValue(of([hummus]));
+    search.mockImplementation((params) =>
+      isThreeStepSearch(params) ? of([hummus]) : of([]),
+    );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 3,
-      courses: [],
-    });
     expect(
       fixture.nativeElement
         .querySelector('[data-testid="recipe-name"]')
@@ -100,7 +104,6 @@ describe(ThreeStepRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 3,
-      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -132,5 +135,13 @@ function recipeNames(root: HTMLElement): string[] {
 function steps(root: HTMLElement): string[] {
   return [...root.querySelectorAll('[data-testid="recipe-step"]')].map(
     (el) => el.textContent?.trim() ?? '',
+  );
+}
+
+function isThreeStepSearch(params: RecipeSearchParams): boolean {
+  const { maxStepCount, ...otherParams } = params;
+  return (
+    maxStepCount === 3 &&
+    Object.values(otherParams).every((value) => value === '' || value === null)
   );
 }

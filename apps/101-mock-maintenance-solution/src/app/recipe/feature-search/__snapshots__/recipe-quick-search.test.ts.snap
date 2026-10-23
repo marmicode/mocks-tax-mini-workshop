@@ -1,0 +1,13 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RecipeQuickSearch > searches by keywords 1`] = `
+[
+  [
+    {
+      "keywords": "aub",
+      "maxIngredientCount": null,
+      "maxStepCount": null,
+    },
+  ],
+]
+`;

@@ -2,7 +2,10 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminIngredients } from './admin-ingredients.ng';
 
@@ -38,20 +41,22 @@ describe(AdminIngredients.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
   });
 
   it('counts how many recipes use each ingredient', async () => {
     const { fixture, search } = mountAdminIngredients();
+    search.mockImplementation(({ courses }) =>
+      of(
+        courses
+          ? [shakshuka, hummus].filter((recipe) =>
+              courses.includes(recipe.course),
+            )
+          : [shakshuka, hummus],
+      ),
+    );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(ingredientRows(fixture.nativeElement)).toEqual([
       ['olive oil', '2'],
       ['eggs', '1'],
@@ -101,12 +106,7 @@ describe(AdminIngredients.name, () => {
     await fixture.whenStable();
 
     expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('does not update anything when the name is unchanged', async () => {
@@ -121,22 +121,30 @@ describe(AdminIngredients.name, () => {
 
   it('counts an ingredient once per recipe', async () => {
     const { fixture, search } = mountAdminIngredients();
-    search.mockReturnValue(
-      of([
-        {
-          ...shakshuka,
-          ingredients: [{ name: 'Eggs' }, { name: ' eggs ' }],
-        },
-      ]),
-    );
+    const recipesBySearch = new Map<string, Recipe[]>([
+      [
+        JSON.stringify({
+          keywords: '',
+          maxIngredientCount: null,
+          maxStepCount: null,
+        }),
+        [
+          {
+            ...shakshuka,
+            ingredients: [{ name: 'Eggs' }, { name: ' eggs ' }],
+          },
+        ],
+      ],
+    ]);
+    search.mockImplementation((params) => {
+      const recipes = recipesBySearch.get(JSON.stringify(params));
+      if (recipes === undefined) {
+        throw new Error(`unexpected search ${JSON.stringify(params)}`);
+      }
+      return of(recipes);
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(ingredientRows(fixture.nativeElement)).toEqual([['eggs', '1']]);
   });
 
@@ -151,7 +159,6 @@ describe(AdminIngredients.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(update).not.toHaveBeenCalled();
   });
@@ -165,12 +172,17 @@ describe(AdminIngredients.name, () => {
     buttonByText(fixture.nativeElement, 'Cancel').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
     expect(update).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('input')).toBeNull();
   });
@@ -179,21 +191,20 @@ describe(AdminIngredients.name, () => {
     const { fixture, search } = mountAdminIngredients();
     await fixture.whenStable();
 
-    search.mockReturnValue(
-      of([
-        shakshuka,
-        { ...hummus, ingredients: [{ name: 'olive oil' }, { name: 'tahina' }] },
-      ]),
+    search.mockImplementationOnce((params) =>
+      isWholeCatalogSearch(params)
+        ? of([
+            shakshuka,
+            {
+              ...hummus,
+              ingredients: [{ name: 'olive oil' }, { name: 'tahina' }],
+            },
+          ])
+        : of([]),
     );
     await renameIngredient(fixture, 'tahini', 'tahina');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(ingredientRows(fixture.nativeElement)).toEqual([
       ['olive oil', '2'],
       ['eggs', '1'],
@@ -265,4 +276,13 @@ function buttonByText(
     throw new Error(`Button "${text}" not found.`);
   }
   return button;
+}
+
+function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
+  return (
+    params.keywords === '' &&
+    params.maxIngredientCount === null &&
+    params.maxStepCount === null &&
+    params.courses === undefined
+  );
 }

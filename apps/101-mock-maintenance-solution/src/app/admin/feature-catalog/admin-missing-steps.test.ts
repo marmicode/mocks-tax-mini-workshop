@@ -2,7 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import { AdminMissingSteps } from './admin-missing-steps.ng';
 
 describe(AdminMissingSteps.name, () => {
@@ -14,33 +17,31 @@ describe(AdminMissingSteps.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
   });
 
   it('shows an empty state when every recipe has steps', async () => {
     const { fixture, search } = mountAdminMissingSteps();
-    search.mockReturnValue(
-      of([
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: 'Eggs poached in a spiced tomato sauce.',
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook the sauce.', 'Crack the eggs.'],
-        },
-      ]),
+    search.mockImplementation((params) =>
+      of(
+        isWholeCatalogSearch(params)
+          ? [
+              {
+                id: 'shakshuka',
+                course: 'main',
+                name: 'Shakshuka',
+                description: 'Eggs poached in a spiced tomato sauce.',
+                pictureUri: 'https://example.com/shakshuka.jpg',
+                ingredients: [{ name: 'eggs' }],
+                steps: ['Cook the sauce.', 'Crack the eggs.'],
+              },
+            ]
+          : [],
+      ),
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search).toHaveBeenCalledOnce();
     expect(emptyState(fixture.nativeElement)).toBe('Every recipe has steps.');
   });
 
@@ -61,29 +62,38 @@ describe(AdminMissingSteps.name, () => {
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
     expect(rowTexts(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
 
   it('lists recipes with only blank steps', async () => {
     const { fixture, search } = mountAdminMissingSteps();
-    search.mockReturnValue(
-      of([
-        {
-          id: 'courgette-fritters',
-          course: 'starter',
-          name: 'Courgette Fritters',
-          description: null,
-          pictureUri: 'https://example.com/fritters.jpg',
-          ingredients: [{ name: 'courgettes' }],
-          steps: ['', '  '],
-        },
-      ]),
+    search.mockImplementation((params) =>
+      of(
+        !params.courses?.length
+          ? [
+              {
+                id: 'courgette-fritters',
+                course: 'starter',
+                name: 'Courgette Fritters',
+                description: null,
+                pictureUri: 'https://example.com/fritters.jpg',
+                ingredients: [{ name: 'courgettes' }],
+                steps: ['', '  '],
+              },
+            ]
+          : [],
+      ),
     );
     await fixture.whenStable();
 
@@ -91,7 +101,6 @@ describe(AdminMissingSteps.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Courgette Fritters (2 blank)',
@@ -100,36 +109,35 @@ describe(AdminMissingSteps.name, () => {
 
   it('ignores recipes with at least one real step', async () => {
     const { fixture, search } = mountAdminMissingSteps();
-    search.mockReturnValue(
-      of([
-        {
-          id: 'tahini-halva-brownies',
-          course: 'dessert',
-          name: 'Tahini and Halva Brownies',
-          description: null,
-          pictureUri: '/images/tahini-halva-brownies.svg',
-          ingredients: [{ name: 'dark chocolate' }],
-          steps: ['', 'Bake.'],
-        },
-        {
-          id: 'hummus-ful',
-          course: 'starter',
-          name: 'Hummus with Ful',
-          description: 'Creamy hummus.',
-          pictureUri: 'https://example.com/hummus.jpg',
-          ingredients: [{ name: 'chickpeas' }],
-          steps: [],
-        },
-      ]),
+    search.mockImplementation((params) =>
+      of(
+        isWholeCatalogSearch(params)
+          ? [
+              {
+                id: 'tahini-halva-brownies',
+                course: 'dessert',
+                name: 'Tahini and Halva Brownies',
+                description: null,
+                pictureUri: '/images/tahini-halva-brownies.svg',
+                ingredients: [{ name: 'dark chocolate' }],
+                steps: ['', 'Bake.'],
+              },
+              {
+                id: 'hummus-ful',
+                course: 'starter',
+                name: 'Hummus with Ful',
+                description: 'Creamy hummus.',
+                pictureUri: 'https://example.com/hummus.jpg',
+                ingredients: [{ name: 'chickpeas' }],
+                steps: [],
+              },
+            ]
+          : [],
+      ),
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search).toHaveBeenCalledOnce();
     expect(rowTexts(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
 });
@@ -154,4 +162,11 @@ function rowTexts(root: HTMLElement): string[] {
 
 function emptyState(root: HTMLElement): string | undefined {
   return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+}
+
+function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
+  return (
+    Object.keys(params).length === 3 &&
+    Object.values(params).every((value) => value === '' || value === null)
+  );
 }

@@ -2,7 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { Admin } from './admin.ng';
 
@@ -26,6 +29,8 @@ const shakshuka: Recipe = {
   steps: ['Cook the sauce.', 'Poach the eggs.', 'Serve.', 'Enjoy.'],
 };
 
+const catalog = [hummus, shakshuka];
+
 describe(Admin.name, () => {
   it('searches the whole catalog to compute stats', async () => {
     const { fixture, search } = mountAdmin();
@@ -35,21 +40,20 @@ describe(Admin.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
   });
 
   it('shows the recipe count and the count per course', async () => {
     const { fixture, search } = mountAdmin();
-    search.mockReturnValue(of([hummus, shakshuka]));
+    search.mockImplementation(({ courses }) =>
+      of(
+        courses
+          ? catalog.filter((recipe) => courses.includes(recipe.course))
+          : catalog,
+      ),
+    );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(tiles(fixture.nativeElement)).toEqual(
       expect.arrayContaining([
         '2 Recipes',
@@ -62,15 +66,16 @@ describe(Admin.name, () => {
 
   it('shows averages and missing descriptions', async () => {
     const { fixture, search } = mountAdmin();
-    search.mockReturnValue(of([hummus, shakshuka]));
+    search.mockImplementation((params) => {
+      switch (toQueryString(params)) {
+        case 'keywords=&maxIngredientCount=null&maxStepCount=null':
+          return of(catalog);
+        default:
+          return of([]);
+      }
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(tiles(fixture.nativeElement)).toEqual(
       expect.arrayContaining([
         '2.5 Avg. ingredients',
@@ -84,12 +89,7 @@ describe(Admin.name, () => {
     const { fixture, search } = mountAdmin();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchSnapshot();
     expect(links(fixture.nativeElement)).toEqual([
       { label: 'Recipes', href: '/admin/recipes' },
       { label: 'New recipe', href: '/admin/recipes/new' },
@@ -142,4 +142,10 @@ function links(root: HTMLElement) {
     label: link.textContent?.trim(),
     href: link.getAttribute('href'),
   }));
+}
+
+function toQueryString(params: RecipeSearchParams) {
+  return new URLSearchParams(
+    Object.entries(params).map(([key, value]) => [key, String(value)]),
+  ).toString();
 }

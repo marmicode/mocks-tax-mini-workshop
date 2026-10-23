@@ -1,8 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { RecipeCompare } from './recipe-compare.ng';
 
@@ -40,7 +43,6 @@ describe(RecipeCompare.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(findById).not.toHaveBeenCalled();
     expect(optionLabels(selects(fixture.nativeElement)[0])).toEqual([
@@ -57,13 +59,17 @@ describe(RecipeCompare.name, () => {
     });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledTimes(1);
-    expect(search).toHaveBeenNthCalledWith(1, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
     expect(findById).toHaveBeenCalledTimes(2);
     expect(findById).toHaveBeenNthCalledWith(1, { id: 'shakshuka' });
     expect(findById).toHaveBeenNthCalledWith(2, { id: 'hummus-ful' });
@@ -77,12 +83,9 @@ describe(RecipeCompare.name, () => {
     await fixture.whenStable();
 
     const root: HTMLElement = fixture.nativeElement;
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(searchKey(search.mock.calls[0][0])).toBe(
+      'keywords=&maxIngredientCount=&maxStepCount=',
+    );
     expect(textOf(root, 'left-name')).toBe('Shakshuka');
     expect(textOf(root, 'right-name')).toBe('Hummus with Ful');
     expect(cellsOf(root, 'course-row')).toEqual(['main', 'starter']);
@@ -118,12 +121,6 @@ describe(RecipeCompare.name, () => {
     leftSelect.dispatchEvent(new Event('change'));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(navigate).toHaveBeenCalledExactlyOnceWith(['/', 'compare'], {
       queryParams: { left: 'hummus-ful' },
       queryParamsHandling: 'merge',
@@ -137,12 +134,6 @@ describe(RecipeCompare.name, () => {
     });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(
       selects(fixture.nativeElement).map((select) => select.value),
     ).toEqual(['hummus-ful', 'shakshuka']);
@@ -158,7 +149,6 @@ describe(RecipeCompare.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
@@ -178,12 +168,7 @@ describe(RecipeCompare.name, () => {
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchSnapshot();
     expect(textOf(fixture.nativeElement, 'no-shared-ingredients')).toBe(
       'No shared ingredients.',
     );
@@ -193,6 +178,11 @@ describe(RecipeCompare.name, () => {
     const { fixture, search } = mountRecipeCompare({
       left: 'shakshuka',
       right: 'hummus-ful',
+    });
+    search.mockImplementationOnce((params) => {
+      expect(params).not.toHaveProperty('courses');
+      expect(isWholeCatalogSearch(params)).toBe(true);
+      return of([shakshuka, hummus]);
     });
     const navigate = vi
       .spyOn(TestBed.inject(Router), 'navigate')
@@ -204,12 +194,7 @@ describe(RecipeCompare.name, () => {
     rightSelect.dispatchEvent(new Event('change'));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search).toHaveBeenCalledOnce();
     expect(navigate).toHaveBeenCalledExactlyOnceWith(['/', 'compare'], {
       queryParams: { right: null },
       queryParamsHandling: 'merge',
@@ -231,7 +216,13 @@ function mountRecipeCompare({
   const recipeRepository = TestBed.inject(RecipeRepository);
   const search = vi
     .spyOn(recipeRepository, 'search')
-    .mockReturnValue(of([shakshuka, hummus]));
+    .mockImplementation((params) =>
+      isWholeCatalogSearch(params)
+        ? of([shakshuka, hummus])
+        : throwError(
+            () => new Error(`unexpected search ${JSON.stringify(params)}`),
+          ),
+    );
   const findById = vi
     .spyOn(recipeRepository, 'findById')
     .mockImplementation(({ id }) =>
@@ -261,4 +252,20 @@ function cellsOf(root: HTMLElement, testId: string): string[] {
   return [...root.querySelectorAll(`[data-testid="${testId}"] td`)].map(
     (el) => el.textContent?.trim() ?? '',
   );
+}
+
+/**
+ * The pickers need the whole catalog: no keywords, no limits, no extra filters.
+ */
+function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
+  return (
+    Object.keys(params).length === 3 &&
+    Object.values(params).every((value) => value === '' || value === null)
+  );
+}
+
+function searchKey(params: RecipeSearchParams): string {
+  return new URLSearchParams(
+    Object.entries(params).map(([key, value]) => [key, String(value ?? '')]),
+  ).toString();
 }

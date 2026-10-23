@@ -2,7 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+} from '@whiskmate/recipe/infra';
 import { AdminIdAudit } from './admin-id-audit.ng';
 
 describe(AdminIdAudit.name, () => {
@@ -14,14 +17,14 @@ describe(AdminIdAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
   });
 
   it('accepts a kebab-case id matching the name', async () => {
     const { fixture, search } = mountAdminIdAudit();
-    search.mockReturnValue(
-      of([
+    search.mockImplementationOnce((params) => {
+      expect(params).toStrictEqual(createRecipeSearchParams());
+      return of([
         {
           id: 'courgette-fritters',
           course: 'starter',
@@ -31,42 +34,32 @@ describe(AdminIdAudit.name, () => {
           ingredients: [{ name: 'courgettes' }],
           steps: ['Fry.'],
         },
-      ]),
-    );
+      ]);
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(emptyState(fixture.nativeElement)).toBe('All ids look good.');
   });
 
   it('flags ids that are not kebab-case', async () => {
     const { fixture, search } = mountAdminIdAudit();
-    search.mockReturnValue(
-      of([
-        {
-          id: 'Shakshuka_v2',
-          course: 'main',
-          name: 'Shakshuka',
-          description: 'Eggs poached in a spiced tomato sauce.',
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook.'],
-        },
-      ]),
+    search.mockImplementation((params) =>
+      'courses' in params
+        ? of([])
+        : of([
+            {
+              id: 'Shakshuka_v2',
+              course: 'main',
+              name: 'Shakshuka',
+              description: 'Eggs poached in a spiced tomato sauce.',
+              pictureUri: 'https://example.com/shakshuka.jpg',
+              ingredients: [{ name: 'eggs' }],
+              steps: ['Cook.'],
+            },
+          ]),
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Shakshuka_v2 Not kebab-case shakshuka',
     ]);
@@ -93,7 +86,6 @@ describe(AdminIdAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'hummus-ful Does not match name hummus-with-ful',
@@ -117,12 +109,7 @@ describe(AdminIdAudit.name, () => {
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchSnapshot();
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'creme-brulee Does not match name creme-brulee-classic',
     ]);

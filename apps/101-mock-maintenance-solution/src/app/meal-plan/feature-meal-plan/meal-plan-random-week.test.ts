@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import {
@@ -48,15 +48,26 @@ describe(MealPlanRandomWeek.name, () => {
       saturday: null,
       sunday: null,
     });
-    search.mockReturnValue(of([shakshuka, lambKofte]));
+    search.mockImplementation((params) => {
+      const responses: Record<string, Recipe[]> = {
+        [JSON.stringify({
+          keywords: '',
+          maxIngredientCount: null,
+          maxStepCount: null,
+        })]: [shakshuka, lambKofte],
+        [JSON.stringify({
+          keywords: '',
+          maxIngredientCount: null,
+          maxStepCount: 4,
+        })]: [shakshuka],
+      };
+      const key = JSON.stringify(params);
+      return key in responses
+        ? of(responses[key])
+        : throwError(() => new Error(`unexpected search ${key}`));
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(randomPicks(fixture.nativeElement)).toEqual([
       'Saturday: Shakshuka',
       'Sunday: Lamb Kofte with Yogurt and Sumac',
@@ -78,7 +89,6 @@ describe(MealPlanRandomWeek.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 4,
-      courses: [],
     });
   });
 
@@ -87,7 +97,14 @@ describe(MealPlanRandomWeek.name, () => {
       ...fullWeek,
       sunday: null,
     });
-    search.mockReturnValue(of([shakshuka, lambKofte]));
+    search
+      .mockImplementationOnce((params) => {
+        expect(params).not.toHaveProperty('courses');
+        return of([shakshuka, lambKofte]);
+      })
+      .mockImplementationOnce((params) =>
+        params.courses?.length ? of([]) : of([shakshuka, lambKofte]),
+      );
     await fixture.whenStable();
 
     pick.mockImplementation((recipes) => recipes.at(-1));
@@ -95,12 +112,11 @@ describe(MealPlanRandomWeek.name, () => {
     await fixture.whenStable();
 
     expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    await expect(
+      JSON.stringify(search.mock.calls, null, 2),
+    ).toMatchFileSnapshot(
+      './__snapshots__/meal-plan-random-week-shuffle.calls.json',
+    );
     expect(randomPicks(fixture.nativeElement)).toEqual([
       'Sunday: Lamb Kofte with Yogurt and Sumac',
     ]);
@@ -111,7 +127,9 @@ describe(MealPlanRandomWeek.name, () => {
       ...fullWeek,
       friday: null,
     });
-    search.mockReturnValue(of([lambKofte]));
+    search.mockImplementation((params) =>
+      'courses' in params ? of([]) : of([lambKofte]),
+    );
     const assign = vi
       .spyOn(mealPlanStore, 'assign')
       .mockImplementation(() => undefined);
@@ -121,12 +139,17 @@ describe(MealPlanRandomWeek.name, () => {
     buttonByText(fixture.nativeElement, 'Apply').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
     expect(assign).toHaveBeenCalledExactlyOnceWith({
       weekday: 'friday',
       recipeId: 'lamb-kofte',
@@ -143,7 +166,6 @@ describe(MealPlanRandomWeek.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-picks"]'),

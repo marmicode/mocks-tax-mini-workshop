@@ -2,7 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { Pantry } from './pantry.ng';
 
@@ -52,7 +55,6 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="pantry-hint"]'),
@@ -66,12 +68,6 @@ describe(Pantry.name, () => {
     addIngredient(fixture.nativeElement, 'Ricotta');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(matchedRecipeNames(fixture.nativeElement)).toEqual([
       'Lemon and Ricotta Cheesecake',
     ]);
@@ -85,12 +81,6 @@ describe(Pantry.name, () => {
     addIngredient(fixture.nativeElement, 'eggs');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(matchedRecipeNames(fixture.nativeElement)).toEqual([
       'Shakshuka',
       'Hummus with Ful',
@@ -108,12 +98,6 @@ describe(Pantry.name, () => {
     addIngredient(fixture.nativeElement, 'garlic');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(textsOf(fixture.nativeElement, 'missing-ingredients')).toEqual([
       'Missing: tahini',
       'Missing: red peppers, large eggs',
@@ -132,12 +116,6 @@ describe(Pantry.name, () => {
       ?.click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(matchedRecipeNames(fixture.nativeElement)).toEqual([
       'Lemon and Ricotta Cheesecake',
     ]);
@@ -154,7 +132,6 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-match-message"]')
@@ -171,12 +148,17 @@ describe(Pantry.name, () => {
     addIngredient(fixture.nativeElement, '   ');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
     expect(itemLabels(fixture.nativeElement)).toEqual(['Remove garlic']);
   });
 
@@ -187,12 +169,6 @@ describe(Pantry.name, () => {
     addIngredient(fixture.nativeElement, 'ricotta');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(textsOf(fixture.nativeElement, 'match-count')).toEqual([
       '1/1 ingredients',
     ]);
@@ -214,7 +190,6 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(matchedRecipeNames(fixture.nativeElement)).toEqual([]);
     expect(
@@ -234,7 +209,6 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-match-message"]')
@@ -250,7 +224,9 @@ function mountPantry() {
 
   const search = vi
     .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([shakshuka, hummus, cheesecake]));
+    .mockImplementation((params) =>
+      of(isWholeCatalogSearch(params) ? [shakshuka, hummus, cheesecake] : []),
+    );
 
   const fixture = TestBed.createComponent(Pantry);
 
@@ -282,4 +258,11 @@ function textsOf(root: HTMLElement, testId: string): string[] {
   return [...root.querySelectorAll(`[data-testid="${testId}"]`)].map(
     (el) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '',
   );
+}
+
+/**
+ * The pantry matches ingredients locally so it needs the whole catalog.
+ */
+function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
+  return Object.values(params).every((value) => value === '' || value === null);
 }

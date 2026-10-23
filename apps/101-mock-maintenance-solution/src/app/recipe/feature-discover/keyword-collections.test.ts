@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -31,12 +31,9 @@ const cake: Recipe = {
  * Canned backend responses, keyed by the exact search request.
  */
 const responses: Record<string, Recipe[]> = {
-  '{"keywords":"soup","maxIngredientCount":null,"maxStepCount":null,"courses":[]}':
-    [soup],
-  '{"keywords":"salad","maxIngredientCount":null,"maxStepCount":null,"courses":[]}':
-    [],
-  '{"keywords":"cake","maxIngredientCount":null,"maxStepCount":null,"courses":[]}':
-    [cake],
+  '{"keywords":"soup","maxIngredientCount":null,"maxStepCount":null}': [soup],
+  '{"keywords":"salad","maxIngredientCount":null,"maxStepCount":null}': [],
+  '{"keywords":"cake","maxIngredientCount":null,"maxStepCount":null}': [cake],
 };
 
 describe(KeywordCollections.name, () => {
@@ -48,7 +45,6 @@ describe(KeywordCollections.name, () => {
       keywords: 'soup',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
   });
 
@@ -57,12 +53,6 @@ describe(KeywordCollections.name, () => {
     await fixture.whenStable();
 
     expect(recipeNames(fixture.nativeElement)).toEqual(['Red Lentil Soup']);
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'soup',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
   });
 
   it('searches salads when the salads collection is chosen', async () => {
@@ -73,12 +63,7 @@ describe(KeywordCollections.name, () => {
     await fixture.whenStable();
 
     expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'salad',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('shows cakes when the cakes collection is chosen', async () => {
@@ -89,12 +74,6 @@ describe(KeywordCollections.name, () => {
     await fixture.whenStable();
 
     expect(recipeNames(fixture.nativeElement)).toEqual(['Orange Polenta Cake']);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'cake',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
   });
 
   it('shows a message when the collection is empty', async () => {
@@ -108,7 +87,6 @@ describe(KeywordCollections.name, () => {
       keywords: 'salad',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -133,9 +111,15 @@ function mountKeywordCollections() {
 
   const search = vi
     .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockImplementation((params) =>
-      of(responses[JSON.stringify(params)] ?? []),
-    );
+    .mockImplementation((params) => {
+      /* Collections only ever search by keywords. */
+      if (Object.keys(params).length !== 3) {
+        return throwError(
+          () => new Error(`unexpected search ${JSON.stringify(params)}`),
+        );
+      }
+      return of(responses[JSON.stringify(params)] ?? []);
+    });
 
   const fixture = TestBed.createComponent(KeywordCollections);
 

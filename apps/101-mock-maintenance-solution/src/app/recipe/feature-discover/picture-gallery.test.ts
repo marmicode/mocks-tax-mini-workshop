@@ -35,21 +35,21 @@ describe(PictureGallery.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
   });
 
   it('shows the picture of each recipe', async () => {
     const { fixture, search } = mountPictureGallery();
-    search.mockReturnValue(of([hummus, salad]));
+    search.mockImplementationOnce((params) => {
+      expect(params).toStrictEqual({
+        keywords: '',
+        maxIngredientCount: null,
+        maxStepCount: null,
+      });
+      return of([hummus, salad]);
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(pictureSources(fixture.nativeElement)).toEqual([
       'https://example.com/hummus.jpg',
       'https://example.com/salad.jpg',
@@ -58,15 +58,15 @@ describe(PictureGallery.name, () => {
 
   it('describes each picture with the recipe name', async () => {
     const { fixture, search } = mountPictureGallery();
-    search.mockReturnValue(of([salad]));
+    search.mockImplementationOnce((params) =>
+      of(
+        Object.values(params).every((value) => value === '' || value === null)
+          ? [salad]
+          : [],
+      ),
+    );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(
       fixture.nativeElement.querySelector('img')?.getAttribute('alt'),
     ).toBe('Burnt Aubergine with Tahini and Pomegranate');
@@ -77,12 +77,9 @@ describe(PictureGallery.name, () => {
     search.mockReturnValue(of([hummus]));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    await expect(
+      JSON.stringify(search.mock.calls, null, 2),
+    ).toMatchFileSnapshot('./__snapshots__/picture-gallery-links.calls.json');
     expect(
       fixture.nativeElement
         .querySelector('[data-testid="gallery-item"]')
@@ -99,7 +96,6 @@ describe(PictureGallery.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -115,7 +111,14 @@ function mountPictureGallery() {
 
   const search = vi
     .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([hummus, salad]));
+    .mockImplementation((params) => {
+      const catalog = [hummus, salad];
+      return of(
+        params.courses
+          ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
+          : catalog,
+      );
+    });
 
   const fixture = TestBed.createComponent(PictureGallery);
 

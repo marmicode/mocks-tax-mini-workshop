@@ -2,7 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { LocalStorage } from '@whiskmate/shared/infra';
 import { RecipeKeywordChips } from './recipe-keyword-chips.ng';
@@ -39,24 +42,20 @@ describe(RecipeKeywordChips.name, () => {
       keywords: 'le',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
   });
 
   it('shows a chip for each suggested keyword', async () => {
     const { fixture, search } = mountRecipeKeywordChips();
-    search.mockReturnValue(of([cheesecake, lentilSoup]));
+    search.mockImplementation((params) =>
+      of(searchCatalog([cheesecake, lentilSoup], params)),
+    );
     await fixture.whenStable();
 
     typeKeywordPrefix(fixture.nativeElement, 'le');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'le',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search).toHaveBeenCalledOnce();
     expect(chipLabels(fixture.nativeElement)).toEqual(['lemon', 'lentil']);
   });
 
@@ -75,7 +74,6 @@ describe(RecipeKeywordChips.name, () => {
       [
         [
           {
-            "courses": [],
             "keywords": "le",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -83,7 +81,6 @@ describe(RecipeKeywordChips.name, () => {
         ],
         [
           {
-            "courses": [],
             "keywords": "lentil",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -96,21 +93,26 @@ describe(RecipeKeywordChips.name, () => {
 
   it('shows a message when the picked keyword matches no recipe', async () => {
     const { fixture, search } = mountRecipeKeywordChips();
-    search.mockReturnValue(of([cheesecake]));
+    search
+      .mockImplementationOnce((params) =>
+        isKeywordOnlySearch(params) ? of([cheesecake]) : of([]),
+      )
+      .mockImplementationOnce((params) => {
+        expect(params).toEqual({
+          keywords: 'ricotta',
+          maxIngredientCount: null,
+          maxStepCount: null,
+        });
+        return of([]);
+      });
     await fixture.whenStable();
 
     typeKeywordPrefix(fixture.nativeElement, 'ri');
     await fixture.whenStable();
-    search.mockReturnValue(of([]));
     chipByLabel(fixture.nativeElement, 'ricotta').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'ricotta',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search).toHaveBeenCalledTimes(2);
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
         ?.textContent,
@@ -182,5 +184,26 @@ function chipByLabel(root: HTMLElement, label: string): HTMLButtonElement {
 function recipeNames(root: HTMLElement): string[] {
   return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
     (el) => el.textContent?.trim() ?? '',
+  );
+}
+
+/* Mimics the backend: keywords match the recipe name, and courses only
+ * narrow the results down when they are sent. */
+function searchCatalog(
+  catalog: Recipe[],
+  { keywords, courses }: RecipeSearchParams,
+): Recipe[] {
+  return catalog
+    .filter((recipe) => recipe.name.toLowerCase().includes(keywords))
+    .filter((recipe) => (courses ? courses.includes(recipe.course) : true));
+}
+
+function isKeywordOnlySearch({
+  keywords,
+  ...otherParams
+}: RecipeSearchParams): boolean {
+  return (
+    keywords.length > 0 &&
+    Object.values(otherParams).every((value) => value === null)
   );
 }

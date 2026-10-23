@@ -1,9 +1,19 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
+import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminPictureAudit } from './admin-picture-audit.ng';
+
+const WHOLE_CATALOG_SEARCH_KEY = searchKey({
+  keywords: '',
+  maxIngredientCount: null,
+  maxStepCount: null,
+});
 
 describe(AdminPictureAudit.name, () => {
   it('searches all recipes', async () => {
@@ -14,68 +24,59 @@ describe(AdminPictureAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
   });
 
   it('accepts https and local pictures', async () => {
     const { fixture, search } = mountAdminPictureAudit();
-    search.mockReturnValue(
-      of([
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: 'Eggs poached in a spiced tomato sauce.',
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook.'],
-        },
-        {
-          id: 'tahini-halva-brownies',
-          course: 'dessert',
-          name: 'Tahini and Halva Brownies',
-          description: null,
-          pictureUri: '/images/tahini-halva-brownies.svg',
-          ingredients: [{ name: 'tahini' }],
-          steps: ['Bake.'],
-        },
-      ]),
+    search.mockImplementation(
+      respondBySearchKey({
+        [WHOLE_CATALOG_SEARCH_KEY]: [
+          {
+            id: 'shakshuka',
+            course: 'main',
+            name: 'Shakshuka',
+            description: 'Eggs poached in a spiced tomato sauce.',
+            pictureUri: 'https://example.com/shakshuka.jpg',
+            ingredients: [{ name: 'eggs' }],
+            steps: ['Cook.'],
+          },
+          {
+            id: 'tahini-halva-brownies',
+            course: 'dessert',
+            name: 'Tahini and Halva Brownies',
+            description: null,
+            pictureUri: '/images/tahini-halva-brownies.svg',
+            ingredients: [{ name: 'tahini' }],
+            steps: ['Bake.'],
+          },
+        ],
+      }),
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(emptyState(fixture.nativeElement)).toBe('All pictures are safe.');
   });
 
   it('flags pictures served over plain http', async () => {
     const { fixture, search } = mountAdminPictureAudit();
-    search.mockReturnValue(
-      of([
-        {
-          id: 'courgette-fritters',
-          course: 'starter',
-          name: 'Courgette Fritters',
-          description: null,
-          pictureUri: 'http://example.com/fritters.jpg',
-          ingredients: [{ name: 'courgettes' }],
-          steps: ['Fry.'],
-        },
-      ]),
+    search.mockImplementation(
+      respondBySearchKey({
+        [WHOLE_CATALOG_SEARCH_KEY]: [
+          {
+            id: 'courgette-fritters',
+            course: 'starter',
+            name: 'Courgette Fritters',
+            description: null,
+            pictureUri: 'http://example.com/fritters.jpg',
+            ingredients: [{ name: 'courgettes' }],
+            steps: ['Fry.'],
+          },
+        ],
+      }),
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Courgette Fritters http://example.com/fritters.jpg Not served over https',
     ]);
@@ -102,8 +103,8 @@ describe(AdminPictureAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
+    expect(search.mock.calls).toMatchSnapshot();
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Hummus with Ful Missing picture',
     ]);
@@ -111,27 +112,24 @@ describe(AdminPictureAudit.name, () => {
 
   it('flags pictures from unknown locations', async () => {
     const { fixture, search } = mountAdminPictureAudit();
-    search.mockReturnValue(
-      of([
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: null,
-          pictureUri: 'ftp://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook.'],
-        },
-      ]),
+    search.mockImplementation(
+      respondBySearchKey({
+        [WHOLE_CATALOG_SEARCH_KEY]: [
+          {
+            id: 'shakshuka',
+            course: 'main',
+            name: 'Shakshuka',
+            description: null,
+            pictureUri: 'ftp://example.com/shakshuka.jpg',
+            ingredients: [{ name: 'eggs' }],
+            steps: ['Cook.'],
+          },
+        ],
+      }),
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search).toHaveBeenCalledOnce();
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Shakshuka ftp://example.com/shakshuka.jpg Unknown location',
     ]);
@@ -162,4 +160,17 @@ function rowTexts(root: HTMLElement): string[] {
 
 function emptyState(root: HTMLElement): string | undefined {
   return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+}
+
+function respondBySearchKey(responses: Record<string, Recipe[]>) {
+  return (params: RecipeSearchParams) => {
+    const key = searchKey(params);
+    return key in responses
+      ? of(responses[key])
+      : throwError(() => new Error(`unexpected search ${key}`));
+  };
+}
+
+function searchKey(params: RecipeSearchParams): string {
+  return JSON.stringify(params);
 }

@@ -27,12 +27,7 @@ describe(App.name, () => {
     await fixture.whenStable();
 
     expect(router.url).toBe('/search');
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search).toHaveBeenCalledOnce();
     expect(fixture.nativeElement.textContent).toContain('Shakshuka');
   });
 
@@ -47,18 +42,24 @@ describe(App.name, () => {
     await fixture.whenStable();
 
     expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenNthCalledWith(1, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
-    expect(search).toHaveBeenNthCalledWith(2, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
   });
 
   it('does not search recipes on the meal plan page', async () => {
@@ -95,7 +96,6 @@ describe(App.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
   });
 
@@ -109,12 +109,7 @@ describe(App.name, () => {
     buttonByText(fixture.nativeElement, 'Sign in').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchSnapshot();
     expect(navLabels(fixture.nativeElement)).toEqual([
       'Search',
       'Discover',
@@ -142,7 +137,13 @@ async function mountApp() {
   const recipeRepository = TestBed.inject(RecipeRepository);
   const search = vi
     .spyOn(recipeRepository, 'search')
-    .mockReturnValue(of([shakshuka]));
+    .mockImplementation(({ courses }) =>
+      of(
+        courses
+          ? [shakshuka].filter((recipe) => courses.includes(recipe.course))
+          : [shakshuka],
+      ),
+    );
   const findById = vi
     .spyOn(recipeRepository, 'findById')
     .mockReturnValue(of(shakshuka));

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import { AdminLongNames } from './admin-long-names.ng';
@@ -14,7 +14,6 @@ describe(AdminLongNames.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
   });
 
@@ -35,12 +34,17 @@ describe(AdminLongNames.name, () => {
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
     expect(emptyState(fixture.nativeElement)).toBe(
       'Every name fits within 30 characters.',
     );
@@ -48,8 +52,15 @@ describe(AdminLongNames.name, () => {
 
   it('lists names longer than 30 characters by default', async () => {
     const { fixture, search } = mountAdminLongNames();
-    search.mockReturnValue(
-      of([
+    search.mockImplementation((params) => {
+      if (
+        !Object.values(params).every((value) => value === '' || value === null)
+      ) {
+        return throwError(
+          () => new Error(`unexpected search ${JSON.stringify(params)}`),
+        );
+      }
+      return of([
         {
           id: 'slow-roasted-lamb-shoulder-with-pomegranate',
           course: 'main',
@@ -68,16 +79,10 @@ describe(AdminLongNames.name, () => {
           ingredients: [{ name: 'chickpeas' }],
           steps: ['Blend.'],
         },
-      ]),
-    );
+      ]);
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Slow-Roasted Lamb Shoulder with Pomegranate (43)',
     ]);
@@ -113,7 +118,6 @@ describe(AdminLongNames.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Slow-Roasted Lamb Shoulder with Pomegranate (43)',
@@ -152,12 +156,8 @@ describe(AdminLongNames.name, () => {
     input.dispatchEvent(new Event('input'));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search).toHaveBeenCalledOnce();
+    expect(search.mock.calls).toMatchSnapshot();
     expect(rowTexts(fixture.nativeElement)).toEqual(['Hummus with Ful (15)']);
   });
 });

@@ -1,0 +1,13 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ThreeStepRecipes > searches recipes with at most three steps 1`] = `
+[
+  [
+    {
+      "keywords": "",
+      "maxIngredientCount": null,
+      "maxStepCount": 3,
+    },
+  ],
+]
+`;

@@ -2,7 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { WeekendProjects } from './weekend-projects.ng';
 
@@ -31,25 +34,26 @@ describe(WeekendProjects.name, () => {
     const { fixture, search } = mountWeekendProjects();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
   });
 
   it('shows the most involved recipes first', async () => {
     const { fixture, search } = mountWeekendProjects();
-    search.mockReturnValue(of([hummus, lamb]));
+    search.mockImplementation((params) =>
+      of(filterByCourses([hummus, lamb], params)),
+    );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Slow-roasted Lamb',
       'Hummus with Ful',
@@ -58,15 +62,18 @@ describe(WeekendProjects.name, () => {
 
   it('shows the step count of each project', async () => {
     const { fixture, search } = mountWeekendProjects();
-    search.mockReturnValue(of([lamb]));
+    search
+      .mockReturnValue(of([]))
+      .mockImplementationOnce((params) =>
+        of(
+          params.courses?.length
+            ? [lamb].filter((recipe) => params.courses?.includes(recipe.course))
+            : [lamb],
+        ),
+      );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search).toHaveBeenCalledOnce();
     expect(
       fixture.nativeElement
         .querySelector('[data-testid="step-count"]')
@@ -76,27 +83,24 @@ describe(WeekendProjects.name, () => {
 
   it('keeps only the top five projects', async () => {
     const { fixture, search } = mountWeekendProjects();
-    search.mockReturnValue(
+    search.mockImplementation((params) =>
       of(
-        [1, 2, 3, 4, 5, 6].map((stepCount) => ({
-          id: `recipe-${stepCount}`,
-          course: 'main' as const,
-          name: `Recipe ${stepCount}`,
-          description: null,
-          pictureUri: `https://example.com/recipe-${stepCount}.jpg`,
-          ingredients: [],
-          steps: Array.from({ length: stepCount }, () => 'Cook.'),
-        })),
+        filterByCourses(
+          [1, 2, 3, 4, 5, 6].map((stepCount) => ({
+            id: `recipe-${stepCount}`,
+            course: 'main' as const,
+            name: `Recipe ${stepCount}`,
+            description: null,
+            pictureUri: `https://example.com/recipe-${stepCount}.jpg`,
+            ingredients: [],
+            steps: Array.from({ length: stepCount }, () => 'Cook.'),
+          })),
+          params,
+        ),
       ),
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Recipe 6',
       'Recipe 5',
@@ -115,7 +119,6 @@ describe(WeekendProjects.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -142,4 +145,14 @@ function recipeNames(root: HTMLElement): string[] {
   return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
     (el) => el.textContent?.trim() ?? '',
   );
+}
+
+/* Mimics the backend: recipes are only filtered by course when asked to. */
+function filterByCourses(
+  recipes: Recipe[],
+  params: RecipeSearchParams,
+): Recipe[] {
+  return 'courses' in params
+    ? recipes.filter((recipe) => params.courses?.includes(recipe.course))
+    : recipes;
 }

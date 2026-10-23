@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom, of } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { WeekdayAssignments } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { RandomAdapter } from '@whiskmate/shared/infra';
@@ -57,7 +60,6 @@ describe(RandomWeekFiller.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
   });
 
@@ -68,12 +70,17 @@ describe(RandomWeekFiller.name, () => {
       randomWeekFiller.fill({ ...fullWeek, sunday: null }, { quickOnly: true }),
     );
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: 4,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": 4,
+          },
+        ],
+      ]
+    `);
   });
 
   it('picks a random main for each empty day without repeating it', async () => {
@@ -89,18 +96,14 @@ describe(RandomWeekFiller.name, () => {
     expect(pick).toHaveBeenNthCalledWith(1, [shakshuka, lambKofte]);
     expect(pick).toHaveBeenNthCalledWith(2, [shakshuka]);
     expect(suggestions).toEqual({ saturday: lambKofte, sunday: shakshuka });
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('does not pick recipes that are already planned', async () => {
-    const { randomWeekFiller, search, pick } = setUpRandomWeekFiller({
-      catalog: [shakshuka, lambKofte],
-    });
+    const { randomWeekFiller, search, pick } = setUpRandomWeekFiller();
+    search.mockImplementation((params) =>
+      of(isWholeCatalogSearch(params) ? [shakshuka, lambKofte] : []),
+    );
 
     const suggestions = await firstValueFrom(
       randomWeekFiller.fill({
@@ -112,12 +115,6 @@ describe(RandomWeekFiller.name, () => {
 
     expect(pick).toHaveBeenCalledExactlyOnceWith([lambKofte]);
     expect(suggestions).toEqual({ sunday: lambKofte });
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
   });
 
   it('leaves days empty once mains run out', async () => {
@@ -134,7 +131,6 @@ describe(RandomWeekFiller.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
   });
 });
@@ -146,7 +142,7 @@ function setUpRandomWeekFiller({
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation(({ courses }) => {
       /* The filler picks mains itself, it never asks for a course. */
-      if (courses.length > 0) {
+      if (courses != null) {
         throw new Error('Invalid call');
       }
       return of(catalog);
@@ -156,4 +152,11 @@ function setUpRandomWeekFiller({
     .mockImplementation((items) => items[0]);
   const randomWeekFiller = TestBed.inject(RandomWeekFiller);
   return { randomWeekFiller, search, pick };
+}
+
+function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
+  return (
+    Object.keys(params).length === 3 &&
+    Object.values(params).every((value) => value === '' || value === null)
+  );
 }

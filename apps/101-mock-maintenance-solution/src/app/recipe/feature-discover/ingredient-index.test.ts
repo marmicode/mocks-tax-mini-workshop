@@ -42,7 +42,6 @@ describe(IngredientIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
   });
 
@@ -50,12 +49,6 @@ describe(IngredientIndex.name, () => {
     const { fixture, search } = mountIngredientIndex();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(ingredientNames(fixture.nativeElement)).toEqual([
       'garlic',
       'red peppers',
@@ -68,12 +61,6 @@ describe(IngredientIndex.name, () => {
     const { fixture, search } = mountIngredientIndex();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(sectionLetters(fixture.nativeElement)).toEqual(['g', 'r', 't']);
   });
 
@@ -81,12 +68,6 @@ describe(IngredientIndex.name, () => {
     const { fixture, search } = mountIngredientIndex();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(recipeNamesFor(fixture.nativeElement, 'garlic')).toEqual([
       'Shakshuka',
       'Hummus with Ful',
@@ -100,12 +81,9 @@ describe(IngredientIndex.name, () => {
     typeInto(fixture.nativeElement.querySelector('input'), 'ta');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
+    await expect(
+      JSON.stringify(search.mock.calls, null, 2),
+    ).toMatchFileSnapshot('./__snapshots__/ingredient-index-filter.calls.json');
     expect(ingredientNames(fixture.nativeElement)).toEqual(['tahini']);
   });
 
@@ -120,7 +98,6 @@ describe(IngredientIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector(
@@ -136,12 +113,6 @@ describe(IngredientIndex.name, () => {
     typeInto(fixture.nativeElement.querySelector('input'), '  GAR ');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(ingredientNames(fixture.nativeElement)).toEqual(['garlic']);
   });
 
@@ -164,7 +135,6 @@ describe(IngredientIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(ingredientNames(fixture.nativeElement)).toEqual(['garlic']);
     expect(recipeNamesFor(fixture.nativeElement, 'garlic')).toEqual([
@@ -176,12 +146,6 @@ describe(IngredientIndex.name, () => {
     const { fixture, search } = mountIngredientIndex();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
     expect(recipeLinksFor(fixture.nativeElement, 'tahini')).toEqual([
       '/recipes/hummus-ful',
     ]);
@@ -196,7 +160,6 @@ describe(IngredientIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
     });
     expect(sectionLetters(fixture.nativeElement)).toEqual([]);
     expect(
@@ -214,7 +177,21 @@ function mountIngredientIndex() {
 
   const search = vi
     .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([shakshuka, hummus]));
+    .mockImplementation((params) => {
+      expect(params).toEqual(
+        expect.objectContaining({
+          keywords: '',
+          maxIngredientCount: null,
+          maxStepCount: null,
+        }),
+      );
+      const catalog = [shakshuka, hummus];
+      return of(
+        params.courses?.length
+          ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
+          : catalog,
+      );
+    });
 
   const fixture = TestBed.createComponent(IngredientIndex);
 
