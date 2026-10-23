@@ -46,6 +46,7 @@ describe(RecipeCatalog.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(count).toBe(3);
   });
@@ -60,6 +61,7 @@ describe(RecipeCatalog.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(count).toBe(0);
   });
@@ -74,6 +76,7 @@ describe(RecipeCatalog.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(names).toEqual([
       'Hummus with Ful',
@@ -94,6 +97,7 @@ describe(RecipeCatalog.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(names).toEqual(['Shakshuka']);
   });
@@ -108,6 +112,7 @@ describe(RecipeCatalog.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipes).toEqual([shakshuka]);
   });

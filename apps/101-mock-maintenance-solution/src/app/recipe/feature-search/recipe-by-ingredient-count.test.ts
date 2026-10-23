@@ -36,6 +36,7 @@ describe(RecipeByIngredientCount.name, () => {
       keywords: '',
       maxIngredientCount: 5,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -48,6 +49,7 @@ describe(RecipeByIngredientCount.name, () => {
       keywords: '',
       maxIngredientCount: 5,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Hummus with Ful',
@@ -64,6 +66,7 @@ describe(RecipeByIngredientCount.name, () => {
       keywords: '',
       maxIngredientCount: 5,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeCount(fixture.nativeElement)).toBe(
       '1 recipes with at most 5 ingredients',
@@ -81,6 +84,7 @@ describe(RecipeByIngredientCount.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": 5,
             "maxStepCount": null,
@@ -88,6 +92,7 @@ describe(RecipeByIngredientCount.name, () => {
         ],
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": 3,
             "maxStepCount": null,
@@ -109,6 +114,7 @@ describe(RecipeByIngredientCount.name, () => {
       keywords: '',
       maxIngredientCount: 8,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeCount(fixture.nativeElement)).toBe(
       '0 recipes with at most 8 ingredients',

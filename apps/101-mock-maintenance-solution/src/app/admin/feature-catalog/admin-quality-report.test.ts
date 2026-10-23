@@ -51,6 +51,7 @@ describe(AdminQualityReport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -63,6 +64,7 @@ describe(AdminQualityReport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual(['Shakshuka 100% ✅']);
   });
@@ -76,6 +78,7 @@ describe(AdminQualityReport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Tahini and Halva Brownies 75% Missing description',
@@ -91,6 +94,7 @@ describe(AdminQualityReport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Courgette Fritters 0% Missing description Fewer than 3 steps Most ingredients have no quantity Picture is not served over https',
@@ -109,6 +113,7 @@ describe(AdminQualityReport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowNames(fixture.nativeElement)).toEqual([
       'Tahini and Halva Brownies',
@@ -130,6 +135,7 @@ describe(AdminQualityReport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowNames(fixture.nativeElement)).toEqual([
       'Shakshuka',
@@ -156,6 +162,7 @@ describe(AdminQualityReport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual(['Shakshuka 100% ✅']);
   });
@@ -171,6 +178,7 @@ describe(AdminQualityReport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Shakshuka 50% Missing description Fewer than 3 steps',
@@ -186,6 +194,7 @@ describe(AdminQualityReport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       rows(fixture.nativeElement).map((row) =>

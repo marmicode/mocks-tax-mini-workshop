@@ -14,6 +14,7 @@ describe(AdminIngredientHistogram.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -25,6 +26,7 @@ describe(AdminIngredientHistogram.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(emptyState(fixture.nativeElement)).toBe('No recipes yet.');
   });
@@ -53,6 +55,7 @@ describe(AdminIngredientHistogram.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(histogram(fixture.nativeElement)).toEqual([
       { ingredientCount: '2', recipeCount: '1' },
@@ -89,6 +92,7 @@ describe(AdminIngredientHistogram.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(histogram(fixture.nativeElement)).toEqual([
       { ingredientCount: '2', recipeCount: '2' },
@@ -148,6 +152,7 @@ describe(AdminIngredientHistogram.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(histogram(fixture.nativeElement)).toEqual([
       { ingredientCount: '0', recipeCount: '1' },

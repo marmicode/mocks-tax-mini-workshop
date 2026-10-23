@@ -14,6 +14,7 @@ describe(AdminMissingSteps.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -38,6 +39,7 @@ describe(AdminMissingSteps.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(emptyState(fixture.nativeElement)).toBe('Every recipe has steps.');
   });
@@ -63,6 +65,7 @@ describe(AdminMissingSteps.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
@@ -88,6 +91,7 @@ describe(AdminMissingSteps.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Courgette Fritters (2 blank)',
@@ -124,6 +128,7 @@ describe(AdminMissingSteps.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });

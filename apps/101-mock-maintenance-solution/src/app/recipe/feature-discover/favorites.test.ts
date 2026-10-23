@@ -38,6 +38,7 @@ describe(Favorites.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -49,6 +50,7 @@ describe(Favorites.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Lemon and Ricotta Cheesecake',
@@ -63,6 +65,7 @@ describe(Favorites.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([]);
     expect(
@@ -86,6 +89,7 @@ describe(Favorites.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(removeFavorite).toHaveBeenCalledExactlyOnceWith('shakshuka');
   });
@@ -99,6 +103,7 @@ describe(Favorites.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(canAdd).toHaveBeenCalledWith({ recipeId: 'shakshuka' });
     expect(
@@ -114,6 +119,7 @@ describe(Favorites.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Shakshuka',
@@ -129,6 +135,7 @@ describe(Favorites.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([]);
     expect(
@@ -155,6 +162,7 @@ describe(Favorites.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(assign).toHaveBeenCalledExactlyOnceWith({
       weekday: 'friday',
@@ -171,6 +179,7 @@ describe(Favorites.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector(

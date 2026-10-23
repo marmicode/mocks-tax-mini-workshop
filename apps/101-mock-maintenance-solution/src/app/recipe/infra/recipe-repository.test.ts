@@ -35,6 +35,7 @@ describe(RecipeRepository.name, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       }),
     );
 
@@ -46,6 +47,7 @@ describe(RecipeRepository.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     req.flush([shakshuka]);
 
@@ -60,6 +62,7 @@ describe(RecipeRepository.name, () => {
         keywords: 'shak',
         maxIngredientCount: 5,
         maxStepCount: 3,
+        courses: [],
       }),
     );
 
@@ -71,6 +74,7 @@ describe(RecipeRepository.name, () => {
       keywords: 'shak',
       maxIngredientCount: 5,
       maxStepCount: 3,
+      courses: [],
     });
     req.flush([]);
 
@@ -174,6 +178,7 @@ describe(createRecipeSearchParams.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -182,6 +187,7 @@ describe(createRecipeSearchParams.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 3,
+      courses: [],
     });
   });
 });

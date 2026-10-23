@@ -57,6 +57,7 @@ describe(RandomWeekFiller.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -71,6 +72,7 @@ describe(RandomWeekFiller.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 4,
+      courses: [],
     });
   });
 
@@ -91,6 +93,7 @@ describe(RandomWeekFiller.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -113,6 +116,7 @@ describe(RandomWeekFiller.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -130,6 +134,7 @@ describe(RandomWeekFiller.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -141,7 +146,7 @@ function setUpRandomWeekFiller({
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation(({ courses }) => {
       /* The filler picks mains itself, it never asks for a course. */
-      if (courses != null) {
+      if (courses.length > 0) {
         throw new Error('Invalid call');
       }
       return of(catalog);

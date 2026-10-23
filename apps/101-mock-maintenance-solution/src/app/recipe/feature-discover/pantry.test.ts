@@ -52,6 +52,7 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="pantry-hint"]'),
@@ -69,6 +70,7 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(matchedRecipeNames(fixture.nativeElement)).toEqual([
       'Lemon and Ricotta Cheesecake',
@@ -87,6 +89,7 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(matchedRecipeNames(fixture.nativeElement)).toEqual([
       'Shakshuka',
@@ -109,6 +112,7 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(textsOf(fixture.nativeElement, 'missing-ingredients')).toEqual([
       'Missing: tahini',
@@ -132,6 +136,7 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(matchedRecipeNames(fixture.nativeElement)).toEqual([
       'Lemon and Ricotta Cheesecake',
@@ -149,6 +154,7 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-match-message"]')
@@ -169,6 +175,7 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(itemLabels(fixture.nativeElement)).toEqual(['Remove garlic']);
   });
@@ -184,6 +191,7 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(textsOf(fixture.nativeElement, 'match-count')).toEqual([
       '1/1 ingredients',
@@ -206,6 +214,7 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(matchedRecipeNames(fixture.nativeElement)).toEqual([]);
     expect(
@@ -225,6 +234,7 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-match-message"]')

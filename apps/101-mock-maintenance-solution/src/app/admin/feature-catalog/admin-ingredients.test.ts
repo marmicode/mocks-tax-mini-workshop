@@ -38,6 +38,7 @@ describe(AdminIngredients.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -49,6 +50,7 @@ describe(AdminIngredients.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(ingredientRows(fixture.nativeElement)).toEqual([
       ['olive oil', '2'],
@@ -103,6 +105,7 @@ describe(AdminIngredients.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -132,6 +135,7 @@ describe(AdminIngredients.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(ingredientRows(fixture.nativeElement)).toEqual([['eggs', '1']]);
   });
@@ -147,6 +151,7 @@ describe(AdminIngredients.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(update).not.toHaveBeenCalled();
   });
@@ -164,6 +169,7 @@ describe(AdminIngredients.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(update).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('input')).toBeNull();
@@ -186,6 +192,7 @@ describe(AdminIngredients.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(ingredientRows(fixture.nativeElement)).toEqual([
       ['olive oil', '2'],

@@ -35,6 +35,7 @@ describe(SimplestRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -47,6 +48,7 @@ describe(SimplestRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Burnt Aubergine with Tahini and Pomegranate',
@@ -76,6 +78,7 @@ describe(SimplestRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Burnt Aubergine with Tahini and Pomegranate',
@@ -92,6 +95,7 @@ describe(SimplestRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement
@@ -109,6 +113,7 @@ describe(SimplestRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')

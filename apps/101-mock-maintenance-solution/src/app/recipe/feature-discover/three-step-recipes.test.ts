@@ -35,6 +35,7 @@ describe(ThreeStepRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 3,
+      courses: [],
     });
   });
 
@@ -47,6 +48,7 @@ describe(ThreeStepRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 3,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Hummus with Ful',
@@ -63,6 +65,7 @@ describe(ThreeStepRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 3,
+      courses: [],
     });
     expect(steps(fixture.nativeElement)).toEqual([
       'Burn the aubergine.',
@@ -79,6 +82,7 @@ describe(ThreeStepRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 3,
+      courses: [],
     });
     expect(
       fixture.nativeElement
@@ -96,6 +100,7 @@ describe(ThreeStepRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 3,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')

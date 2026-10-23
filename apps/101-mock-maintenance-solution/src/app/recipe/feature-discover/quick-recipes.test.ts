@@ -36,6 +36,7 @@ describe(QuickRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 5,
+      courses: [],
     });
   });
 
@@ -48,6 +49,7 @@ describe(QuickRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 5,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Hummus with Ful',
@@ -67,6 +69,7 @@ describe(QuickRecipes.name, () => {
       keywords: '',
       maxIngredientCount: 6,
       maxStepCount: 5,
+      courses: [],
     });
   });
 
@@ -83,6 +86,7 @@ describe(QuickRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 5,
+      courses: [],
     });
   });
 
@@ -95,6 +99,7 @@ describe(QuickRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 5,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -110,6 +115,7 @@ describe(QuickRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 5,
+      courses: [],
     });
     expect(fixture.nativeElement.textContent).toContain(
       'Recipes with at most 5 steps.',
@@ -128,6 +134,7 @@ describe(QuickRecipes.name, () => {
       keywords: '',
       maxIngredientCount: 6,
       maxStepCount: 5,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
@@ -144,6 +151,7 @@ describe(QuickRecipes.name, () => {
       keywords: '',
       maxIngredientCount: 6,
       maxStepCount: 5,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([]);
     expect(

@@ -88,6 +88,7 @@ describe(AdminImport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(update).toHaveBeenCalledExactlyOnceWith({
       id: 'shakshuka',
@@ -125,6 +126,7 @@ describe(AdminImport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(textByTestId(fixture.nativeElement, 'import-summary')).toBe(
       '1 created, 1 updated',
@@ -148,6 +150,7 @@ describe(AdminImport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(create).toHaveBeenCalledTimes(2);
     expect(update).not.toHaveBeenCalled();
@@ -173,6 +176,7 @@ describe(AdminImport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(create).not.toHaveBeenCalled();
     expect(update).toHaveBeenCalledTimes(2);
@@ -196,6 +200,7 @@ describe(AdminImport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="import-summary"]'),
@@ -223,6 +228,7 @@ describe(AdminImport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(create).toHaveBeenCalledExactlyOnceWith({
       id: 'tahini-halva-brownies',

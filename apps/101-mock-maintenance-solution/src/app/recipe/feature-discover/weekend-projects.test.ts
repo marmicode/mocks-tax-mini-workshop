@@ -35,6 +35,7 @@ describe(WeekendProjects.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -47,6 +48,7 @@ describe(WeekendProjects.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Slow-roasted Lamb',
@@ -63,6 +65,7 @@ describe(WeekendProjects.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement
@@ -92,6 +95,7 @@ describe(WeekendProjects.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Recipe 6',
@@ -111,6 +115,7 @@ describe(WeekendProjects.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')

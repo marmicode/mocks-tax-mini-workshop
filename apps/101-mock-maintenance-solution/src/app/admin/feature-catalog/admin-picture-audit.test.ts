@@ -14,6 +14,7 @@ describe(AdminPictureAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -47,6 +48,7 @@ describe(AdminPictureAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(emptyState(fixture.nativeElement)).toBe('All pictures are safe.');
   });
@@ -72,6 +74,7 @@ describe(AdminPictureAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Courgette Fritters http://example.com/fritters.jpg Not served over https',
@@ -99,6 +102,7 @@ describe(AdminPictureAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Hummus with Ful Missing picture',
@@ -126,6 +130,7 @@ describe(AdminPictureAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Shakshuka ftp://example.com/shakshuka.jpg Unknown location',

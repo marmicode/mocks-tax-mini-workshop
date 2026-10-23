@@ -39,6 +39,7 @@ describe(RecipeKeywordChips.name, () => {
       keywords: 'le',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -54,6 +55,7 @@ describe(RecipeKeywordChips.name, () => {
       keywords: 'le',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(chipLabels(fixture.nativeElement)).toEqual(['lemon', 'lentil']);
   });
@@ -73,6 +75,7 @@ describe(RecipeKeywordChips.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "le",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -80,6 +83,7 @@ describe(RecipeKeywordChips.name, () => {
         ],
         [
           {
+            "courses": [],
             "keywords": "lentil",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -105,6 +109,7 @@ describe(RecipeKeywordChips.name, () => {
       keywords: 'ricotta',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')

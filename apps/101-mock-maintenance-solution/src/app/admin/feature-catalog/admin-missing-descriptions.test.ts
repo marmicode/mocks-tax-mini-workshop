@@ -14,6 +14,7 @@ describe(AdminMissingDescriptions.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -38,6 +39,7 @@ describe(AdminMissingDescriptions.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(emptyState(fixture.nativeElement)).toBe(
       'Every recipe has a description.',
@@ -65,6 +67,7 @@ describe(AdminMissingDescriptions.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowNames(fixture.nativeElement)).toEqual([
       'Tahini and Halva Brownies',
@@ -110,6 +113,7 @@ describe(AdminMissingDescriptions.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowNames(fixture.nativeElement)).toEqual([
       'Courgette Fritters',
@@ -147,6 +151,7 @@ describe(AdminMissingDescriptions.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(summary(fixture.nativeElement)).toBe('1 of 2 recipes');
   });

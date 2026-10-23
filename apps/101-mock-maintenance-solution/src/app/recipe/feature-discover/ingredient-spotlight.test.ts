@@ -36,6 +36,7 @@ describe(IngredientSpotlight.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(pick).toHaveBeenCalledExactlyOnceWith([
       'aubergines',
@@ -53,6 +54,7 @@ describe(IngredientSpotlight.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(spotlightIngredient(fixture.nativeElement)).toBe('tahini');
     expect(recipeNames(fixture.nativeElement)).toEqual([
@@ -70,6 +72,7 @@ describe(IngredientSpotlight.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Burnt Aubergine with Tahini and Pomegranate',
@@ -89,6 +92,7 @@ describe(IngredientSpotlight.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(spotlightIngredient(fixture.nativeElement)).toBe('aubergines');
   });
@@ -102,6 +106,7 @@ describe(IngredientSpotlight.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(pick).not.toHaveBeenCalled();
     expect(

@@ -35,6 +35,7 @@ describe(Admin.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -47,6 +48,7 @@ describe(Admin.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(tiles(fixture.nativeElement)).toEqual(
       expect.arrayContaining([
@@ -67,6 +69,7 @@ describe(Admin.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(tiles(fixture.nativeElement)).toEqual(
       expect.arrayContaining([
@@ -85,6 +88,7 @@ describe(Admin.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(links(fixture.nativeElement)).toEqual([
       { label: 'Recipes', href: '/admin/recipes' },

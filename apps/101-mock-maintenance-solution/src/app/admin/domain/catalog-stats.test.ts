@@ -45,6 +45,7 @@ describe(CatalogStats.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -58,6 +59,7 @@ describe(CatalogStats.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(stats.recipeCount).toBe(3);
     expect(stats.countByCourse).toEqual({ starter: 1, main: 2, dessert: 0 });
@@ -73,6 +75,7 @@ describe(CatalogStats.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(stats.averageIngredientCount).toBe(2);
     expect(stats.averageStepCount).toBe(2);
@@ -88,6 +91,7 @@ describe(CatalogStats.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(stats.missingDescriptionCount).toBe(2);
   });
@@ -102,6 +106,7 @@ describe(CatalogStats.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(stats).toEqual({
       recipeCount: 0,
@@ -122,6 +127,7 @@ describe(CatalogStats.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(stats.averageIngredientCount).toBe(2.5);
     expect(stats.averageStepCount).toBe(2);
@@ -137,6 +143,7 @@ describe(CatalogStats.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(stats).toEqual({
       recipeCount: 1,
@@ -155,8 +162,22 @@ describe(CatalogStats.name, () => {
     const stats = await firstValueFrom(catalogStats.stats());
 
     expect(search.mock.calls).toEqual([
-      [{ keywords: '', maxIngredientCount: null, maxStepCount: null }],
-      [{ keywords: '', maxIngredientCount: null, maxStepCount: null }],
+      [
+        {
+          keywords: '',
+          maxIngredientCount: null,
+          maxStepCount: null,
+          courses: [],
+        },
+      ],
+      [
+        {
+          keywords: '',
+          maxIngredientCount: null,
+          maxStepCount: null,
+          courses: [],
+        },
+      ],
     ]);
     expect(stats.recipeCount).toBe(1);
   });

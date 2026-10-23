@@ -42,6 +42,7 @@ describe(IngredientIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -53,6 +54,7 @@ describe(IngredientIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(ingredientNames(fixture.nativeElement)).toEqual([
       'garlic',
@@ -70,6 +72,7 @@ describe(IngredientIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(sectionLetters(fixture.nativeElement)).toEqual(['g', 'r', 't']);
   });
@@ -82,6 +85,7 @@ describe(IngredientIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNamesFor(fixture.nativeElement, 'garlic')).toEqual([
       'Shakshuka',
@@ -100,6 +104,7 @@ describe(IngredientIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(ingredientNames(fixture.nativeElement)).toEqual(['tahini']);
   });
@@ -115,6 +120,7 @@ describe(IngredientIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector(
@@ -134,6 +140,7 @@ describe(IngredientIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(ingredientNames(fixture.nativeElement)).toEqual(['garlic']);
   });
@@ -157,6 +164,7 @@ describe(IngredientIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(ingredientNames(fixture.nativeElement)).toEqual(['garlic']);
     expect(recipeNamesFor(fixture.nativeElement, 'garlic')).toEqual([
@@ -172,6 +180,7 @@ describe(IngredientIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeLinksFor(fixture.nativeElement, 'tahini')).toEqual([
       '/recipes/hummus-ful',
@@ -187,6 +196,7 @@ describe(IngredientIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(sectionLetters(fixture.nativeElement)).toEqual([]);
     expect(

@@ -77,6 +77,7 @@ describe(AdminDuplicates.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -89,6 +90,7 @@ describe(AdminDuplicates.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-duplicates"]')
@@ -105,6 +107,7 @@ describe(AdminDuplicates.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(pairTexts(fixture.nativeElement)).toEqual([
       'Hummus with Ful ↔ Ful & Hummus (same name)',
@@ -120,6 +123,7 @@ describe(AdminDuplicates.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(pairTexts(fixture.nativeElement)).toEqual([
       'Burnt Aubergine Salad ↔ Roasted Aubergine with Tahini (same ingredients)',
@@ -140,6 +144,7 @@ describe(AdminDuplicates.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(links).toEqual([
       '/admin/recipes/hummus-ful/edit',
@@ -156,6 +161,7 @@ describe(AdminDuplicates.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(pairTexts(fixture.nativeElement)).toEqual([]);
     expect(
@@ -187,6 +193,7 @@ describe(AdminDuplicates.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-duplicates"]'),
@@ -204,6 +211,7 @@ describe(AdminDuplicates.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(pairTexts(fixture.nativeElement)).toEqual([
       'Hummus with Ful ↔ hummus with ful! (same name)',
@@ -225,6 +233,7 @@ describe(AdminDuplicates.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(pairTexts(fixture.nativeElement)).toEqual([
       'Hummus with Ful ↔ Ful & Hummus (same name)',

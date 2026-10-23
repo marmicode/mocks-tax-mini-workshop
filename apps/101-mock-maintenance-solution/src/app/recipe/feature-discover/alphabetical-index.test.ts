@@ -45,6 +45,7 @@ describe(AlphabeticalIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -57,6 +58,7 @@ describe(AlphabeticalIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(letters(fixture.nativeElement)).toEqual(['B', 'S']);
   });
@@ -70,6 +72,7 @@ describe(AlphabeticalIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual(['Sabich', 'Shakshuka']);
   });
@@ -96,6 +99,7 @@ describe(AlphabeticalIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(letters(fixture.nativeElement)).toEqual(['S', '#']);
   });
@@ -109,6 +113,7 @@ describe(AlphabeticalIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement
@@ -126,6 +131,7 @@ describe(AlphabeticalIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')

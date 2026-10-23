@@ -27,7 +27,12 @@ const roastedAubergine: Recipe = {
   steps: [],
 };
 
-const SEARCH_PARAM_KEYS = ['keywords', 'maxIngredientCount', 'maxStepCount'];
+const SEARCH_PARAM_KEYS = [
+  'keywords',
+  'maxIngredientCount',
+  'maxStepCount',
+  'courses',
+];
 
 describe(RecipeQuickSearch.name, () => {
   it('does not search with less than 2 characters', async () => {
@@ -56,6 +61,7 @@ describe(RecipeQuickSearch.name, () => {
       keywords: 'aub',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -79,6 +85,7 @@ describe(RecipeQuickSearch.name, () => {
       keywords: 'aub',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(suggestionNames(fixture.nativeElement)).toHaveLength(5);
   });
@@ -110,6 +117,7 @@ describe(RecipeQuickSearch.name, () => {
       keywords: 'xyz',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -141,6 +149,7 @@ describe(RecipeQuickSearch.name, () => {
       keywords: 'tahini',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -157,6 +166,7 @@ describe(RecipeQuickSearch.name, () => {
       keywords: 'au',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -177,11 +187,13 @@ describe(RecipeQuickSearch.name, () => {
       keywords: 'aub',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(search).toHaveBeenNthCalledWith(2, {
       keywords: 'pine',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -198,6 +210,7 @@ describe(RecipeQuickSearch.name, () => {
       keywords: 'aub',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(suggestionNames(fixture.nativeElement)).toEqual([]);
     expect(

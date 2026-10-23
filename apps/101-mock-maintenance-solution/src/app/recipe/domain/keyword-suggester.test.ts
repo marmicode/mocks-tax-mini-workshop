@@ -45,6 +45,7 @@ describe(KeywordSuggester.name, () => {
       keywords: 'lem',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -58,6 +59,7 @@ describe(KeywordSuggester.name, () => {
       keywords: 'lem',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(keywords).toEqual(['lemon', 'lemongrass', 'lemony']);
   });
@@ -72,6 +74,7 @@ describe(KeywordSuggester.name, () => {
       keywords: 'le',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(keywords).toEqual(['lentil']);
   });
@@ -86,6 +89,7 @@ describe(KeywordSuggester.name, () => {
       keywords: 'zz',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(keywords).toEqual([]);
   });

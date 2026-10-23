@@ -64,6 +64,7 @@ describe(MealPlanDayPicker.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -83,6 +84,7 @@ describe(MealPlanDayPicker.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -101,6 +103,7 @@ describe(MealPlanDayPicker.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -128,6 +131,7 @@ describe(MealPlanDayPicker.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -146,6 +150,7 @@ describe(MealPlanDayPicker.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -176,7 +181,7 @@ function mountMealPlanDayPicker({
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation(({ courses }) => {
       /* The day picker filters mains itself, it never asks for a course. */
-      if (courses != null) {
+      if (courses.length > 0) {
         throw new Error('Invalid call');
       }
       return of(catalog);

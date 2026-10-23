@@ -14,6 +14,7 @@ describe(AdminIdAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -38,6 +39,7 @@ describe(AdminIdAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(emptyState(fixture.nativeElement)).toBe('All ids look good.');
   });
@@ -63,6 +65,7 @@ describe(AdminIdAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Shakshuka_v2 Not kebab-case shakshuka',
@@ -90,6 +93,7 @@ describe(AdminIdAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'hummus-ful Does not match name hummus-with-ful',
@@ -117,6 +121,7 @@ describe(AdminIdAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'creme-brulee Does not match name creme-brulee-classic',

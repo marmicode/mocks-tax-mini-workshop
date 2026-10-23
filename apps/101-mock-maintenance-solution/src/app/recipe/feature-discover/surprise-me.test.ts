@@ -41,6 +41,7 @@ describe(SurpriseMe.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -56,6 +57,7 @@ describe(SurpriseMe.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(search).toHaveBeenNthCalledWith(2, {
       keywords: '',
@@ -86,8 +88,8 @@ describe(SurpriseMe.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
-    expect(search.mock.lastCall?.[0]).not.toHaveProperty('courses');
   });
 
   it('picks another recipe when asked again', async () => {
@@ -106,6 +108,7 @@ describe(SurpriseMe.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -118,6 +121,7 @@ describe(SurpriseMe.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(pick).not.toHaveBeenCalled();
     expect(
@@ -158,6 +162,7 @@ describe(SurpriseMe.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -175,6 +180,7 @@ describe(SurpriseMe.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(search).toHaveBeenNthCalledWith(2, {
       keywords: '',
@@ -221,9 +227,9 @@ function mountSurpriseMe() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation((params) =>
       of(
-        params.courses == null
+        params.courses.length === 0
           ? catalog
-          : catalog.filter((recipe) => params.courses?.includes(recipe.course)),
+          : catalog.filter((recipe) => params.courses.includes(recipe.course)),
       ),
     );
   const pick = vi

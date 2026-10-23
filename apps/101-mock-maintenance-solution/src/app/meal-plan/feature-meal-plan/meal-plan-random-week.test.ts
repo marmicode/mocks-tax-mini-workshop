@@ -55,6 +55,7 @@ describe(MealPlanRandomWeek.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(randomPicks(fixture.nativeElement)).toEqual([
       'Saturday: Shakshuka',
@@ -77,6 +78,7 @@ describe(MealPlanRandomWeek.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 4,
+      courses: [],
     });
   });
 
@@ -97,6 +99,7 @@ describe(MealPlanRandomWeek.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(randomPicks(fixture.nativeElement)).toEqual([
       'Sunday: Lamb Kofte with Yogurt and Sumac',
@@ -122,6 +125,7 @@ describe(MealPlanRandomWeek.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(assign).toHaveBeenCalledExactlyOnceWith({
       weekday: 'friday',
@@ -139,6 +143,7 @@ describe(MealPlanRandomWeek.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-picks"]'),

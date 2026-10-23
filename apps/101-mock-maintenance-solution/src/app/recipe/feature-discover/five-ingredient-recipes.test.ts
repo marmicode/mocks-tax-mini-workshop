@@ -36,6 +36,7 @@ describe(FiveIngredientRecipes.name, () => {
       keywords: '',
       maxIngredientCount: 5,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -48,6 +49,7 @@ describe(FiveIngredientRecipes.name, () => {
       keywords: '',
       maxIngredientCount: 5,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Hummus with Ful',
@@ -67,6 +69,7 @@ describe(FiveIngredientRecipes.name, () => {
       keywords: 'hummus',
       maxIngredientCount: 5,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -83,6 +86,7 @@ describe(FiveIngredientRecipes.name, () => {
       keywords: '',
       maxIngredientCount: 5,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -95,6 +99,7 @@ describe(FiveIngredientRecipes.name, () => {
       keywords: '',
       maxIngredientCount: 5,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')

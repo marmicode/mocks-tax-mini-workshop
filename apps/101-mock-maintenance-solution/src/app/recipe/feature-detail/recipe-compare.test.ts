@@ -40,6 +40,7 @@ describe(RecipeCompare.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(findById).not.toHaveBeenCalled();
     expect(optionLabels(selects(fixture.nativeElement)[0])).toEqual([
@@ -61,6 +62,7 @@ describe(RecipeCompare.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(findById).toHaveBeenCalledTimes(2);
     expect(findById).toHaveBeenNthCalledWith(1, { id: 'shakshuka' });
@@ -79,6 +81,7 @@ describe(RecipeCompare.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(textOf(root, 'left-name')).toBe('Shakshuka');
     expect(textOf(root, 'right-name')).toBe('Hummus with Ful');
@@ -119,6 +122,7 @@ describe(RecipeCompare.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(navigate).toHaveBeenCalledExactlyOnceWith(['/', 'compare'], {
       queryParams: { left: 'hummus-ful' },
@@ -137,6 +141,7 @@ describe(RecipeCompare.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       selects(fixture.nativeElement).map((select) => select.value),
@@ -153,6 +158,7 @@ describe(RecipeCompare.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
@@ -176,6 +182,7 @@ describe(RecipeCompare.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(textOf(fixture.nativeElement, 'no-shared-ingredients')).toBe(
       'No shared ingredients.',
@@ -201,6 +208,7 @@ describe(RecipeCompare.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(navigate).toHaveBeenCalledExactlyOnceWith(['/', 'compare'], {
       queryParams: { right: null },

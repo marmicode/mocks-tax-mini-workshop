@@ -46,6 +46,7 @@ describe(RecipeOfTheDay.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -58,6 +59,7 @@ describe(RecipeOfTheDay.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeName(fixture.nativeElement)).toBe(
       'Lemon and Ricotta Cheesecake',
@@ -73,6 +75,7 @@ describe(RecipeOfTheDay.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeName(fixture.nativeElement)).toBe('Shakshuka');
   });
@@ -86,6 +89,7 @@ describe(RecipeOfTheDay.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       root.querySelector('[data-testid="recipe-description"]')?.textContent,
@@ -107,6 +111,7 @@ describe(RecipeOfTheDay.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -123,6 +128,7 @@ describe(RecipeOfTheDay.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeName(fixture.nativeElement)).toBe('Hummus with Ful');
     expect(
@@ -138,6 +144,7 @@ describe(RecipeOfTheDay.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('.eyebrow')?.textContent?.trim(),
@@ -153,6 +160,7 @@ describe(RecipeOfTheDay.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeName(fixture.nativeElement)).toBe(
       'Lemon and Ricotta Cheesecake',
@@ -168,6 +176,7 @@ describe(RecipeOfTheDay.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeName(fixture.nativeElement)).toBe('Hummus with Ful');
   });

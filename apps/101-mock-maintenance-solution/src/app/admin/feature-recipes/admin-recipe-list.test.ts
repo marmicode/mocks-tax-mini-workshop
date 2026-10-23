@@ -41,6 +41,7 @@ describe(AdminRecipeList.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -59,11 +60,13 @@ describe(AdminRecipeList.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(search).toHaveBeenNthCalledWith(2, {
       keywords: 'lemon',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -101,7 +104,7 @@ describe(AdminRecipeList.name, () => {
     ]);
     expect(search).toHaveBeenCalledTimes(3);
     expect(search).toHaveBeenLastCalledWith(
-      expect.not.objectContaining({ courses: expect.anything() }),
+      expect.objectContaining({ courses: [] }),
     );
   });
 
@@ -114,6 +117,7 @@ describe(AdminRecipeList.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(linkByText(fixture.nativeElement, 'Edit').getAttribute('href')).toBe(
       '/admin/recipes/shakshuka/edit',
@@ -138,6 +142,7 @@ describe(AdminRecipeList.name, () => {
       keywords: 'xyz',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -152,6 +157,7 @@ describe(AdminRecipeList.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -169,6 +175,7 @@ describe(AdminRecipeList.name, () => {
       keywords: 'ricotta',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -209,6 +216,7 @@ describe(AdminRecipeList.name, () => {
       keywords: 'hummus',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -219,8 +227,8 @@ function mountAdminRecipeList() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation((params) => {
       const recipes =
-        'courses' in params
-          ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
+        params.courses.length > 0
+          ? catalog.filter((recipe) => params.courses.includes(recipe.course))
           : catalog;
       return of(
         recipes.filter((recipe) =>

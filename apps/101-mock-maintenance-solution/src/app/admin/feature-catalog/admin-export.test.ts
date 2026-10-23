@@ -45,8 +45,8 @@ describe(AdminExport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
-    expect(search.mock.lastCall?.[0]).not.toHaveProperty('courses');
   });
 
   it('previews the exported recipes as JSON', async () => {
@@ -63,6 +63,7 @@ describe(AdminExport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -102,6 +103,7 @@ describe(AdminExport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(search).toHaveBeenNthCalledWith(2, {
       keywords: '',
@@ -113,6 +115,7 @@ describe(AdminExport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -138,6 +141,7 @@ describe(AdminExport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -150,6 +154,7 @@ describe(AdminExport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
       '0 recipe(s) to export',
@@ -200,6 +205,7 @@ describe(AdminExport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -235,7 +241,7 @@ function mountAdminExport() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation(({ courses }) =>
       of(
-        courses === undefined
+        courses.length === 0
           ? recipesByCourse['all']
           : recipesByCourse[courses[0]],
       ),

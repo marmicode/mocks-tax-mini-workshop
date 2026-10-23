@@ -14,6 +14,7 @@ describe(AdminLongNames.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -38,6 +39,7 @@ describe(AdminLongNames.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(emptyState(fixture.nativeElement)).toBe(
       'Every name fits within 30 characters.',
@@ -74,6 +76,7 @@ describe(AdminLongNames.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Slow-Roasted Lamb Shoulder with Pomegranate (43)',
@@ -110,6 +113,7 @@ describe(AdminLongNames.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Slow-Roasted Lamb Shoulder with Pomegranate (43)',
@@ -152,6 +156,7 @@ describe(AdminLongNames.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual(['Hummus with Ful (15)']);
   });

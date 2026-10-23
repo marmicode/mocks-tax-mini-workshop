@@ -35,6 +35,7 @@ describe(PictureGallery.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -47,6 +48,7 @@ describe(PictureGallery.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(pictureSources(fixture.nativeElement)).toEqual([
       'https://example.com/hummus.jpg',
@@ -63,6 +65,7 @@ describe(PictureGallery.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('img')?.getAttribute('alt'),
@@ -78,6 +81,7 @@ describe(PictureGallery.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement
@@ -95,6 +99,7 @@ describe(PictureGallery.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')

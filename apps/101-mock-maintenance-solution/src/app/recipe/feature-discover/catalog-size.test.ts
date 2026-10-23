@@ -34,6 +34,7 @@ describe(CatalogSize.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -46,6 +47,7 @@ describe(CatalogSize.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(textOf(fixture.nativeElement, 'catalog-size')).toBe('2 recipes');
   });
@@ -59,6 +61,7 @@ describe(CatalogSize.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(textOf(fixture.nativeElement, 'catalog-size')).toBe('1 recipe');
   });
@@ -72,6 +75,7 @@ describe(CatalogSize.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(textOf(fixture.nativeElement, 'ingredient-count')).toBe(
       'Using 3 distinct ingredients.',
@@ -87,6 +91,7 @@ describe(CatalogSize.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(textOf(fixture.nativeElement, 'no-recipes-message')).toBe(
       'The catalog is empty.',
