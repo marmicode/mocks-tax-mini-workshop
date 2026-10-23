@@ -11,7 +11,7 @@ import {
   createDefaultRecipeFilterCriteria,
   type RecipeFilterCriteria,
 } from '@whiskmate/recipe/model';
-import { COURSES } from '@whiskmate/shared-recipe/model';
+import { COURSES, type Course } from '@whiskmate/shared-recipe/model';
 
 @Component({
   selector: 'wm-recipe-filter',
@@ -47,7 +47,8 @@ import { COURSES } from '@whiskmate/shared-recipe/model';
       </div>
       <div class="filter-options">
         <mat-button-toggle-group
-          [formField]="filterForm.courses"
+          [value]="filter().courses ?? []"
+          (change)="setCourses($event.value)"
           aria-label="Courses"
           multiple
         >
@@ -98,4 +99,11 @@ export class RecipeFilter {
   filterForm = form(this.filter);
 
   protected readonly courses = COURSES;
+
+  protected setCourses(courses: Course[]) {
+    this.filter.update((filter) => ({
+      ...filter,
+      courses: courses.length > 0 ? courses : null,
+    }));
+  }
 }

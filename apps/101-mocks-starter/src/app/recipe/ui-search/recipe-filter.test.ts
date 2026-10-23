@@ -51,7 +51,7 @@ describe(RecipeFilter.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
-      courses: [],
+      courses: null,
       favoritesOnly: false,
     });
   });
