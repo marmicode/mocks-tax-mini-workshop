@@ -1,8 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminRecipeList } from './admin-recipe-list.ng';
 
@@ -54,17 +57,24 @@ describe(AdminRecipeList.name, () => {
     expect(rows(fixture.nativeElement)).toEqual([
       ['Lemon and Ricotta Cheesecake', 'dessert', '1', '1'],
     ]);
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenNthCalledWith(1, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(search).toHaveBeenNthCalledWith(2, {
-      keywords: 'lemon',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+        [
+          {
+            "keywords": "lemon",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
   });
 
   it('searches by course', async () => {
@@ -107,14 +117,17 @@ describe(AdminRecipeList.name, () => {
 
   it('links to the edit and delete pages of each recipe', async () => {
     const { fixture, search } = mountAdminRecipeList();
-    search.mockReturnValue(of([shakshuka]));
+    search.mockImplementation(
+      respondBySearchKey({
+        [searchKey({
+          keywords: '',
+          maxIngredientCount: null,
+          maxStepCount: null,
+        })]: [shakshuka],
+      }),
+    );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(linkByText(fixture.nativeElement, 'Edit').getAttribute('href')).toBe(
       '/admin/recipes/shakshuka/edit',
     );
@@ -134,25 +147,25 @@ describe(AdminRecipeList.name, () => {
     await fixture.whenStable();
 
     expect(fixture.nativeElement.textContent).toContain('No recipes found');
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'xyz',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('shows the number of recipes found', async () => {
     const { fixture, search } = mountAdminRecipeList();
+    search.mockImplementationOnce((params) => {
+      expect(Object.keys(params)).toEqual([
+        'keywords',
+        'maxIngredientCount',
+        'maxStepCount',
+      ]);
+      return of(catalog);
+    });
     await fixture.whenStable();
 
     expect(
       fixture.nativeElement.querySelector('.count')?.textContent?.trim(),
     ).toBe('2 recipe(s)');
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search).toHaveBeenCalledOnce();
   });
 
   it('renders the recipes matching the keywords', async () => {
@@ -165,11 +178,9 @@ describe(AdminRecipeList.name, () => {
     expect(rows(fixture.nativeElement)).toEqual([
       ['Lemon and Ricotta Cheesecake', 'dessert', '1', '1'],
     ]);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'ricotta',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    await expect(
+      JSON.stringify(search.mock.calls, null, 2),
+    ).toMatchFileSnapshot('./__snapshots__/admin-recipe-list.calls.json');
   });
 
   it('combines keywords and course', async () => {
@@ -205,11 +216,15 @@ describe(AdminRecipeList.name, () => {
     await fixture.whenStable();
 
     expect(search).toHaveBeenCalledTimes(4);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'hummus',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.lastCall).toMatchInlineSnapshot(`
+        [
+          {
+            "keywords": "hummus",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ]
+      `);
   });
 });
 
@@ -230,6 +245,19 @@ function mountAdminRecipeList() {
     });
   const fixture = TestBed.createComponent(AdminRecipeList);
   return { fixture, search };
+}
+
+function respondBySearchKey(responses: Record<string, Recipe[]>) {
+  return (params: RecipeSearchParams) => {
+    const key = searchKey(params);
+    return key in responses
+      ? of(responses[key])
+      : throwError(() => new Error(`unexpected search ${key}`));
+  };
+}
+
+function searchKey(params: RecipeSearchParams): string {
+  return JSON.stringify(params);
 }
 
 function rows(root: HTMLElement): string[][] {

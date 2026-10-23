@@ -2,7 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminImport } from './admin-import.ng';
 
@@ -74,6 +77,9 @@ describe(AdminImport.name, () => {
 
   it('creates new recipes and updates existing ones', async () => {
     const { fixture, search, create, update } = mountAdminImport();
+    search.mockImplementation((params) =>
+      of(isWholeCatalogSearch(params) ? [shakshuka] : []),
+    );
     await fixture.whenStable();
 
     pasteJson(
@@ -84,11 +90,6 @@ describe(AdminImport.name, () => {
     buttonByText(fixture.nativeElement, 'Import').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(update).toHaveBeenCalledExactlyOnceWith({
       id: 'shakshuka',
       course: 'main',
@@ -133,7 +134,14 @@ describe(AdminImport.name, () => {
 
   it('creates every recipe when the catalog is empty', async () => {
     const { fixture, search, create, update } = mountAdminImport();
-    search.mockReturnValue(of([]));
+    search.mockImplementation((params) => {
+      expect(Object.keys(params).sort()).toEqual([
+        'keywords',
+        'maxIngredientCount',
+        'maxStepCount',
+      ]);
+      return of([]);
+    });
     await fixture.whenStable();
 
     pasteJson(
@@ -144,11 +152,6 @@ describe(AdminImport.name, () => {
     buttonByText(fixture.nativeElement, 'Import').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(create).toHaveBeenCalledTimes(2);
     expect(update).not.toHaveBeenCalled();
     expect(textByTestId(fixture.nativeElement, 'import-summary')).toBe(
@@ -158,7 +161,15 @@ describe(AdminImport.name, () => {
 
   it('updates every recipe that already exists', async () => {
     const { fixture, search, create, update } = mountAdminImport();
-    search.mockReturnValue(of([shakshuka, brownies]));
+    const existingRecipesBySearch: Record<string, Recipe[]> = {
+      '{"keywords":"","maxIngredientCount":null,"maxStepCount":null}': [
+        shakshuka,
+        brownies,
+      ],
+    };
+    search.mockImplementation((params) =>
+      of(existingRecipesBySearch[JSON.stringify(params)] ?? []),
+    );
     await fixture.whenStable();
 
     pasteJson(
@@ -169,11 +180,6 @@ describe(AdminImport.name, () => {
     buttonByText(fixture.nativeElement, 'Import').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(create).not.toHaveBeenCalled();
     expect(update).toHaveBeenCalledTimes(2);
     expect(textByTestId(fixture.nativeElement, 'import-summary')).toBe(
@@ -192,11 +198,17 @@ describe(AdminImport.name, () => {
     pasteJson(fixture.nativeElement, JSON.stringify([shakshuka, brownies]));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
     expect(
       fixture.nativeElement.querySelector('[data-testid="import-summary"]'),
     ).toBeNull();
@@ -252,6 +264,13 @@ function mountAdminImport() {
   const fixture = TestBed.createComponent(AdminImport);
 
   return { fixture, search, create, update };
+}
+
+function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
+  return (
+    Object.keys(params).length === 3 &&
+    Object.values(params).every((value) => value === '' || value === null)
+  );
 }
 
 function pasteJson(root: HTMLElement, json: string): void {

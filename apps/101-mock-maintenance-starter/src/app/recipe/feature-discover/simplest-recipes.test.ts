@@ -1,8 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { of, throwError } from 'rxjs';
+import { describe, it, type MockInstance, vi } from 'vitest';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { SimplestRecipes } from './simplest-recipes.ng';
 
@@ -31,23 +34,16 @@ describe(SimplestRecipes.name, () => {
     const { fixture, search } = mountSimplestRecipes();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    await expect(
+      JSON.stringify(search.mock.calls, null, 2),
+    ).toMatchFileSnapshot('./__snapshots__/simplest-recipes.calls.json');
   });
 
   it('shows recipes with the fewest ingredients first', async () => {
     const { fixture, search } = mountSimplestRecipes();
-    search.mockReturnValue(of([hummus, salad]));
+    givenCatalog(search, [hummus, salad]);
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Burnt Aubergine with Tahini and Pomegranate',
       'Hummus with Ful',
@@ -56,27 +52,20 @@ describe(SimplestRecipes.name, () => {
 
   it('sorts recipes with as many ingredients by name', async () => {
     const { fixture, search } = mountSimplestRecipes();
-    search.mockReturnValue(
-      of([
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: null,
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }, { name: 'tomatoes' }],
-          steps: [],
-        },
-        salad,
-      ]),
-    );
+    givenCatalog(search, [
+      {
+        id: 'shakshuka',
+        course: 'main',
+        name: 'Shakshuka',
+        description: null,
+        pictureUri: 'https://example.com/shakshuka.jpg',
+        ingredients: [{ name: 'eggs' }, { name: 'tomatoes' }],
+        steps: [],
+      },
+      salad,
+    ]);
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Burnt Aubergine with Tahini and Pomegranate',
       'Shakshuka',
@@ -85,14 +74,10 @@ describe(SimplestRecipes.name, () => {
 
   it('shows the ingredient count of each recipe', async () => {
     const { fixture, search } = mountSimplestRecipes();
-    search.mockReturnValue(of([hummus]));
+    givenCatalog(search, [hummus]);
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search).toHaveBeenCalledOnce();
     expect(
       fixture.nativeElement
         .querySelector('[data-testid="ingredient-count"]')
@@ -122,9 +107,8 @@ function mountSimplestRecipes() {
     providers: [provideRouter([])],
   });
 
-  const search = vi
-    .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([hummus, salad]));
+  const search = vi.spyOn(TestBed.inject(RecipeRepository), 'search');
+  givenCatalog(search, [hummus, salad]);
 
   const fixture = TestBed.createComponent(SimplestRecipes);
 
@@ -135,4 +119,27 @@ function recipeNames(root: HTMLElement): string[] {
   return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
     (el) => el.textContent?.trim() ?? '',
   );
+}
+
+/* Simplest recipes are sorted client-side, so the backend must be asked
+ * for the whole catalog: `keywords=&maxIngredientCount=&maxStepCount=`. */
+const WHOLE_CATALOG_QUERY = 'keywords=&maxIngredientCount=&maxStepCount=';
+
+function givenCatalog(
+  search: MockInstance<RecipeRepository['search']>,
+  recipes: Recipe[],
+) {
+  search.mockImplementation((params) =>
+    toQueryString(params) === WHOLE_CATALOG_QUERY
+      ? of(recipes)
+      : throwError(
+          () => new Error(`unexpected search ${toQueryString(params)}`),
+        ),
+  );
+}
+
+function toQueryString(params: RecipeSearchParams): string {
+  return new URLSearchParams(
+    Object.entries(params).map(([key, value]) => [key, String(value ?? '')]),
+  ).toString();
 }

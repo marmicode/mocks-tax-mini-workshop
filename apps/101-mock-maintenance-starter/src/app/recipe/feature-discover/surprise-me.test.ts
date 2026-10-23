@@ -2,7 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { RandomAdapter } from '@whiskmate/shared/infra';
 import { SurpriseMe } from './surprise-me.ng';
@@ -37,11 +40,7 @@ describe(SurpriseMe.name, () => {
     expect(recipeName(fixture.nativeElement)).toBe(
       'Lemon and Ricotta Cheesecake',
     );
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('searches only the chosen course', async () => {
@@ -51,18 +50,10 @@ describe(SurpriseMe.name, () => {
     clickToggle(fixture.nativeElement, 'Desserts');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenNthCalledWith(1, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(search).toHaveBeenNthCalledWith(2, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['dessert'],
-    });
+    expect(search.mock.calls.map(([params]) => searchKey(params))).toEqual([
+      'keywords=&maxIngredientCount=&maxStepCount=',
+      'keywords=&maxIngredientCount=&maxStepCount=&courses=dessert',
+    ]);
   });
 
   it('stops filtering by course when "Any" is chosen', async () => {
@@ -82,11 +73,15 @@ describe(SurpriseMe.name, () => {
       maxStepCount: null,
       courses: ['main'],
     });
-    expect(search).toHaveBeenNthCalledWith(3, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.lastCall).toMatchInlineSnapshot(`
+      [
+        {
+          "keywords": "",
+          "maxIngredientCount": null,
+          "maxStepCount": null,
+        },
+      ]
+    `);
     expect(search.mock.lastCall?.[0]).not.toHaveProperty('courses');
   });
 
@@ -137,12 +132,9 @@ describe(SurpriseMe.name, () => {
     expect(recipeName(fixture.nativeElement)).toBe(
       'Lemon and Ricotta Cheesecake',
     );
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['dessert'],
-    });
+    expect(searchKey(search.mock.lastCall![0])).toBe(
+      'keywords=&maxIngredientCount=&maxStepCount=&courses=dessert',
+    );
   });
 
   it('links the surprise to its recipe page', async () => {
@@ -154,11 +146,7 @@ describe(SurpriseMe.name, () => {
     expect(root.querySelector('a')?.getAttribute('href')).toBe(
       '/recipes/shakshuka',
     );
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search).toHaveBeenCalledOnce();
   });
 
   it('keeps the chosen course when asked again', async () => {
@@ -171,23 +159,11 @@ describe(SurpriseMe.name, () => {
     await fixture.whenStable();
 
     expect(search).toHaveBeenCalledTimes(3);
-    expect(search).toHaveBeenNthCalledWith(1, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(search).toHaveBeenNthCalledWith(2, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
-    expect(search).toHaveBeenNthCalledWith(3, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
+    await expect(
+      JSON.stringify(search.mock.calls, null, 2),
+    ).toMatchFileSnapshot(
+      './__snapshots__/surprise-me-keeps-course.calls.json',
+    );
   });
 
   it('shows a message when the chosen course has no recipes', async () => {
@@ -258,4 +234,14 @@ function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
     throw new Error(`Button "${text}" not found.`);
   }
   return button;
+}
+
+/* Same format as the backend access logs, so failures are easy to compare. */
+function searchKey(params: RecipeSearchParams): string {
+  return new URLSearchParams(
+    Object.entries(params).map(([key, value]) => [
+      key,
+      Array.isArray(value) ? value.join(',') : String(value ?? ''),
+    ]),
+  ).toString();
 }

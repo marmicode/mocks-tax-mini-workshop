@@ -1,8 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
-import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import { type Observable, of } from 'rxjs';
+import { describe, it, type MockInstance, vi } from 'vitest';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AlphabeticalIndex } from './alphabetical-index.ng';
 
@@ -36,6 +39,15 @@ const sabich: Recipe = {
   steps: [],
 };
 
+/**
+ * The index is built from the whole catalog.
+ */
+const allRecipes = JSON.stringify({
+  keywords: '',
+  maxIngredientCount: null,
+  maxStepCount: null,
+});
+
 describe(AlphabeticalIndex.name, () => {
   it('searches all recipes', async () => {
     const { fixture, search } = mountAlphabeticalIndex();
@@ -50,27 +62,17 @@ describe(AlphabeticalIndex.name, () => {
 
   it('groups recipes by first letter in alphabetical order', async () => {
     const { fixture, search } = mountAlphabeticalIndex();
-    search.mockReturnValue(of([shakshuka, salad, sabich]));
+    respondTo(search, { [allRecipes]: [shakshuka, salad, sabich] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(letters(fixture.nativeElement)).toEqual(['B', 'S']);
   });
 
   it('sorts recipes by name within a letter', async () => {
     const { fixture, search } = mountAlphabeticalIndex();
-    search.mockReturnValue(of([shakshuka, sabich]));
+    respondTo(search, { [allRecipes]: [shakshuka, sabich] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual(['Sabich', 'Shakshuka']);
   });
 
@@ -92,24 +94,25 @@ describe(AlphabeticalIndex.name, () => {
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
     expect(letters(fixture.nativeElement)).toEqual(['S', '#']);
   });
 
   it('links each recipe to its detail page', async () => {
     const { fixture, search } = mountAlphabeticalIndex();
-    search.mockReturnValue(of([sabich]));
+    respondTo(search, { [allRecipes]: [sabich] });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(
       fixture.nativeElement
         .querySelector('[data-testid="recipe-name"]')
@@ -157,5 +160,18 @@ function letters(root: HTMLElement): string[] {
 function recipeNames(root: HTMLElement): string[] {
   return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
     (el) => el.textContent?.trim() ?? '',
+  );
+}
+
+/**
+ * Responds to the searches listed in `routes` (keyed by the serialized search
+ * params) and with no recipes to any other search.
+ */
+function respondTo(
+  search: MockInstance<(params: RecipeSearchParams) => Observable<Recipe[]>>,
+  routes: Record<string, Recipe[]>,
+) {
+  search.mockImplementation((params) =>
+    of(routes[JSON.stringify(params)] ?? []),
   );
 }

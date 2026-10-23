@@ -2,7 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import {
   MealPlanStore,
   type WeekdayAssignments,
@@ -71,19 +74,18 @@ describe(MealPlanDayPicker.name, () => {
     const { fixture, search } = mountMealPlanDayPicker({
       weekday: 'monday',
       assignments: emptyAssignments,
-      catalog: [hummus, shakshuka, lambKofte],
     });
+    search.mockImplementation((params) =>
+      toQueryString(params) === 'keywords='
+        ? of([hummus, shakshuka, lambKofte])
+        : of([]),
+    );
     await fixture.whenStable();
 
     expect(candidateNames(fixture.nativeElement)).toEqual([
       'Shakshuka',
       'Lamb Kofte with Yogurt and Sumac',
     ]);
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('does not list mains that are already planned', async () => {
@@ -97,11 +99,17 @@ describe(MealPlanDayPicker.name, () => {
     expect(candidateNames(fixture.nativeElement)).toEqual([
       'Lamb Kofte with Yogurt and Sumac',
     ]);
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
   });
 
   it('assigns the picked main and goes back to the meal plan', async () => {
@@ -124,11 +132,7 @@ describe(MealPlanDayPicker.name, () => {
       recipeId: 'shakshuka',
     });
     expect(navigate).toHaveBeenCalledExactlyOnceWith(['/', 'meal-plan']);
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('says there is nothing left to pick when every main is planned', async () => {
@@ -189,6 +193,17 @@ function mountMealPlanDayPicker({
   fixture.componentRef.setInput('weekday', weekday);
 
   return { fixture, search, mealPlanStore, router };
+}
+
+/**
+ * Same encoding as the backend logs: blank filters are dropped.
+ */
+function toQueryString(params: RecipeSearchParams): string {
+  return new URLSearchParams(
+    Object.entries(params)
+      .filter(([, value]) => value != null)
+      .map(([key, value]) => [key, String(value)]),
+  ).toString();
 }
 
 function candidateNames(root: HTMLElement): string[] {

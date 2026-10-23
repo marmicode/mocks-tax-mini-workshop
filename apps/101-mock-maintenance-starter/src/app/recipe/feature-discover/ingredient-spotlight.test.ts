@@ -27,6 +27,16 @@ const salad: Recipe = {
   steps: [],
 };
 
+/**
+ * Canned backend responses, keyed by the exact search body.
+ */
+const searchResults: Record<string, Recipe[]> = {
+  '{"keywords":"","maxIngredientCount":null,"maxStepCount":null}': [
+    hummus,
+    salad,
+  ],
+};
+
 describe(IngredientSpotlight.name, () => {
   it('picks a random ingredient among all distinct ingredients', async () => {
     const { fixture, search, pick } = mountIngredientSpotlight();
@@ -49,11 +59,6 @@ describe(IngredientSpotlight.name, () => {
     pick.mockReturnValue('tahini');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(spotlightIngredient(fixture.nativeElement)).toBe('tahini');
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Hummus with Ful',
@@ -66,11 +71,6 @@ describe(IngredientSpotlight.name, () => {
     pick.mockReturnValue('aubergines');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Burnt Aubergine with Tahini and Pomegranate',
     ]);
@@ -85,11 +85,25 @@ describe(IngredientSpotlight.name, () => {
     await fixture.whenStable();
 
     expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenNthCalledWith(2, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls[1]).toEqual(search.mock.calls[0]);
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
     expect(spotlightIngredient(fixture.nativeElement)).toBe('aubergines');
   });
 
@@ -118,7 +132,13 @@ function mountIngredientSpotlight() {
 
   const search = vi
     .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([hummus, salad]));
+    .mockImplementation((params) => {
+      const recipes = searchResults[JSON.stringify(params)];
+      if (recipes == null) {
+        throw new Error(`unexpected search ${JSON.stringify(params)}`);
+      }
+      return of(recipes);
+    });
   const pick = vi
     .spyOn(TestBed.inject(RandomAdapter), 'pick')
     .mockReturnValue('chickpeas');

@@ -38,15 +38,17 @@ describe(RecipeRepository.name, () => {
       }),
     );
 
-    const req = httpTesting.expectOne({
-      method: 'POST',
-      url: '/api/recipes/search',
-    });
-    expect(req.request.body).toEqual({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    /* Only match the unfiltered search: no filter must be sent at all. */
+    const req = httpTesting.expectOne(
+      (request) =>
+        request.method === 'POST' &&
+        request.url === '/api/recipes/search' &&
+        Object.keys(request.body).length === 3 &&
+        Object.values(request.body).every(
+          (value) => value === '' || value === null,
+        ),
+      'unfiltered recipe search',
+    );
     req.flush([shakshuka]);
 
     expect(await recipes).toEqual([shakshuka]);
@@ -170,11 +172,13 @@ describe(RecipeRepository.name, () => {
 
 describe(createRecipeSearchParams.name, () => {
   it('creates search params with defaults', () => {
-    expect(createRecipeSearchParams()).toEqual({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(createRecipeSearchParams()).toMatchInlineSnapshot(`
+      {
+        "keywords": "",
+        "maxIngredientCount": null,
+        "maxStepCount": null,
+      }
+    `);
   });
 
   it('overrides defaults', () => {

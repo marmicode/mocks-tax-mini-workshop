@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom, of } from 'rxjs';
+import { firstValueFrom, of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -38,15 +38,17 @@ const cheesecake: Recipe = {
 describe(RecipeCatalog.name, () => {
   it('counts every recipe of the catalog', async () => {
     const { recipeCatalog, search } = setUpRecipeCatalog();
-    search.mockReturnValue(of([hummus, shakshuka, cheesecake]));
+    search.mockImplementation(({ courses }) => {
+      const catalog = [hummus, shakshuka, cheesecake];
+      return of(
+        courses
+          ? catalog.filter((recipe) => courses.includes(recipe.course))
+          : catalog,
+      );
+    });
 
     const count = await firstValueFrom(recipeCatalog.countAll());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(count).toBe(3);
   });
 
@@ -66,15 +68,17 @@ describe(RecipeCatalog.name, () => {
 
   it('lists recipe names alphabetically', async () => {
     const { recipeCatalog, search } = setUpRecipeCatalog();
-    search.mockReturnValue(of([shakshuka, hummus, cheesecake]));
+    search.mockImplementation((params) =>
+      Object.keys(params).length === 3
+        ? of([shakshuka, hummus, cheesecake])
+        : throwError(
+            () => new Error(`unexpected search ${JSON.stringify(params)}`),
+          ),
+    );
 
     const names = await firstValueFrom(recipeCatalog.listNames());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchSnapshot();
     expect(names).toEqual([
       'Hummus with Ful',
       'Lemon and Ricotta Cheesecake',
@@ -100,15 +104,22 @@ describe(RecipeCatalog.name, () => {
 
   it('lists the recipes of a course', async () => {
     const { recipeCatalog, search } = setUpRecipeCatalog();
-    search.mockReturnValue(of([hummus, shakshuka, cheesecake]));
+    search.mockImplementation((params) => {
+      const catalog = [hummus, shakshuka, cheesecake];
+      return of(
+        'courses' in params
+          ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
+          : catalog,
+      );
+    });
 
     const recipes = await firstValueFrom(recipeCatalog.listByCourse('main'));
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    await expect(
+      JSON.stringify(search.mock.calls, null, 2),
+    ).toMatchFileSnapshot(
+      './__snapshots__/recipe-catalog-by-course.calls.json',
+    );
     expect(recipes).toEqual([shakshuka]);
   });
 });

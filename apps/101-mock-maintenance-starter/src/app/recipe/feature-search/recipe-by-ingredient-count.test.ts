@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { type Observable, of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -27,6 +27,15 @@ const shakshuka: Recipe = {
   steps: [],
 };
 
+const RESULTS_BY_SEARCH: Record<string, Observable<Recipe[]>> = {
+  '{"keywords":"","maxIngredientCount":3,"maxStepCount":null}': of([]),
+  '{"keywords":"","maxIngredientCount":5,"maxStepCount":null}': of([shakshuka]),
+  '{"keywords":"","maxIngredientCount":8,"maxStepCount":null}': of([
+    hummus,
+    shakshuka,
+  ]),
+};
+
 describe(RecipeByIngredientCount.name, () => {
   it('searches recipes with at most 5 ingredients by default', async () => {
     const { fixture, search } = mountRecipeByIngredientCount();
@@ -41,14 +50,17 @@ describe(RecipeByIngredientCount.name, () => {
 
   it('shows the matching recipes', async () => {
     const { fixture, search } = mountRecipeByIngredientCount();
-    search.mockReturnValue(of([hummus, shakshuka]));
+    search.mockImplementation((params) => {
+      /* Only the ingredient count filter must be sent. */
+      if (Object.keys(params).length !== 3 || params.maxIngredientCount !== 5) {
+        return throwError(
+          () => new Error(`unexpected search ${JSON.stringify(params)}`),
+        );
+      }
+      return of([hummus, shakshuka]);
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: 5,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Hummus with Ful',
       'Shakshuka',
@@ -57,14 +69,16 @@ describe(RecipeByIngredientCount.name, () => {
 
   it('counts the matching recipes', async () => {
     const { fixture, search } = mountRecipeByIngredientCount();
-    search.mockReturnValue(of([shakshuka]));
+    search.mockImplementation(
+      (params) =>
+        RESULTS_BY_SEARCH[JSON.stringify(params)] ??
+        throwError(
+          () => new Error(`unexpected search ${JSON.stringify(params)}`),
+        ),
+    );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: 5,
-      maxStepCount: null,
-    });
+    expect(search).toHaveBeenCalledOnce();
     expect(recipeCount(fixture.nativeElement)).toBe(
       '1 recipes with at most 5 ingredients',
     );

@@ -1,8 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminExport } from './admin-export.ng';
 
@@ -59,15 +62,41 @@ describe(AdminExport.name, () => {
     expect(
       JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
     ).toEqual([shakshuka, cheesecake]);
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
   });
 
   it('exports a single course', async () => {
     const { fixture, search } = mountAdminExport();
+    const responses: Record<string, Recipe[]> = {
+      [searchKey({
+        keywords: '',
+        maxIngredientCount: null,
+        maxStepCount: null,
+      })]: recipesByCourse['all'],
+      [searchKey({
+        keywords: '',
+        maxIngredientCount: null,
+        maxStepCount: null,
+        courses: ['dessert'],
+      })]: recipesByCourse['dessert'],
+    };
+    search.mockImplementation((params) => {
+      const recipes = responses[searchKey(params)];
+      if (recipes == null) {
+        throw new Error(`unexpected search ${searchKey(params)}`);
+      }
+      return of(recipes);
+    });
     await fixture.whenStable();
 
     selectCourse(fixture.nativeElement, 'dessert');
@@ -77,12 +106,6 @@ describe(AdminExport.name, () => {
       JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
     ).toEqual([cheesecake]);
     expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenNthCalledWith(2, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['dessert'],
-    });
   });
 
   it('goes back to all courses', async () => {
@@ -98,22 +121,7 @@ describe(AdminExport.name, () => {
       '2 recipe(s) to export',
     );
     expect(search).toHaveBeenCalledTimes(3);
-    expect(search).toHaveBeenNthCalledWith(1, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(search).toHaveBeenNthCalledWith(2, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
-    expect(search).toHaveBeenNthCalledWith(3, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('downloads the recipes as recipes.json', async () => {
@@ -143,14 +151,13 @@ describe(AdminExport.name, () => {
 
   it('previews an empty export when the catalog is empty', async () => {
     const { fixture, search } = mountAdminExport();
-    search.mockReturnValue(of([]));
+    search.mockImplementation((params) =>
+      Object.keys(params).length === 3
+        ? of([])
+        : throwError(() => new Error(`unexpected search ${searchKey(params)}`)),
+    );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
       '0 recipe(s) to export',
     );
@@ -196,15 +203,22 @@ describe(AdminExport.name, () => {
     expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
       '2 recipe(s) to export',
     );
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    await expect(
+      JSON.stringify(search.mock.calls, null, 2),
+    ).toMatchFileSnapshot('./__snapshots__/admin-export.calls.json');
   });
 
   it('downloads only the recipes of the selected course', async () => {
     const { fixture, search } = mountAdminExport();
+    search.mockImplementation(({ courses }) =>
+      of(
+        courses?.length
+          ? recipesByCourse['all'].filter((recipe) =>
+              courses.includes(recipe.course),
+            )
+          : recipesByCourse['all'],
+      ),
+    );
     const createObjectURL = vi
       .spyOn(URL, 'createObjectURL')
       .mockReturnValue('blob:recipes');
@@ -220,12 +234,7 @@ describe(AdminExport.name, () => {
 
     const blob = createObjectURL.mock.lastCall?.[0] as Blob;
     expect(JSON.parse(await blob.text())).toEqual([shakshuka]);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
+    expect(search).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -271,4 +280,8 @@ function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
     throw new Error(`Button "${text}" not found.`);
   }
   return button;
+}
+
+function searchKey(params: RecipeSearchParams) {
+  return JSON.stringify(params);
 }

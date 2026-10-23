@@ -52,34 +52,32 @@ describe(RecipeQuickSearch.name, () => {
       'Burnt Aubergine with Tahini and Pomegranate',
       'Roasted Aubergine with Tahini and Pine Nuts',
     ]);
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'aub',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('shows at most 5 suggestions', async () => {
     const { fixture, search } = mountQuickSearch();
-    search.mockReturnValue(
-      of(
-        Array.from({ length: 7 }, (_, index) => ({
-          ...burntAubergine,
-          id: `aubergine-${index}`,
-          name: `Aubergine ${index}`,
-        })),
-      ),
+    search.mockImplementation((params) =>
+      JSON.stringify(params) ===
+      JSON.stringify({
+        keywords: 'aub',
+        maxIngredientCount: null,
+        maxStepCount: null,
+      })
+        ? of(
+            Array.from({ length: 7 }, (_, index) => ({
+              ...burntAubergine,
+              id: `aubergine-${index}`,
+              name: `Aubergine ${index}`,
+            })),
+          )
+        : of([]),
     );
     await fixture.whenStable();
 
     typeInto(quickSearchInput(fixture.nativeElement), 'aub');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'aub',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(suggestionNames(fixture.nativeElement)).toHaveLength(5);
   });
 
@@ -137,11 +135,7 @@ describe(RecipeQuickSearch.name, () => {
       'Burnt Aubergine with Tahini and Pomegranate',
       'Roasted Aubergine with Tahini and Pine Nuts',
     ]);
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'tahini',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search).toHaveBeenCalledOnce();
   });
 
   it('waits for 2 non-blank characters before searching', async () => {
@@ -172,17 +166,24 @@ describe(RecipeQuickSearch.name, () => {
     expect(suggestionNames(fixture.nativeElement)).toEqual([
       'Roasted Aubergine with Tahini and Pine Nuts',
     ]);
-    expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenNthCalledWith(1, {
-      keywords: 'aub',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
-    expect(search).toHaveBeenNthCalledWith(2, {
-      keywords: 'pine',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "aub",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+        [
+          {
+            "keywords": "pine",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
   });
 
   it('hides suggestions once keywords become too short again', async () => {

@@ -45,11 +45,6 @@ describe(Favorites.name, () => {
     const { fixture, search } = mountFavorites([cheesecake.id]);
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Lemon and Ricotta Cheesecake',
     ]);
@@ -82,11 +77,6 @@ describe(Favorites.name, () => {
     buttonByLabel(fixture.nativeElement, 'Remove from favorites').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(removeFavorite).toHaveBeenCalledExactlyOnceWith('shakshuka');
   });
 
@@ -95,11 +85,7 @@ describe(Favorites.name, () => {
     const canAdd = vi.spyOn(mealPlanStore, 'canAdd').mockReturnValue(false);
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchSnapshot();
     expect(canAdd).toHaveBeenCalledWith({ recipeId: 'shakshuka' });
     expect(
       buttonByText(fixture.nativeElement, 'add to meal plan').disabled,
@@ -110,11 +96,6 @@ describe(Favorites.name, () => {
     const { fixture, search } = mountFavorites([cheesecake.id, shakshuka.id]);
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Shakshuka',
       'Lemon and Ricotta Cheesecake',
@@ -151,11 +132,6 @@ describe(Favorites.name, () => {
     buttonByText(fixture.nativeElement, 'friday').click();
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(assign).toHaveBeenCalledExactlyOnceWith({
       weekday: 'friday',
       recipeId: 'shakshuka',
@@ -196,7 +172,14 @@ function mountFavorites(favoriteIds: string[]) {
 
   const search = vi
     .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([shakshuka, cheesecake]));
+    .mockImplementation((params) => {
+      const catalog = [shakshuka, cheesecake];
+      return of(
+        'courses' in params
+          ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
+          : catalog,
+      );
+    });
   const userFavorites = TestBed.inject(UserFavorites);
   vi.spyOn(userFavorites, 'favoriteIds').mockReturnValue(new Set(favoriteIds));
   const mealPlanStore = TestBed.inject(MealPlanStore);

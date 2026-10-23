@@ -19,8 +19,10 @@ describe(AdminMissingDescriptions.name, () => {
 
   it('shows an empty state when every recipe has a description', async () => {
     const { fixture, search } = mountAdminMissingDescriptions();
-    search.mockReturnValue(
-      of([
+    search.mockImplementation((params) => {
+      expect(params.keywords).toBe('');
+      expect(params.courses).toBeUndefined();
+      return of([
         {
           id: 'shakshuka',
           course: 'main',
@@ -30,15 +32,10 @@ describe(AdminMissingDescriptions.name, () => {
           ingredients: [{ name: 'eggs' }],
           steps: ['Cook.'],
         },
-      ]),
-    );
+      ]);
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(emptyState(fixture.nativeElement)).toBe(
       'Every recipe has a description.',
     );
@@ -46,26 +43,25 @@ describe(AdminMissingDescriptions.name, () => {
 
   it('lists recipes with a null description', async () => {
     const { fixture, search } = mountAdminMissingDescriptions();
-    search.mockReturnValue(
-      of([
-        {
-          id: 'tahini-halva-brownies',
-          course: 'dessert',
-          name: 'Tahini and Halva Brownies',
-          description: null,
-          pictureUri: '/images/tahini-halva-brownies.svg',
-          ingredients: [{ name: 'dark chocolate' }],
-          steps: ['Bake.'],
-        },
-      ]),
+    search.mockImplementation((params) =>
+      of(
+        Object.keys(params).length === 3
+          ? [
+              {
+                id: 'tahini-halva-brownies',
+                course: 'dessert',
+                name: 'Tahini and Halva Brownies',
+                description: null,
+                pictureUri: '/images/tahini-halva-brownies.svg',
+                ingredients: [{ name: 'dark chocolate' }],
+                steps: ['Bake.'],
+              },
+            ]
+          : [],
+      ),
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowNames(fixture.nativeElement)).toEqual([
       'Tahini and Halva Brownies',
     ]);
@@ -143,11 +139,11 @@ describe(AdminMissingDescriptions.name, () => {
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    await expect(
+      JSON.stringify(search.mock.calls, null, 2),
+    ).toMatchFileSnapshot(
+      './__snapshots__/admin-missing-descriptions.calls.json',
+    );
     expect(summary(fixture.nativeElement)).toBe('1 of 2 recipes');
   });
 });

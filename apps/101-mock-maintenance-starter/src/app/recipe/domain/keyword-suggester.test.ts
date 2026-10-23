@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom, of } from 'rxjs';
+import { firstValueFrom, of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { KeywordSuggester } from './keyword-suggester';
 
@@ -50,29 +53,23 @@ describe(KeywordSuggester.name, () => {
 
   it('suggests the words of recipe names that start with the prefix', async () => {
     const { keywordSuggester, search } = setUpKeywordSuggester();
-    search.mockReturnValue(of([lemonChicken, cheesecake]));
+    search.mockImplementation(
+      respondBySearchKey({
+        'lem|||*': [lemonChicken, cheesecake],
+      }),
+    );
 
     const keywords = await firstValueFrom(keywordSuggester.suggest('lem'));
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'lem',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(keywords).toEqual(['lemon', 'lemongrass', 'lemony']);
   });
 
   it('ignores the case and surrounding spaces of the prefix', async () => {
     const { keywordSuggester, search } = setUpKeywordSuggester();
-    search.mockReturnValue(of([lentilSoup]));
+    search.mockImplementation(respondBySearchKey({ 'le|||*': [lentilSoup] }));
 
     const keywords = await firstValueFrom(keywordSuggester.suggest('  LE '));
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'le',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(keywords).toEqual(['lentil']);
   });
 
@@ -82,11 +79,17 @@ describe(KeywordSuggester.name, () => {
 
     const keywords = await firstValueFrom(keywordSuggester.suggest('zz'));
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'zz',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "zz",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
     expect(keywords).toEqual([]);
   });
 
@@ -106,4 +109,25 @@ function setUpKeywordSuggester() {
     .mockReturnValue(of([cheesecake]));
   const keywordSuggester = TestBed.inject(KeywordSuggester);
   return { keywordSuggester, search };
+}
+
+function respondBySearchKey(responses: Record<string, Recipe[]>) {
+  return (params: RecipeSearchParams) => {
+    const key = searchKey(params);
+    return key in responses
+      ? of(responses[key])
+      : throwError(() => new Error(`unexpected search ${key}`));
+  };
+}
+
+/**
+ * `*` stands for "any course".
+ */
+function searchKey({
+  keywords,
+  maxIngredientCount,
+  maxStepCount,
+  courses,
+}: RecipeSearchParams): string {
+  return [keywords, maxIngredientCount, maxStepCount, courses ?? '*'].join('|');
 }

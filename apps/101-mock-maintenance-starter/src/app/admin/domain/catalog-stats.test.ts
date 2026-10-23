@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom, of } from 'rxjs';
+import { firstValueFrom, of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { CatalogStats } from './catalog-stats';
 
@@ -50,30 +53,35 @@ describe(CatalogStats.name, () => {
 
   it('counts recipes per course', async () => {
     const { catalogStats, search } = setUpCatalogStats();
-    search.mockReturnValue(of([hummus, shakshuka, kofte]));
+    search.mockImplementation((params) =>
+      of(isWholeCatalogSearch(params) ? [hummus, shakshuka, kofte] : []),
+    );
 
     const stats = await firstValueFrom(catalogStats.stats());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(stats.recipeCount).toBe(3);
     expect(stats.countByCourse).toEqual({ starter: 1, main: 2, dessert: 0 });
   });
 
   it('computes average ingredient and step counts', async () => {
     const { catalogStats, search } = setUpCatalogStats();
-    search.mockReturnValue(of([hummus, shakshuka, kofte]));
+    const responses: Record<string, Recipe[]> = {
+      [searchKey({
+        keywords: '',
+        maxIngredientCount: null,
+        maxStepCount: null,
+      })]: [hummus, shakshuka, kofte],
+    };
+    search.mockImplementation((params) => {
+      const recipes = responses[searchKey(params)];
+      if (recipes == null) {
+        throw new Error(`unexpected search ${searchKey(params)}`);
+      }
+      return of(recipes);
+    });
 
     const stats = await firstValueFrom(catalogStats.stats());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(stats.averageIngredientCount).toBe(2);
     expect(stats.averageStepCount).toBe(2);
   });
@@ -98,11 +106,17 @@ describe(CatalogStats.name, () => {
 
     const stats = await firstValueFrom(catalogStats.stats());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": null,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
     expect(stats).toEqual({
       recipeCount: 0,
       countByCourse: { starter: 0, main: 0, dessert: 0 },
@@ -114,15 +128,14 @@ describe(CatalogStats.name, () => {
 
   it('computes fractional averages', async () => {
     const { catalogStats, search } = setUpCatalogStats();
-    search.mockReturnValue(of([hummus, shakshuka]));
+    search.mockImplementation((params) =>
+      'courses' in params
+        ? throwError(() => new Error('stats must not filter by course'))
+        : of([hummus, shakshuka]),
+    );
 
     const stats = await firstValueFrom(catalogStats.stats());
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(stats.averageIngredientCount).toBe(2.5);
     expect(stats.averageStepCount).toBe(2);
   });
@@ -154,10 +167,7 @@ describe(CatalogStats.name, () => {
     await firstValueFrom(catalogStats.stats());
     const stats = await firstValueFrom(catalogStats.stats());
 
-    expect(search.mock.calls).toEqual([
-      [{ keywords: '', maxIngredientCount: null, maxStepCount: null }],
-      [{ keywords: '', maxIngredientCount: null, maxStepCount: null }],
-    ]);
+    expect(search.mock.calls).toMatchSnapshot();
     expect(stats.recipeCount).toBe(1);
   });
 });
@@ -168,4 +178,15 @@ function setUpCatalogStats() {
     .mockReturnValue(of([]));
   const catalogStats = TestBed.inject(CatalogStats);
   return { catalogStats, search };
+}
+
+function isWholeCatalogSearch(params: RecipeSearchParams) {
+  return (
+    Object.keys(params).length === 3 &&
+    Object.values(params).every((value) => value === '' || value === null)
+  );
+}
+
+function searchKey(params: RecipeSearchParams) {
+  return JSON.stringify(params);
 }

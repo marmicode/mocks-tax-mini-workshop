@@ -1,8 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  createRecipeSearchParams,
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
+import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminMissingIngredients } from './admin-missing-ingredients.ng';
 
 describe(AdminMissingIngredients.name, () => {
@@ -34,11 +39,7 @@ describe(AdminMissingIngredients.name, () => {
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchSnapshot();
     expect(emptyState(fixture.nativeElement)).toBe(
       'Every recipe has ingredients.',
     );
@@ -73,8 +74,8 @@ describe(AdminMissingIngredients.name, () => {
 
   it('lists recipes with unnamed ingredients', async () => {
     const { fixture, search } = mountAdminMissingIngredients();
-    search.mockReturnValue(
-      of([
+    const responses: Record<string, Recipe[]> = {
+      [searchKey(createRecipeSearchParams())]: [
         {
           id: 'tahini-halva-brownies',
           course: 'dessert',
@@ -84,15 +85,15 @@ describe(AdminMissingIngredients.name, () => {
           ingredients: [{ name: 'butter' }, { name: '' }, { name: ' ' }],
           steps: ['Bake.'],
         },
-      ]),
+      ],
+    };
+    search.mockImplementation((params) =>
+      searchKey(params) in responses
+        ? of(responses[searchKey(params)])
+        : throwError(() => new Error(`unexpected search ${searchKey(params)}`)),
     );
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Tahini and Halva Brownies — 2 unnamed ingredient(s)',
     ]);
@@ -100,8 +101,15 @@ describe(AdminMissingIngredients.name, () => {
 
   it('only lists incomplete recipes', async () => {
     const { fixture, search } = mountAdminMissingIngredients();
-    search.mockReturnValue(
-      of([
+    search.mockImplementation((params) => {
+      if (
+        params.keywords !== '' ||
+        params.maxIngredientCount !== null ||
+        params.maxStepCount !== null
+      ) {
+        return of([]);
+      }
+      const catalog: Recipe[] = [
         {
           id: 'hummus-ful',
           course: 'starter',
@@ -120,15 +128,15 @@ describe(AdminMissingIngredients.name, () => {
           ingredients: [],
           steps: ['Fry.'],
         },
-      ]),
-    );
+      ];
+      return of(
+        params.courses?.length
+          ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
+          : catalog,
+      );
+    });
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Courgette Fritters — no ingredients',
     ]);
@@ -155,4 +163,11 @@ function rowTexts(root: HTMLElement): string[] {
 
 function emptyState(root: HTMLElement): string | undefined {
   return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+}
+
+/**
+ * Mirrors the backend cache key (`JSON.stringify` of the request body).
+ */
+function searchKey(params: RecipeSearchParams): string {
+  return JSON.stringify(params);
 }

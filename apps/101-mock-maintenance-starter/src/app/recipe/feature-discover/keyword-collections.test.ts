@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -53,11 +53,6 @@ describe(KeywordCollections.name, () => {
     await fixture.whenStable();
 
     expect(recipeNames(fixture.nativeElement)).toEqual(['Red Lentil Soup']);
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'soup',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('searches salads when the salads collection is chosen', async () => {
@@ -68,11 +63,7 @@ describe(KeywordCollections.name, () => {
     await fixture.whenStable();
 
     expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'salad',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('shows cakes when the cakes collection is chosen', async () => {
@@ -83,11 +74,6 @@ describe(KeywordCollections.name, () => {
     await fixture.whenStable();
 
     expect(recipeNames(fixture.nativeElement)).toEqual(['Orange Polenta Cake']);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'cake',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
   });
 
   it('shows a message when the collection is empty', async () => {
@@ -125,9 +111,15 @@ function mountKeywordCollections() {
 
   const search = vi
     .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockImplementation((params) =>
-      of(responses[JSON.stringify(params)] ?? []),
-    );
+    .mockImplementation((params) => {
+      /* Collections only ever search by keywords. */
+      if (Object.keys(params).length !== 3) {
+        return throwError(
+          () => new Error(`unexpected search ${JSON.stringify(params)}`),
+        );
+      }
+      return of(responses[JSON.stringify(params)] ?? []);
+    });
 
   const fixture = TestBed.createComponent(KeywordCollections);
 

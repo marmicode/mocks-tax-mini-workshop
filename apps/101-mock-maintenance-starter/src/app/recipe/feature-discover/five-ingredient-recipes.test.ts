@@ -1,8 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, it, vi } from 'vitest';
-import { RecipeRepository } from '@whiskmate/recipe/infra';
+import {
+  RecipeRepository,
+  type RecipeSearchParams,
+} from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { LocalStorage } from '@whiskmate/shared/infra';
 import { FiveIngredientRecipes } from './five-ingredient-recipes.ng';
@@ -41,14 +44,8 @@ describe(FiveIngredientRecipes.name, () => {
 
   it('shows the five-ingredient recipes', async () => {
     const { fixture, search } = mountFiveIngredientRecipes();
-    search.mockReturnValue(of([hummus, salad]));
     await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: 5,
-      maxStepCount: null,
-    });
     expect(recipeNames(fixture.nativeElement)).toEqual([
       'Hummus with Ful',
       'Burnt Aubergine with Tahini and Pomegranate',
@@ -63,11 +60,25 @@ describe(FiveIngredientRecipes.name, () => {
     await fixture.whenStable();
 
     expect(search).toHaveBeenCalledTimes(2);
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: 'hummus',
-      maxIngredientCount: 5,
-      maxStepCount: null,
-    });
+    expect(search.mock.calls).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "keywords": "",
+            "maxIngredientCount": 5,
+            "maxStepCount": null,
+          },
+        ],
+        [
+          {
+            "keywords": "hummus",
+            "maxIngredientCount": 5,
+            "maxStepCount": null,
+          },
+        ],
+      ]
+    `);
+    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
 
   it('searches again once keywords are cleared', async () => {
@@ -79,11 +90,9 @@ describe(FiveIngredientRecipes.name, () => {
     typeKeywords(fixture.nativeElement, '');
     await fixture.whenStable();
 
-    expect(search).toHaveBeenLastCalledWith({
-      keywords: '',
-      maxIngredientCount: 5,
-      maxStepCount: null,
-    });
+    expect(searchKey(search.mock.lastCall?.[0])).toBe(
+      'keywords=&maxIngredientCount=5&maxStepCount=',
+    );
   });
 
   it('shows a message when there are no five-ingredient recipes', async () => {
@@ -119,7 +128,20 @@ function mountFiveIngredientRecipes() {
 
   const search = vi
     .spyOn(TestBed.inject(RecipeRepository), 'search')
-    .mockReturnValue(of([hummus, salad]));
+    .mockImplementation((params) => {
+      switch (searchKey(params)) {
+        case 'keywords=&maxIngredientCount=5&maxStepCount=':
+          return of([hummus, salad]);
+        case 'keywords=hummus&maxIngredientCount=5&maxStepCount=':
+          return of([hummus]);
+        case 'keywords=salad&maxIngredientCount=5&maxStepCount=':
+          return of([salad]);
+        default:
+          return throwError(
+            () => new Error(`unexpected search ${searchKey(params)}`),
+          );
+      }
+    });
 
   const fixture = TestBed.createComponent(FiveIngredientRecipes);
 
@@ -141,4 +163,16 @@ function typeKeywords(root: HTMLElement, keywords: string): void {
   }
   input.value = keywords;
   input.dispatchEvent(new Event('input'));
+}
+
+/**
+ * Same shape as the query string the backend logs for each search.
+ */
+function searchKey(params: RecipeSearchParams | undefined): string {
+  return new URLSearchParams(
+    Object.entries(params ?? {}).map(([key, value]) => [
+      key,
+      value == null ? '' : String(value),
+    ]),
+  ).toString();
 }

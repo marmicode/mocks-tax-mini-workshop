@@ -16,76 +16,76 @@
     "strict": false,
     "paths": {
       "@whiskmate/admin/domain": [
-        "./apps/101-mock-maintenance-solution/src/app/admin/domain/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/admin/domain/index.ts"
       ],
       "@whiskmate/admin/feature-admin": [
-        "./apps/101-mock-maintenance-solution/src/app/admin/feature-admin/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/admin/feature-admin/index.ts"
       ],
       "@whiskmate/admin/feature-catalog": [
-        "./apps/101-mock-maintenance-solution/src/app/admin/feature-catalog/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/admin/feature-catalog/index.ts"
       ],
       "@whiskmate/admin/feature-recipes": [
-        "./apps/101-mock-maintenance-solution/src/app/admin/feature-recipes/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/admin/feature-recipes/index.ts"
       ],
       "@whiskmate/authz/domain": [
-        "./apps/101-mock-maintenance-solution/src/app/authz/domain/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/authz/domain/index.ts"
       ],
       "@whiskmate/authz/model": [
-        "./apps/101-mock-maintenance-solution/src/app/authz/model/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/authz/model/index.ts"
       ],
       "@whiskmate/meal-plan/domain": [
-        "./apps/101-mock-maintenance-solution/src/app/meal-plan/domain/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/meal-plan/domain/index.ts"
       ],
       "@whiskmate/meal-plan/feature-meal-plan": [
-        "./apps/101-mock-maintenance-solution/src/app/meal-plan/feature-meal-plan/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/meal-plan/feature-meal-plan/index.ts"
       ],
       "@whiskmate/meal-plan/feature-shopping-list": [
-        "./apps/101-mock-maintenance-solution/src/app/meal-plan/feature-shopping-list/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/meal-plan/feature-shopping-list/index.ts"
       ],
       "@whiskmate/meal-plan/ui": [
-        "./apps/101-mock-maintenance-solution/src/app/meal-plan/ui/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/meal-plan/ui/index.ts"
       ],
       "@whiskmate/recipe/domain": [
-        "./apps/101-mock-maintenance-solution/src/app/recipe/domain/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/recipe/domain/index.ts"
       ],
       "@whiskmate/recipe/feature-detail": [
-        "./apps/101-mock-maintenance-solution/src/app/recipe/feature-detail/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/recipe/feature-detail/index.ts"
       ],
       "@whiskmate/recipe/feature-discover": [
-        "./apps/101-mock-maintenance-solution/src/app/recipe/feature-discover/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/recipe/feature-discover/index.ts"
       ],
       "@whiskmate/recipe/feature-search": [
-        "./apps/101-mock-maintenance-solution/src/app/recipe/feature-search/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/recipe/feature-search/index.ts"
       ],
       "@whiskmate/recipe/infra": [
-        "./apps/101-mock-maintenance-solution/src/app/recipe/infra/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/recipe/infra/index.ts"
       ],
       "@whiskmate/recipe/model": [
-        "./apps/101-mock-maintenance-solution/src/app/recipe/model/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/recipe/model/index.ts"
       ],
       "@whiskmate/recipe/ui": [
-        "./apps/101-mock-maintenance-solution/src/app/recipe/ui/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/recipe/ui/index.ts"
       ],
       "@whiskmate/recipe/ui-search": [
-        "./apps/101-mock-maintenance-solution/src/app/recipe/ui-search/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/recipe/ui-search/index.ts"
       ],
       "@whiskmate/shared-meal-plan/domain": [
-        "./apps/101-mock-maintenance-solution/src/app/shared-meal-plan/domain/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/shared-meal-plan/domain/index.ts"
       ],
       "@whiskmate/shared-recipe/model": [
-        "./apps/101-mock-maintenance-solution/src/app/shared-recipe/model/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/shared-recipe/model/index.ts"
       ],
       "@whiskmate/shared-recipe/testing": [
-        "./apps/101-mock-maintenance-solution/src/app/shared-recipe/testing/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/shared-recipe/testing/index.ts"
       ],
       "@whiskmate/shared/infra": [
-        "./apps/101-mock-maintenance-solution/src/app/shared/infra/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/shared/infra/index.ts"
       ],
       "@whiskmate/shared/model": [
-        "./apps/101-mock-maintenance-solution/src/app/shared/model/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/shared/model/index.ts"
       ],
       "@whiskmate/shared/ui": [
-        "./apps/101-mock-maintenance-solution/src/app/shared/ui/index.ts"
+        "./apps/101-mock-maintenance-starter/src/app/shared/ui/index.ts"
       ]
     }
   },
