@@ -6,30 +6,24 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminPictureAudit } from './admin-picture-audit.ng';
 
 describe(AdminPictureAudit.name, () => {
   it('accepts https and local pictures', async () => {
     const { fixture } = mountAdminPictureAudit({
       recipes: [
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: 'Eggs poached in a spiced tomato sauce.',
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook.'],
-        },
-        {
-          id: 'tahini-halva-brownies',
-          course: 'dessert',
-          name: 'Tahini and Halva Brownies',
-          description: null,
-          pictureUri: '/images/tahini-halva-brownies.svg',
-          ingredients: [{ name: 'tahini' }],
-          steps: ['Bake.'],
-        },
+        recipeMother
+          .withBasicInfo({
+            name: 'Shakshuka',
+          })
+          .build(),
+        recipeMother
+          .withBasicInfo({
+            name: 'Tahini and Halva Brownies',
+          })
+          .withPictureUri('/images/tahini-halva-brownies.svg')
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -40,15 +34,10 @@ describe(AdminPictureAudit.name, () => {
   it('flags pictures served over plain http', async () => {
     const { fixture } = mountAdminPictureAudit({
       recipes: [
-        {
-          id: 'courgette-fritters',
-          course: 'starter',
-          name: 'Courgette Fritters',
-          description: null,
-          pictureUri: 'http://example.com/fritters.jpg',
-          ingredients: [{ name: 'courgettes' }],
-          steps: ['Fry.'],
-        },
+        recipeMother
+          .withBasicInfo({ name: 'Courgette Fritters', course: 'starter' })
+          .withPictureUri('http://example.com/fritters.jpg')
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -61,15 +50,12 @@ describe(AdminPictureAudit.name, () => {
   it('flags missing pictures', async () => {
     const { fixture } = mountAdminPictureAudit({
       recipes: [
-        {
-          id: 'hummus-ful',
-          course: 'starter',
-          name: 'Hummus with Ful',
-          description: 'Creamy hummus.',
-          pictureUri: '',
-          ingredients: [{ name: 'chickpeas' }],
-          steps: ['Blend.'],
-        },
+        recipeMother
+          .withBasicInfo({
+            name: 'Hummus with Ful',
+          })
+          .withPictureUri('')
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -82,15 +68,10 @@ describe(AdminPictureAudit.name, () => {
   it('flags pictures from unknown locations', async () => {
     const { fixture } = mountAdminPictureAudit({
       recipes: [
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: null,
-          pictureUri: 'ftp://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook.'],
-        },
+        recipeMother
+          .withBasicInfo('Shakshuka')
+          .withPictureUri('ftp://example.com/shakshuka.jpg')
+          .build(),
       ],
     });
     await fixture.whenStable();

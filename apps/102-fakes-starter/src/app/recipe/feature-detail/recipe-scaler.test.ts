@@ -5,26 +5,21 @@ import {
   provideRecipeRepositoryFake,
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { RecipeScaler } from './recipe-scaler.ng';
 
-const cheesecake: Recipe = {
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [
+const cheesecake = recipeMother
+  .withBasicInfo('Lemon and Ricotta Cheesecake')
+  .withIngredients([
     { quantity: { amount: 250, unit: 'g' }, name: 'ricotta' },
     { quantity: { amount: 3, unit: '' }, name: 'eggs' },
     { name: 'zest of 2 lemons' },
-  ],
-  steps: [],
-};
+  ])
+  .build();
 
 describe(RecipeScaler.name, () => {
   it('shows quantities for 4 servings by default', async () => {
-    const { fixture } = mountRecipeScaler('lemon-ricotta-cheesecake');
+    const { fixture } = mountRecipeScaler(cheesecake.id);
     await fixture.whenStable();
 
     expect(scaledIngredients(fixture.nativeElement)).toEqual([
@@ -35,7 +30,7 @@ describe(RecipeScaler.name, () => {
   });
 
   it('doubles quantities for 8 servings', async () => {
-    const { fixture } = mountRecipeScaler('lemon-ricotta-cheesecake');
+    const { fixture } = mountRecipeScaler(cheesecake.id);
     await fixture.whenStable();
 
     typeInto(servingsInput(fixture.nativeElement), '8');
@@ -49,7 +44,7 @@ describe(RecipeScaler.name, () => {
   });
 
   it('rounds scaled quantities to one decimal', async () => {
-    const { fixture } = mountRecipeScaler('lemon-ricotta-cheesecake');
+    const { fixture } = mountRecipeScaler(cheesecake.id);
     await fixture.whenStable();
 
     typeInto(servingsInput(fixture.nativeElement), '3');
@@ -63,7 +58,7 @@ describe(RecipeScaler.name, () => {
   });
 
   it('ignores invalid servings', async () => {
-    const { fixture } = mountRecipeScaler('lemon-ricotta-cheesecake');
+    const { fixture } = mountRecipeScaler(cheesecake.id);
     await fixture.whenStable();
 
     typeInto(servingsInput(fixture.nativeElement), '0');

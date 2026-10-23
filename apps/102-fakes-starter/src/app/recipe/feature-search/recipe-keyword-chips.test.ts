@@ -6,38 +6,17 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { RecipeKeywordChips } from './recipe-keyword-chips.ng';
 
-const cheesecake: Recipe = {
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [],
-  steps: [],
-};
+const cheesecake = recipeMother
+  .withBasicInfo('Lemon and Ricotta Cheesecake')
+  .build();
 
-const lentilSoup: Recipe = {
-  id: 'lentil-soup',
-  course: 'starter',
-  name: 'Red Lentil Soup',
-  description: null,
-  pictureUri: 'https://example.com/lentil-soup.jpg',
-  ingredients: [],
-  steps: [],
-};
+const lentilSoup = recipeMother.withBasicInfo('Red Lentil Soup').build();
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 describe(RecipeKeywordChips.name, () => {
   it('shows a chip for each keyword matching the typed prefix', async () => {

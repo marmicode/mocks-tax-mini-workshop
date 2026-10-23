@@ -7,37 +7,18 @@ import {
 } from '@whiskmate/recipe/infra';
 import type { WeekdayAssignments } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { MealPlanSuggester } from './meal-plan-suggester';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
-  steps: [],
-};
+const hummus = recipeMother
+  .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+  .build();
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-const harissaChicken: Recipe = {
-  id: 'harissa-chicken',
-  course: 'main',
-  name: 'Harissa-Roasted Chicken',
-  description: null,
-  pictureUri: 'https://example.com/harissa-chicken.jpg',
-  ingredients: [],
-  steps: [],
-};
+const harissaChicken = recipeMother
+  .withBasicInfo('Harissa-Roasted Chicken')
+  .build();
 
 const emptyAssignments: WeekdayAssignments = {
   monday: null,
@@ -107,7 +88,7 @@ describe(MealPlanSuggester.name, () => {
     const { suggester } = setUpMealPlanSuggester([shakshuka, harissaChicken]);
 
     const suggestions = await firstValueFrom(
-      suggester.suggest({ ...emptyAssignments, monday: 'shakshuka' }),
+      suggester.suggest({ ...emptyAssignments, monday: shakshuka.id }),
     );
 
     expect(Object.values(suggestions)).not.toContain(shakshuka);
@@ -118,7 +99,7 @@ describe(MealPlanSuggester.name, () => {
     const { suggester } = setUpMealPlanSuggester([shakshuka]);
 
     const suggestions = await firstValueFrom(
-      suggester.suggest({ ...emptyAssignments, monday: 'shakshuka' }),
+      suggester.suggest({ ...emptyAssignments, monday: shakshuka.id }),
     );
 
     expect(suggestions).toEqual({});

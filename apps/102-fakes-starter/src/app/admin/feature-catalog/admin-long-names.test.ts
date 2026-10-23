@@ -6,22 +6,13 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminLongNames } from './admin-long-names.ng';
 
 describe(AdminLongNames.name, () => {
   it('shows an empty state when every name is short enough', async () => {
     const { fixture } = mountAdminLongNames({
-      recipes: [
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: 'Eggs poached in a spiced tomato sauce.',
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook.'],
-        },
-      ],
+      recipes: [recipeMother.withBasicInfo('Shakshuka').build()],
     });
     await fixture.whenStable();
 
@@ -33,24 +24,10 @@ describe(AdminLongNames.name, () => {
   it('lists names longer than 30 characters by default', async () => {
     const { fixture } = mountAdminLongNames({
       recipes: [
-        {
-          id: 'slow-roasted-lamb-shoulder-with-pomegranate',
-          course: 'main',
-          name: 'Slow-Roasted Lamb Shoulder with Pomegranate',
-          description: null,
-          pictureUri: 'https://example.com/lamb.jpg',
-          ingredients: [{ name: 'lamb shoulder' }],
-          steps: ['Roast.'],
-        },
-        {
-          id: 'hummus-ful',
-          course: 'starter',
-          name: 'Hummus with Ful',
-          description: 'Creamy hummus.',
-          pictureUri: 'https://example.com/hummus.jpg',
-          ingredients: [{ name: 'chickpeas' }],
-          steps: ['Blend.'],
-        },
+        recipeMother
+          .withBasicInfo('Slow-Roasted Lamb Shoulder with Pomegranate')
+          .build(),
+        recipeMother.withBasicInfo('Hummus with Ful').build(),
       ],
     });
     await fixture.whenStable();
@@ -63,24 +40,12 @@ describe(AdminLongNames.name, () => {
   it('sorts the longest names first', async () => {
     const { fixture } = mountAdminLongNames({
       recipes: [
-        {
-          id: 'tahini-and-halva-brownies-with-sea-salt',
-          course: 'dessert',
-          name: 'Tahini and Halva Brownies with Sea Salt',
-          description: null,
-          pictureUri: '/images/tahini-halva-brownies.svg',
-          ingredients: [{ name: 'tahini' }],
-          steps: ['Bake.'],
-        },
-        {
-          id: 'slow-roasted-lamb-shoulder-with-pomegranate',
-          course: 'main',
-          name: 'Slow-Roasted Lamb Shoulder with Pomegranate',
-          description: null,
-          pictureUri: 'https://example.com/lamb.jpg',
-          ingredients: [{ name: 'lamb shoulder' }],
-          steps: ['Roast.'],
-        },
+        recipeMother
+          .withBasicInfo('Tahini and Halva Brownies with Sea Salt')
+          .build(),
+        recipeMother
+          .withBasicInfo('Slow-Roasted Lamb Shoulder with Pomegranate')
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -94,24 +59,8 @@ describe(AdminLongNames.name, () => {
   it('applies a custom max length', async () => {
     const { fixture } = mountAdminLongNames({
       recipes: [
-        {
-          id: 'hummus-with-ful',
-          course: 'starter',
-          name: 'Hummus with Ful',
-          description: 'Creamy hummus.',
-          pictureUri: 'https://example.com/hummus.jpg',
-          ingredients: [{ name: 'chickpeas' }],
-          steps: ['Blend.'],
-        },
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: null,
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook.'],
-        },
+        recipeMother.withBasicInfo('Hummus with Ful').build(),
+        recipeMother.withBasicInfo('Shakshuka').build(),
       ],
     });
     await fixture.whenStable();

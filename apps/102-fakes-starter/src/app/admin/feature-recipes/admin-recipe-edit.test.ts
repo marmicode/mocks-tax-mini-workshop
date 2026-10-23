@@ -5,26 +5,22 @@ import {
   provideRecipeRepositoryFake,
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminRecipeEdit } from './admin-recipe-edit.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: 'Eggs poached in a spiced tomato sauce.',
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withIngredients([
     { quantity: { amount: 3, unit: 'tbsp' }, name: 'olive oil' },
     { quantity: { amount: 6, unit: '' }, name: 'large eggs' },
     { name: 'fresh coriander' },
-  ],
-  steps: ['Cook the sauce.', 'Poach the eggs.'],
-};
+  ])
+  .withSteps(['Cook the sauce.', 'Poach the eggs.'])
+  .build();
 
 describe(AdminRecipeEdit.name, () => {
   it('prefills the form with the recipe', async () => {
-    const { fixture } = mountAdminRecipeEdit('shakshuka');
+    const { fixture } = mountAdminRecipeEdit(shakshuka.id);
     await fixture.whenStable();
 
     expect(fieldByLabel(fixture.nativeElement, 'Name').value).toBe('Shakshuka');
@@ -38,17 +34,19 @@ describe(AdminRecipeEdit.name, () => {
   });
 
   it('does not allow changing the id', async () => {
-    const { fixture } = mountAdminRecipeEdit('shakshuka');
+    const { fixture } = mountAdminRecipeEdit(shakshuka.id);
     await fixture.whenStable();
 
     const idField = fieldByLabel(fixture.nativeElement, 'Id');
 
-    expect(idField.value).toBe('shakshuka');
+    expect(idField.value).toBe(shakshuka.id);
     expect((idField as HTMLInputElement).readOnly).toBe(true);
   });
 
   it('saves an unchanged recipe as is', async () => {
-    const { fixture, recipeRepositoryFake } = mountAdminRecipeEdit('shakshuka');
+    const { fixture, recipeRepositoryFake } = mountAdminRecipeEdit(
+      shakshuka.id,
+    );
     await fixture.whenStable();
 
     buttonByText(fixture.nativeElement, 'Save').click();
@@ -58,8 +56,9 @@ describe(AdminRecipeEdit.name, () => {
   });
 
   it('updates the recipe and goes back to the list', async () => {
-    const { fixture, recipeRepositoryFake, router } =
-      mountAdminRecipeEdit('shakshuka');
+    const { fixture, recipeRepositoryFake, router } = mountAdminRecipeEdit(
+      shakshuka.id,
+    );
     await fixture.whenStable();
 
     typeInto(fieldByLabel(fixture.nativeElement, 'Name'), 'Green Shakshuka');
@@ -70,19 +69,17 @@ describe(AdminRecipeEdit.name, () => {
     await fixture.whenStable();
 
     expect(recipeRepositoryFake.getRecipesSync()).toEqual([
-      {
-        id: 'shakshuka',
-        course: 'starter',
-        name: 'Green Shakshuka',
-        description: null,
-        pictureUri: 'https://example.com/shakshuka.jpg',
-        ingredients: [
+      recipeMother
+        .withBasicInfo({ name: 'Green Shakshuka', course: 'starter' })
+        .withId(shakshuka.id)
+        .withPictureUri(shakshuka.pictureUri)
+        .withIngredients([
           { quantity: { amount: 3, unit: 'tbsp' }, name: 'olive oil' },
           { quantity: { amount: 6, unit: '' }, name: 'large eggs' },
           { name: 'fresh coriander' },
-        ],
-        steps: ['Cook the sauce.', 'Poach the eggs.'],
-      },
+        ])
+        .withSteps(['Cook the sauce.', 'Poach the eggs.'])
+        .build(),
     ]);
     expect(router.url).toBe('/admin/recipes');
   });

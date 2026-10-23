@@ -6,25 +6,17 @@ import {
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { afterEach, describe, it } from 'vitest';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import {
   createRecipeSearchParams,
   RecipeRepository,
 } from './recipe-repository';
 import { verifyRecipeRepositoryContract } from './recipe-repository.contract';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 describe(RecipeRepository.name, () => {
-  /* Runs against the recipe API started by `vitest.global-setup.mts`. */
+  /* Runs against the real recipe API, served by the Vite plugin in `vitest.config.mts`. */
   verifyRecipeRepositoryContract(createRecipeRepository);
 
   describe('HTTP protocol', () => {
@@ -116,10 +108,10 @@ describe(RecipeRepository.name, () => {
       const { repository, httpTesting } =
         setUpRecipeRepositoryWithHttpTesting();
 
-      const recipe = firstValueFrom(repository.findById({ id: 'shakshuka' }));
+      const recipe = firstValueFrom(repository.findById({ id: shakshuka.id }));
 
       httpTesting
-        .expectOne({ method: 'GET', url: '/api/recipes/shakshuka' })
+        .expectOne({ method: 'GET', url: `/api/recipes/${shakshuka.id}` })
         .flush(shakshuka);
 
       expect(await recipe).toEqual(shakshuka);
@@ -162,7 +154,7 @@ describe(RecipeRepository.name, () => {
 
       const req = httpTesting.expectOne({
         method: 'PUT',
-        url: '/api/recipes/shakshuka',
+        url: `/api/recipes/${shakshuka.id}`,
       });
       expect(req.request.body).toEqual(shakshuka);
       req.flush(shakshuka);
@@ -174,10 +166,10 @@ describe(RecipeRepository.name, () => {
       const { repository, httpTesting } =
         setUpRecipeRepositoryWithHttpTesting();
 
-      const result = firstValueFrom(repository.remove({ id: 'shakshuka' }));
+      const result = firstValueFrom(repository.remove({ id: shakshuka.id }));
 
       httpTesting
-        .expectOne({ method: 'DELETE', url: '/api/recipes/shakshuka' })
+        .expectOne({ method: 'DELETE', url: `/api/recipes/${shakshuka.id}` })
         .flush(null, { status: 204, statusText: 'No Content' });
 
       await result;

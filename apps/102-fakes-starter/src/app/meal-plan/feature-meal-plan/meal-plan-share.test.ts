@@ -9,20 +9,12 @@ import {
   MealPlanStore,
   type WeekdayAssignments,
 } from '@whiskmate/shared-meal-plan/domain';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { WEEKDAYS } from '@whiskmate/shared/model';
 import { MealPlanShare } from './meal-plan-share.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 const emptyAssignments: WeekdayAssignments = {
   monday: null,
@@ -38,7 +30,7 @@ describe(MealPlanShare.name, () => {
   it('shows the week as text', async () => {
     const { fixture } = mountMealPlanShare({
       ...emptyAssignments,
-      wednesday: 'shakshuka',
+      wednesday: shakshuka.id,
     });
     await fixture.whenStable();
 
@@ -75,7 +67,7 @@ describe(MealPlanShare.name, () => {
   it('copies the text to the clipboard', async () => {
     const { fixture } = mountMealPlanShare({
       ...emptyAssignments,
-      monday: 'shakshuka',
+      monday: shakshuka.id,
     });
     const writeText = vi
       .spyOn(navigator.clipboard, 'writeText')

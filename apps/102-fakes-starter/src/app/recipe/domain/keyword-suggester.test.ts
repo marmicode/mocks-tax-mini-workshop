@@ -6,37 +6,18 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { KeywordSuggester } from './keyword-suggester';
 
-const cheesecake: Recipe = {
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [],
-  steps: [],
-};
+const cheesecake = recipeMother
+  .withBasicInfo('Lemon and Ricotta Cheesecake')
+  .build();
 
-const lemonChicken: Recipe = {
-  id: 'lemon-chicken',
-  course: 'main',
-  name: 'Lemony Chicken with Lemongrass',
-  description: null,
-  pictureUri: 'https://example.com/lemon-chicken.jpg',
-  ingredients: [],
-  steps: [],
-};
+const lemonChicken = recipeMother
+  .withBasicInfo('Lemony Chicken with Lemongrass')
+  .build();
 
-const lentilSoup: Recipe = {
-  id: 'lentil-soup',
-  course: 'starter',
-  name: 'Red Lentil Soup',
-  description: null,
-  pictureUri: 'https://example.com/lentil-soup.jpg',
-  ingredients: [],
-  steps: [],
-};
+const lentilSoup = recipeMother.withBasicInfo('Red Lentil Soup').build();
 
 describe(KeywordSuggester.name, () => {
   it('suggests the words of recipe names that start with the prefix', async () => {

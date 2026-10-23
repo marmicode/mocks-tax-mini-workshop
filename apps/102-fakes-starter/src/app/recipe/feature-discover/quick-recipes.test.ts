@@ -6,53 +6,21 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { QuickRecipes } from './quick-recipes.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: 'chickpeas' }, { name: 'tahini' }, { name: 'ful' }],
-  steps: ['Blend the chickpeas.', 'Warm the ful.', 'Serve.'],
-};
+const hummus = recipeMother.withBasicInfo('Hummus with Ful').build();
 
-const salad: Recipe = {
-  id: 'burnt-aubergine-salad',
-  course: 'starter',
-  name: 'Burnt Aubergine with Tahini and Pomegranate',
-  description: null,
-  pictureUri: 'https://example.com/salad.jpg',
-  ingredients: [
-    { name: 'aubergines' },
-    { name: 'tahini' },
-    { name: 'pomegranate' },
-    { name: 'lemon' },
-    { name: 'garlic' },
-    { name: 'parsley' },
-    { name: 'olive oil' },
-  ],
-  steps: ['Burn the aubergines.', 'Dress with tahini.'],
-};
+const salad = recipeMother
+  .withBasicInfo('Burnt Aubergine with Tahini and Pomegranate')
+  .withManyIngredients()
+  .build();
 
-const stew: Recipe = {
-  id: 'lamb-stew',
-  course: 'main',
-  name: 'Slow-cooked Lamb Stew',
-  description: null,
-  pictureUri: 'https://example.com/stew.jpg',
-  ingredients: [{ name: 'lamb' }, { name: 'onions' }],
-  steps: [
-    'Marinate.',
-    'Sear.',
-    'Sweat the onions.',
-    'Deglaze.',
-    'Simmer.',
-    'Rest.',
-  ],
-};
+const stew = recipeMother
+  .withBasicInfo('Slow-cooked Lamb Stew')
+  .withManySteps()
+  .build();
 
 describe(QuickRecipes.name, () => {
   it('shows only recipes with few steps', async () => {

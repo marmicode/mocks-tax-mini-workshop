@@ -8,45 +8,23 @@ import {
 } from '@whiskmate/recipe/infra';
 import { MealPlanStore } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { RecipeSearch } from './recipe-search.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: 'chickpeas' }, { name: 'tahini' }],
-  steps: ['Blend the chickpeas with the tahini.'],
-};
+const hummus = recipeMother
+  .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+  .build();
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [{ name: 'eggs' }, { name: 'tomatoes' }, { name: 'peppers' }],
-  steps: ['Cook the sauce.', 'Poach the eggs.', 'Serve.'],
-};
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withManySteps()
+  .build();
 
-const cheesecake: Recipe = {
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [
-    { name: 'ricotta' },
-    { name: 'eggs' },
-    { name: 'sugar' },
-    { name: 'lemons' },
-    { name: 'flour' },
-    { name: 'butter' },
-  ],
-  steps: ['Mix everything.', 'Bake.'],
-};
+const cheesecake = recipeMother
+  .withBasicInfo({ name: 'Lemon and Ricotta Cheesecake', course: 'dessert' })
+  .withManyIngredients()
+  .build();
 
 describe(RecipeSearch.name, () => {
   it('shows every recipe of the catalog on load', async () => {
@@ -97,7 +75,7 @@ describe(RecipeSearch.name, () => {
     const { fixture } = mountRecipeSearch();
     await fixture.whenStable();
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Max Steps'), '2');
+    typeInto(inputByLabel(fixture.nativeElement, 'Max Steps'), '5');
     await fixture.whenStable();
 
     expect(recipeNames(fixture.nativeElement)).toEqual([
@@ -170,7 +148,7 @@ describe(RecipeSearch.name, () => {
 
     typeInto(inputByLabel(fixture.nativeElement, 'Max Ingredients'), '5');
     await fixture.whenStable();
-    typeInto(inputByLabel(fixture.nativeElement, 'Max Steps'), '2');
+    typeInto(inputByLabel(fixture.nativeElement, 'Max Steps'), '5');
     await fixture.whenStable();
 
     expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
@@ -242,7 +220,7 @@ describe(RecipeSearch.name, () => {
     buttonByLabel(fixture.nativeElement, 'Add to favorites').click();
     await fixture.whenStable();
 
-    expect(userFavorites.favoriteIds()).toEqual(new Set(['shakshuka']));
+    expect(userFavorites.favoriteIds()).toEqual(new Set([shakshuka.id]));
   });
 
   it('removes a recipe from favorites', async () => {
@@ -269,14 +247,14 @@ describe(RecipeSearch.name, () => {
     buttonByText(fixture.nativeElement, 'wednesday').click();
     await fixture.whenStable();
 
-    expect(mealPlanStore.assignments().wednesday).toBe('shakshuka');
+    expect(mealPlanStore.assignments().wednesday).toBe(shakshuka.id);
   });
 
   it('disables add when the recipe is already planned', async () => {
     const { fixture, mealPlanStore } = mountRecipeSearch({
       recipes: [shakshuka],
     });
-    mealPlanStore.assign({ weekday: 'monday', recipeId: 'shakshuka' });
+    mealPlanStore.assign({ weekday: 'monday', recipeId: shakshuka.id });
     await fixture.whenStable();
 
     expect(

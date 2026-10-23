@@ -6,27 +6,17 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { SimplestRecipes } from './simplest-recipes.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: 'chickpeas' }, { name: 'ful' }, { name: 'tahini' }],
-  steps: [],
-};
+const hummus = recipeMother
+  .withBasicInfo('Hummus with Ful')
+  .withSomeIngredients()
+  .build();
 
-const salad: Recipe = {
-  id: 'burnt-aubergine-salad',
-  course: 'starter',
-  name: 'Burnt Aubergine with Tahini and Pomegranate',
-  description: null,
-  pictureUri: 'https://example.com/salad.jpg',
-  ingredients: [{ name: 'aubergine' }, { name: 'tahini' }],
-  steps: [],
-};
+const salad = recipeMother
+  .withBasicInfo('Burnt Aubergine with Tahini and Pomegranate')
+  .build();
 
 describe(SimplestRecipes.name, () => {
   it('shows recipes with the fewest ingredients first', async () => {
@@ -41,18 +31,7 @@ describe(SimplestRecipes.name, () => {
 
   it('sorts recipes with as many ingredients by name', async () => {
     const { fixture } = mountSimplestRecipes({
-      recipes: [
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: null,
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }, { name: 'tomatoes' }],
-          steps: [],
-        },
-        salad,
-      ],
+      recipes: [recipeMother.withBasicInfo('Shakshuka').build(), salad],
     });
     await fixture.whenStable();
 

@@ -10,39 +10,20 @@ import {
   type WeekdayAssignments,
 } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { WEEKDAYS } from '@whiskmate/shared/model';
 import { MealPlanAutoFill } from './meal-plan-auto-fill.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
-  steps: [],
-};
+const hummus = recipeMother
+  .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+  .build();
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-const lambKofte: Recipe = {
-  id: 'lamb-kofte',
-  course: 'main',
-  name: 'Lamb Kofte with Yogurt and Sumac',
-  description: null,
-  pictureUri: 'https://example.com/lamb-kofte.jpg',
-  ingredients: [],
-  steps: [],
-};
+const lambKofte = recipeMother
+  .withBasicInfo('Lamb Kofte with Yogurt and Sumac')
+  .build();
 
 const fullWeek: WeekdayAssignments = {
   monday: 'harissa-chicken',
@@ -82,7 +63,7 @@ describe(MealPlanAutoFill.name, () => {
 
   it('does not suggest recipes that are already planned', async () => {
     const { fixture } = mountMealPlanAutoFill({
-      assignments: { ...fullWeek, monday: 'shakshuka', sunday: null },
+      assignments: { ...fullWeek, monday: shakshuka.id, sunday: null },
     });
     await fixture.whenStable();
 
@@ -103,8 +84,8 @@ describe(MealPlanAutoFill.name, () => {
 
     expect(mealPlanStore.assignments()).toEqual({
       ...fullWeek,
-      saturday: 'shakshuka',
-      sunday: 'shakshuka',
+      saturday: shakshuka.id,
+      sunday: shakshuka.id,
     });
     expect(router.url).toBe('/meal-plan');
   });

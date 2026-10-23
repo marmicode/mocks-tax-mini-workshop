@@ -6,44 +6,30 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { Pantry } from './pantry.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withIngredients([
     { name: '2 red peppers, sliced' },
     { name: 'garlic, crushed', quantity: { amount: 4, unit: 'cloves' } },
     { name: 'large eggs', quantity: { amount: 6, unit: '' } },
-  ],
-  steps: [],
-};
+  ])
+  .build();
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [
+const hummus = recipeMother
+  .withBasicInfo('Hummus with Ful')
+  .withIngredients([
     { name: 'tahini', quantity: { amount: 4, unit: 'tbsp' } },
     { name: 'garlic', quantity: { amount: 1, unit: 'clove' } },
-  ],
-  steps: [],
-};
+  ])
+  .build();
 
-const cheesecake: Recipe = {
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [{ name: 'ricotta', quantity: { amount: 250, unit: 'g' } }],
-  steps: [],
-};
+const cheesecake = recipeMother
+  .withBasicInfo('Lemon and Ricotta Cheesecake')
+  .withIngredients([{ name: 'ricotta', quantity: { amount: 250, unit: 'g' } }])
+  .build();
 
 describe(Pantry.name, () => {
   it('shows a hint until an ingredient is added', async () => {

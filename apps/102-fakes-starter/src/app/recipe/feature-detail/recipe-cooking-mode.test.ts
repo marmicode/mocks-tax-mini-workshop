@@ -5,25 +5,21 @@ import {
   provideRecipeRepositoryFake,
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { RecipeCookingMode } from './recipe-cooking-mode.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [
+const hummus = recipeMother
+  .withBasicInfo('Hummus with Ful')
+  .withIngredients([
     { quantity: { amount: 400, unit: 'g' }, name: 'tinned chickpeas' },
     { name: 'tahini' },
-  ],
-  steps: ['Blitz the chickpeas.', 'Add the tahini.', 'Top with the beans.'],
-};
+  ])
+  .withSteps(['Blitz the chickpeas.', 'Add the tahini.', 'Top with the beans.'])
+  .build();
 
 describe(RecipeCookingMode.name, () => {
   it('starts at the first step of the recipe', async () => {
-    const { fixture } = mountCookingMode('hummus-ful');
+    const { fixture } = mountCookingMode(hummus.id);
     await fixture.whenStable();
 
     expect(textOf(fixture.nativeElement, 'step-counter')).toBe('Step 1 of 3');
@@ -34,7 +30,7 @@ describe(RecipeCookingMode.name, () => {
   });
 
   it('goes to the next step', async () => {
-    const { fixture } = mountCookingMode('hummus-ful');
+    const { fixture } = mountCookingMode(hummus.id);
     await fixture.whenStable();
 
     buttonByText(fixture.nativeElement, 'Next').click();
@@ -47,7 +43,7 @@ describe(RecipeCookingMode.name, () => {
   });
 
   it('goes back to the previous step', async () => {
-    const { fixture } = mountCookingMode('hummus-ful');
+    const { fixture } = mountCookingMode(hummus.id);
     await fixture.whenStable();
 
     buttonByText(fixture.nativeElement, 'Next').click();
@@ -59,7 +55,7 @@ describe(RecipeCookingMode.name, () => {
   });
 
   it('wishes a nice meal on the last step', async () => {
-    const { fixture } = mountCookingMode('hummus-ful');
+    const { fixture } = mountCookingMode(hummus.id);
     await fixture.whenStable();
 
     buttonByText(fixture.nativeElement, 'Next').click();
@@ -75,7 +71,7 @@ describe(RecipeCookingMode.name, () => {
   });
 
   it('lists ingredients as a checklist', async () => {
-    const { fixture } = mountCookingMode('hummus-ful');
+    const { fixture } = mountCookingMode(hummus.id);
     await fixture.whenStable();
 
     expect(

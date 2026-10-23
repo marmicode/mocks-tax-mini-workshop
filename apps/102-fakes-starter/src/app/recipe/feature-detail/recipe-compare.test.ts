@@ -6,31 +6,24 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { RecipeCompare } from './recipe-compare.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withIngredients([
     { name: 'Olive oil' },
     { name: 'garlic, crushed' },
     { name: 'large eggs' },
-  ],
-  steps: ['Heat the oil.', 'Add the eggs.'],
-};
+  ])
+  .withSteps(['Heat the oil.', 'Add the eggs.'])
+  .build();
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: 'olive oil' }, { name: 'tahini' }],
-  steps: ['Blitz everything.'],
-};
+const hummus = recipeMother
+  .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+  .withIngredients([{ name: 'olive oil' }, { name: 'tahini' }])
+  .withSteps(['Blitz everything.'])
+  .build();
 
 describe(RecipeCompare.name, () => {
   it('lists all recipes in the pickers', async () => {
@@ -46,8 +39,8 @@ describe(RecipeCompare.name, () => {
 
   it('compares course, ingredient count and step count', async () => {
     const { fixture } = mountRecipeCompare({
-      left: 'shakshuka',
-      right: 'hummus-ful',
+      left: shakshuka.id,
+      right: hummus.id,
     });
     await fixture.whenStable();
 
@@ -61,8 +54,8 @@ describe(RecipeCompare.name, () => {
 
   it('lists shared ingredients ignoring case', async () => {
     const { fixture } = mountRecipeCompare({
-      left: 'shakshuka',
-      right: 'hummus-ful',
+      left: shakshuka.id,
+      right: hummus.id,
     });
     await fixture.whenStable();
 
@@ -80,28 +73,28 @@ describe(RecipeCompare.name, () => {
     await fixture.whenStable();
 
     const [leftSelect] = selects(fixture.nativeElement);
-    leftSelect.value = 'hummus-ful';
+    leftSelect.value = hummus.id;
     leftSelect.dispatchEvent(new Event('change'));
     await fixture.whenStable();
 
-    expect(router.url).toBe('/compare?left=hummus-ful');
+    expect(router.url).toBe(`/compare?left=${hummus.id}`);
   });
 
   it('preselects the compared recipes in the pickers', async () => {
     const { fixture } = mountRecipeCompare({
-      left: 'hummus-ful',
-      right: 'shakshuka',
+      left: hummus.id,
+      right: shakshuka.id,
     });
     await fixture.whenStable();
 
     expect(
       selects(fixture.nativeElement).map((select) => select.value),
-    ).toEqual(['hummus-ful', 'shakshuka']);
+    ).toEqual([hummus.id, shakshuka.id]);
   });
 
   it('does not compare until both recipes are picked', async () => {
     const { fixture } = mountRecipeCompare({
-      left: 'shakshuka',
+      left: shakshuka.id,
     });
     await fixture.whenStable();
 
@@ -110,9 +103,15 @@ describe(RecipeCompare.name, () => {
 
   it('tells when recipes share no ingredients', async () => {
     const { fixture } = mountRecipeCompare({
-      left: 'shakshuka',
-      right: 'hummus-ful',
-      recipes: [shakshuka, { ...hummus, ingredients: [{ name: 'tahini' }] }],
+      left: shakshuka.id,
+      right: hummus.id,
+      recipes: [
+        shakshuka,
+        recipeMother
+          .withBasicInfo('Hummus with Ful')
+          .withIngredients([{ name: 'tahini' }])
+          .build(),
+      ],
     });
     await fixture.whenStable();
 
@@ -123,10 +122,12 @@ describe(RecipeCompare.name, () => {
 
   it('clears a side when "Pick a recipe" is chosen', async () => {
     const { fixture, router } = mountRecipeCompare({
-      left: 'shakshuka',
-      right: 'hummus-ful',
+      left: shakshuka.id,
+      right: hummus.id,
     });
-    await router.navigateByUrl('/compare?left=shakshuka&right=hummus-ful');
+    await router.navigateByUrl(
+      `/compare?left=${shakshuka.id}&right=${hummus.id}`,
+    );
     await fixture.whenStable();
 
     const [, rightSelect] = selects(fixture.nativeElement);
@@ -134,7 +135,7 @@ describe(RecipeCompare.name, () => {
     rightSelect.dispatchEvent(new Event('change'));
     await fixture.whenStable();
 
-    expect(router.url).toBe('/compare?left=shakshuka');
+    expect(router.url).toBe(`/compare?left=${shakshuka.id}`);
   });
 });
 

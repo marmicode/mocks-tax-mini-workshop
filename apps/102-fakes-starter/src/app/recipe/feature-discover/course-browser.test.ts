@@ -8,48 +8,23 @@ import {
 } from '@whiskmate/recipe/infra';
 import { MealPlanStore } from '@whiskmate/shared-meal-plan/domain';
 import type { Course, Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { CourseBrowser } from './course-browser.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
-  steps: [],
-};
+const hummus = recipeMother
+  .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+  .build();
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-const cheesecake: Recipe = {
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [],
-  steps: [],
-};
+const cheesecake = recipeMother
+  .withBasicInfo({ name: 'Lemon and Ricotta Cheesecake', course: 'dessert' })
+  .build();
 
-const brownies: Recipe = {
-  id: 'tahini-halva-brownies',
-  course: 'dessert',
-  name: 'Tahini and Halva Brownies',
-  description: null,
-  pictureUri: 'https://example.com/brownies.jpg',
-  ingredients: [],
-  steps: [],
-};
+const brownies = recipeMother
+  .withBasicInfo({ name: 'Tahini and Halva Brownies', course: 'dessert' })
+  .build();
 
 describe(CourseBrowser.name, () => {
   it('shows the course title and only its recipes', async () => {
@@ -99,9 +74,7 @@ describe(CourseBrowser.name, () => {
     buttonByLabel(fixture.nativeElement, 'Add to favorites').click();
     await fixture.whenStable();
 
-    expect(userFavorites.favoriteIds()).toEqual(
-      new Set(['lemon-ricotta-cheesecake']),
-    );
+    expect(userFavorites.favoriteIds()).toEqual(new Set([cheesecake.id]));
   });
 
   it('assigns a recipe to the picked weekday', async () => {
@@ -115,7 +88,7 @@ describe(CourseBrowser.name, () => {
     buttonByText(fixture.nativeElement, 'sunday').click();
     await fixture.whenStable();
 
-    expect(mealPlanStore.assignments().sunday).toBe('lemon-ricotta-cheesecake');
+    expect(mealPlanStore.assignments().sunday).toBe(cheesecake.id);
   });
 });
 

@@ -6,37 +6,20 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { ThreeStepRecipes } from './three-step-recipes.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
-  steps: ['Blend the chickpeas.', 'Warm the ful.', 'Serve.'],
-};
+const hummus = recipeMother.withBasicInfo('Hummus with Ful').build();
 
-const salad: Recipe = {
-  id: 'burnt-aubergine-salad',
-  course: 'starter',
-  name: 'Burnt Aubergine with Tahini and Pomegranate',
-  description: null,
-  pictureUri: 'https://example.com/salad.jpg',
-  ingredients: [],
-  steps: ['Burn the aubergine.', 'Dress with tahini.'],
-};
+const salad = recipeMother
+  .withBasicInfo('Burnt Aubergine with Tahini and Pomegranate')
+  .withSteps(['Burn the aubergine.', 'Dress with tahini.'])
+  .build();
 
-const lamb: Recipe = {
-  id: 'slow-roasted-lamb',
-  course: 'main',
-  name: 'Slow-roasted Lamb',
-  description: null,
-  pictureUri: 'https://example.com/lamb.jpg',
-  ingredients: [],
-  steps: ['Marinate.', 'Sear.', 'Roast.', 'Rest.', 'Carve.'],
-};
+const lamb = recipeMother
+  .withBasicInfo('Slow-roasted Lamb')
+  .withManySteps()
+  .build();
 
 describe(ThreeStepRecipes.name, () => {
   it('shows only recipes with at most three steps', async () => {
@@ -67,7 +50,7 @@ describe(ThreeStepRecipes.name, () => {
       fixture.nativeElement
         .querySelector('[data-testid="recipe-name"]')
         ?.getAttribute('href'),
-    ).toBe('/recipes/hummus-ful');
+    ).toBe(`/recipes/${hummus.id}`);
   });
 
   it('shows a message when there are no three-step recipes', async () => {

@@ -6,43 +6,39 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminQualityReport } from './admin-quality-report.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: 'Eggs poached in a spiced tomato sauce.',
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [
+const shakshuka = recipeMother
+  .withBasicInfo({
+    name: 'Shakshuka',
+    description: 'Eggs poached in a spiced tomato sauce.',
+  })
+  .withIngredients([
     { name: 'eggs', quantity: { amount: 6, unit: '' } },
     { name: 'tomatoes', quantity: { amount: 800, unit: 'g' } },
-  ],
-  steps: ['Cook the sauce.', 'Crack the eggs.', 'Serve.'],
-};
+  ])
+  .withSteps(['Cook the sauce.', 'Crack the eggs.', 'Serve.'])
+  .build();
 
-const brownies: Recipe = {
-  id: 'tahini-halva-brownies',
-  course: 'dessert',
-  name: 'Tahini and Halva Brownies',
-  description: null,
-  pictureUri: '/images/tahini-halva-brownies.svg',
-  ingredients: [
+const brownies = recipeMother
+  .withBasicInfo('Tahini and Halva Brownies')
+  .withIngredients([
     { name: 'dark chocolate', quantity: { amount: 200, unit: 'g' } },
     { name: 'butter', quantity: { amount: 200, unit: 'g' } },
-  ],
-  steps: ['Melt.', 'Mix.', 'Bake.'],
-};
+  ])
+  .withSteps(['Melt.', 'Mix.', 'Bake.'])
+  .build();
 
-const sketchyFritters: Recipe = {
-  id: 'courgette-fritters',
-  course: 'starter',
-  name: 'Courgette Fritters',
-  description: '',
-  pictureUri: 'http://example.com/fritters.jpg',
-  ingredients: [{ name: 'courgettes' }, { name: 'eggs' }],
-  steps: ['Fry.'],
-};
+const sketchyFritters = recipeMother
+  .withBasicInfo({
+    name: 'Courgette Fritters',
+    description: '',
+  })
+  .withPictureUri('http://example.com/fritters.jpg')
+  .withIngredients([{ name: 'courgettes' }, { name: 'eggs' }])
+  .withSteps(['Fry.'])
+  .build();
 
 describe(AdminQualityReport.name, () => {
   it('gives a perfect score to a complete recipe', async () => {
@@ -143,8 +139,8 @@ describe(AdminQualityReport.name, () => {
         row.querySelector('a')?.getAttribute('href'),
       ),
     ).toEqual([
-      '/admin/recipes/shakshuka/edit',
-      '/admin/recipes/tahini-halva-brownies/edit',
+      `/admin/recipes/${shakshuka.id}/edit`,
+      `/admin/recipes/${brownies.id}/edit`,
     ]);
   });
 });

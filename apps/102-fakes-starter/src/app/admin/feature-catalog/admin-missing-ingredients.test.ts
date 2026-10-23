@@ -6,21 +6,19 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminMissingIngredients } from './admin-missing-ingredients.ng';
 
 describe(AdminMissingIngredients.name, () => {
   it('shows an empty state when every recipe has ingredients', async () => {
     const { fixture } = mountAdminMissingIngredients({
       recipes: [
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: 'Eggs poached in a spiced tomato sauce.',
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }, { name: 'tomatoes' }],
-          steps: ['Cook.'],
-        },
+        recipeMother
+          .withBasicInfo({
+            name: 'Shakshuka',
+          })
+          .withSomeIngredients()
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -33,15 +31,9 @@ describe(AdminMissingIngredients.name, () => {
   it('lists recipes without any ingredient', async () => {
     const { fixture } = mountAdminMissingIngredients({
       recipes: [
-        {
-          id: 'courgette-fritters',
-          course: 'starter',
-          name: 'Courgette Fritters',
-          description: null,
-          pictureUri: 'https://example.com/fritters.jpg',
-          ingredients: [],
-          steps: ['Fry.'],
-        },
+        recipeMother
+          .withBasicInfo({ name: 'Courgette Fritters', course: 'starter' })
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -54,15 +46,12 @@ describe(AdminMissingIngredients.name, () => {
   it('lists recipes with unnamed ingredients', async () => {
     const { fixture } = mountAdminMissingIngredients({
       recipes: [
-        {
-          id: 'tahini-halva-brownies',
-          course: 'dessert',
-          name: 'Tahini and Halva Brownies',
-          description: null,
-          pictureUri: '/images/tahini-halva-brownies.svg',
-          ingredients: [{ name: 'butter' }, { name: '' }, { name: ' ' }],
-          steps: ['Bake.'],
-        },
+        recipeMother
+          .withBasicInfo({
+            name: 'Tahini and Halva Brownies',
+          })
+          .withIngredients([{ name: 'butter' }, { name: '' }, { name: ' ' }])
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -75,24 +64,15 @@ describe(AdminMissingIngredients.name, () => {
   it('only lists incomplete recipes', async () => {
     const { fixture } = mountAdminMissingIngredients({
       recipes: [
-        {
-          id: 'hummus-ful',
-          course: 'starter',
-          name: 'Hummus with Ful',
-          description: 'Creamy hummus.',
-          pictureUri: 'https://example.com/hummus.jpg',
-          ingredients: [{ name: 'chickpeas' }],
-          steps: ['Blend.'],
-        },
-        {
-          id: 'courgette-fritters',
-          course: 'starter',
-          name: 'Courgette Fritters',
-          description: null,
-          pictureUri: 'https://example.com/fritters.jpg',
-          ingredients: [],
-          steps: ['Fry.'],
-        },
+        recipeMother
+          .withBasicInfo({
+            name: 'Hummus with Ful',
+          })
+          .withSomeIngredients()
+          .build(),
+        recipeMother
+          .withBasicInfo({ name: 'Courgette Fritters', course: 'starter' })
+          .build(),
       ],
     });
     await fixture.whenStable();

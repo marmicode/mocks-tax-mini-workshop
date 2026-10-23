@@ -6,37 +6,18 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { CourseCounts } from './course-counts.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
-  steps: [],
-};
+const hummus = recipeMother
+  .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+  .build();
 
-const fritters: Recipe = {
-  id: 'courgette-fritters',
-  course: 'starter',
-  name: 'Courgette and Herb Fritters',
-  description: null,
-  pictureUri: 'https://example.com/fritters.jpg',
-  ingredients: [],
-  steps: [],
-};
+const fritters = recipeMother
+  .withBasicInfo({ name: 'Courgette and Herb Fritters', course: 'starter' })
+  .build();
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 describe(CourseCounts.name, () => {
   it('shows the recipe count of each course', async () => {

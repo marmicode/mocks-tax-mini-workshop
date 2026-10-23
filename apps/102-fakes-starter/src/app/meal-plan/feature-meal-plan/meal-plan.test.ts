@@ -9,30 +9,16 @@ import {
   MealPlanStore,
   type WeekdayAssignments,
 } from '@whiskmate/shared-meal-plan/domain';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { WEEKDAYS } from '@whiskmate/shared/model';
 import { MealPlan } from './meal-plan.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-const cheesecake: Recipe = {
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [],
-  steps: [],
-};
+const cheesecake = recipeMother
+  .withBasicInfo('Lemon and Ricotta Cheesecake')
+  .build();
 
 const emptyAssignments: WeekdayAssignments = {
   monday: null,
@@ -58,8 +44,8 @@ describe(MealPlan.name, () => {
   it('shows each planned recipe', async () => {
     const { fixture } = mountMealPlan({
       ...emptyAssignments,
-      monday: 'shakshuka',
-      friday: 'lemon-ricotta-cheesecake',
+      monday: shakshuka.id,
+      friday: cheesecake.id,
     });
     await fixture.whenStable();
 
@@ -71,14 +57,14 @@ describe(MealPlan.name, () => {
   it('shows the name and picture of a planned recipe', async () => {
     const { fixture } = mountMealPlan({
       ...emptyAssignments,
-      monday: 'shakshuka',
+      monday: shakshuka.id,
     });
     await fixture.whenStable();
 
     const [monday, ...otherDays] = dayElements(fixture.nativeElement);
     expect(monday?.textContent).toContain('Shakshuka');
     expect(monday?.querySelector('img')?.getAttribute('src')).toBe(
-      'https://example.com/shakshuka.jpg',
+      shakshuka.pictureUri,
     );
     for (const day of otherDays) {
       expect(day.textContent?.toLowerCase()).toContain('no recipe is planned');
@@ -102,7 +88,7 @@ describe(MealPlan.name, () => {
   it('clears a day', async () => {
     const { fixture, mealPlanStore } = mountMealPlan({
       ...emptyAssignments,
-      monday: 'shakshuka',
+      monday: shakshuka.id,
     });
     await fixture.whenStable();
 
@@ -119,7 +105,7 @@ describe(MealPlan.name, () => {
   it('links each empty day to the recipe picker', async () => {
     const { fixture } = mountMealPlan({
       ...emptyAssignments,
-      monday: 'shakshuka',
+      monday: shakshuka.id,
     });
     await fixture.whenStable();
 

@@ -13,24 +13,16 @@ import {
   provideRecipeRepositoryFake,
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { recipeExistsGuard } from './recipe-exists.guard';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 describe('recipeExistsGuard', () => {
   it('lets the user in when the recipe exists', async () => {
     setUpGuard();
 
-    const result = await runGuard({ recipeId: 'shakshuka' });
+    const result = await runGuard({ recipeId: shakshuka.id });
 
     expect(result).toBe(true);
   });

@@ -6,32 +6,21 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminImport } from './admin-import.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-const updatedShakshuka: Recipe = {
-  ...shakshuka,
-  description: 'Eggs poached in a spiced tomato sauce.',
-};
+const updatedShakshuka = recipeMother
+  .withBasicInfo({
+    name: 'Shakshuka',
+    description: 'Eggs poached in a spiced tomato sauce.',
+  })
+  .build();
 
-const brownies: Recipe = {
-  id: 'tahini-halva-brownies',
-  course: 'dessert',
-  name: 'Tahini and Halva Brownies',
-  description: null,
-  pictureUri: '/images/tahini-halva-brownies.svg',
-  ingredients: [{ name: 'tahini', quantity: { amount: 80, unit: 'g' } }],
-  steps: ['Bake.'],
-};
+const brownies = recipeMother
+  .withBasicInfo('Tahini and Halva Brownies')
+  .build();
 
 describe(AdminImport.name, () => {
   it('does not touch the catalog before importing', async () => {
@@ -87,24 +76,8 @@ describe(AdminImport.name, () => {
     await fixture.whenStable();
 
     expect(recipeRepositoryFake.getRecipesSync()).toEqual([
-      {
-        id: 'shakshuka',
-        course: 'main',
-        name: 'Shakshuka',
-        description: 'Eggs poached in a spiced tomato sauce.',
-        pictureUri: 'https://example.com/shakshuka.jpg',
-        ingredients: [],
-        steps: [],
-      },
-      {
-        id: 'tahini-halva-brownies',
-        course: 'dessert',
-        name: 'Tahini and Halva Brownies',
-        description: null,
-        pictureUri: '/images/tahini-halva-brownies.svg',
-        ingredients: [{ name: 'tahini', quantity: { amount: 80, unit: 'g' } }],
-        steps: ['Bake.'],
-      },
+      updatedShakshuka,
+      brownies,
     ]);
   });
 

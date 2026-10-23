@@ -6,27 +6,14 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { PictureGallery } from './picture-gallery.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
-  steps: [],
-};
+const hummus = recipeMother.withBasicInfo('Hummus with Ful').build();
 
-const salad: Recipe = {
-  id: 'burnt-aubergine-salad',
-  course: 'starter',
-  name: 'Burnt Aubergine with Tahini and Pomegranate',
-  description: null,
-  pictureUri: 'https://example.com/salad.jpg',
-  ingredients: [],
-  steps: [],
-};
+const salad = recipeMother
+  .withBasicInfo('Burnt Aubergine with Tahini and Pomegranate')
+  .build();
 
 describe(PictureGallery.name, () => {
   it('shows the picture of each recipe', async () => {
@@ -34,8 +21,8 @@ describe(PictureGallery.name, () => {
     await fixture.whenStable();
 
     expect(pictureSources(fixture.nativeElement)).toEqual([
-      'https://example.com/hummus.jpg',
-      'https://example.com/salad.jpg',
+      hummus.pictureUri,
+      salad.pictureUri,
     ]);
   });
 
@@ -56,7 +43,7 @@ describe(PictureGallery.name, () => {
       fixture.nativeElement
         .querySelector('[data-testid="gallery-item"]')
         ?.getAttribute('href'),
-    ).toBe('/recipes/hummus-ful');
+    ).toBe(`/recipes/${hummus.id}`);
   });
 
   it('shows a message when there are no pictures', async () => {

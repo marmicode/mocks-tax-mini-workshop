@@ -5,27 +5,18 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { CatalogSize } from './catalog-size.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: '400g chickpeas' }, { name: 'tahini' }],
-  steps: [],
-};
+const hummus = recipeMother
+  .withBasicInfo('Hummus with Ful')
+  .withIngredients([{ name: '400g chickpeas' }, { name: 'tahini' }])
+  .build();
 
-const salad: Recipe = {
-  id: 'burnt-aubergine-salad',
-  course: 'starter',
-  name: 'Burnt Aubergine with Tahini and Pomegranate',
-  description: null,
-  pictureUri: 'https://example.com/salad.jpg',
-  ingredients: [{ name: '2 aubergines' }, { name: 'Tahini' }],
-  steps: [],
-};
+const salad = recipeMother
+  .withBasicInfo('Burnt Aubergine with Tahini and Pomegranate')
+  .withIngredients([{ name: '2 aubergines' }, { name: 'Tahini' }])
+  .build();
 
 describe(CatalogSize.name, () => {
   it('shows the number of recipes', async () => {

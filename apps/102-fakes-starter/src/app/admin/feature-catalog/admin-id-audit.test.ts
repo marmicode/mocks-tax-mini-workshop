@@ -6,22 +6,13 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminIdAudit } from './admin-id-audit.ng';
 
 describe(AdminIdAudit.name, () => {
   it('accepts a kebab-case id matching the name', async () => {
     const { fixture } = mountAdminIdAudit({
-      recipes: [
-        {
-          id: 'courgette-fritters',
-          course: 'starter',
-          name: 'Courgette Fritters',
-          description: null,
-          pictureUri: 'https://example.com/fritters.jpg',
-          ingredients: [{ name: 'courgettes' }],
-          steps: ['Fry.'],
-        },
-      ],
+      recipes: [recipeMother.withBasicInfo('Courgette Fritters').build()],
     });
     await fixture.whenStable();
 
@@ -31,15 +22,7 @@ describe(AdminIdAudit.name, () => {
   it('flags ids that are not kebab-case', async () => {
     const { fixture } = mountAdminIdAudit({
       recipes: [
-        {
-          id: 'Shakshuka_v2',
-          course: 'main',
-          name: 'Shakshuka',
-          description: 'Eggs poached in a spiced tomato sauce.',
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook.'],
-        },
+        recipeMother.withBasicInfo('Shakshuka').withId('Shakshuka_v2').build(),
       ],
     });
     await fixture.whenStable();
@@ -52,15 +35,10 @@ describe(AdminIdAudit.name, () => {
   it('flags kebab-case ids that do not match the name', async () => {
     const { fixture } = mountAdminIdAudit({
       recipes: [
-        {
-          id: 'hummus-ful',
-          course: 'starter',
-          name: 'Hummus with Ful',
-          description: 'Creamy hummus.',
-          pictureUri: 'https://example.com/hummus.jpg',
-          ingredients: [{ name: 'chickpeas' }],
-          steps: ['Blend.'],
-        },
+        recipeMother
+          .withBasicInfo('Hummus with Ful')
+          .withId('hummus-ful')
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -73,15 +51,10 @@ describe(AdminIdAudit.name, () => {
   it('suggests ids without accents or punctuation', async () => {
     const { fixture } = mountAdminIdAudit({
       recipes: [
-        {
-          id: 'creme-brulee',
-          course: 'dessert',
-          name: 'Crème Brûlée (Classic!)',
-          description: null,
-          pictureUri: '/images/creme-brulee.svg',
-          ingredients: [{ name: 'cream' }],
-          steps: ['Bake.', 'Torch.'],
-        },
+        recipeMother
+          .withBasicInfo('Crème Brûlée (Classic!)')
+          .withId('creme-brulee')
+          .build(),
       ],
     });
     await fixture.whenStable();

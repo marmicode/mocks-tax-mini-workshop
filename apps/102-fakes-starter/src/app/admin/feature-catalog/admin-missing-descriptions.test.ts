@@ -6,21 +6,19 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminMissingDescriptions } from './admin-missing-descriptions.ng';
 
 describe(AdminMissingDescriptions.name, () => {
   it('shows an empty state when every recipe has a description', async () => {
     const { fixture } = mountAdminMissingDescriptions({
       recipes: [
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: 'Eggs poached in a spiced tomato sauce.',
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook.'],
-        },
+        recipeMother
+          .withBasicInfo({
+            name: 'Shakshuka',
+            description: 'Eggs poached in a spiced tomato sauce.',
+          })
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -33,15 +31,11 @@ describe(AdminMissingDescriptions.name, () => {
   it('lists recipes with a null description', async () => {
     const { fixture } = mountAdminMissingDescriptions({
       recipes: [
-        {
-          id: 'tahini-halva-brownies',
-          course: 'dessert',
-          name: 'Tahini and Halva Brownies',
-          description: null,
-          pictureUri: '/images/tahini-halva-brownies.svg',
-          ingredients: [{ name: 'dark chocolate' }],
-          steps: ['Bake.'],
-        },
+        recipeMother
+          .withBasicInfo({
+            name: 'Tahini and Halva Brownies',
+          })
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -54,33 +48,21 @@ describe(AdminMissingDescriptions.name, () => {
   it('treats blank descriptions as missing and sorts by name', async () => {
     const { fixture } = mountAdminMissingDescriptions({
       recipes: [
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: '   ',
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook.'],
-        },
-        {
-          id: 'courgette-fritters',
-          course: 'starter',
-          name: 'Courgette Fritters',
-          description: '',
-          pictureUri: 'https://example.com/fritters.jpg',
-          ingredients: [{ name: 'courgettes' }],
-          steps: ['Fry.'],
-        },
-        {
-          id: 'hummus-ful',
-          course: 'starter',
-          name: 'Hummus with Ful',
-          description: 'Creamy hummus.',
-          pictureUri: 'https://example.com/hummus.jpg',
-          ingredients: [{ name: 'chickpeas' }],
-          steps: ['Blend.'],
-        },
+        recipeMother
+          .withBasicInfo({ name: 'Shakshuka', description: '   ' })
+          .build(),
+        recipeMother
+          .withBasicInfo({
+            name: 'Courgette Fritters',
+            description: '',
+          })
+          .build(),
+        recipeMother
+          .withBasicInfo({
+            name: 'Hummus with Ful',
+            description: 'Creamy hummus.',
+          })
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -94,24 +76,13 @@ describe(AdminMissingDescriptions.name, () => {
   it('summarizes how many recipes miss a description', async () => {
     const { fixture } = mountAdminMissingDescriptions({
       recipes: [
-        {
-          id: 'hummus-ful',
-          course: 'starter',
-          name: 'Hummus with Ful',
-          description: 'Creamy hummus.',
-          pictureUri: 'https://example.com/hummus.jpg',
-          ingredients: [{ name: 'chickpeas' }],
-          steps: ['Blend.'],
-        },
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: null,
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook.'],
-        },
+        recipeMother
+          .withBasicInfo({
+            name: 'Hummus with Ful',
+            description: 'Creamy hummus.',
+          })
+          .build(),
+        recipeMother.withBasicInfo('Shakshuka').build(),
       ],
     });
     await fixture.whenStable();

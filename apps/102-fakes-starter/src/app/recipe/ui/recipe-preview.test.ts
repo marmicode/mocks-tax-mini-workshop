@@ -1,18 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, it } from 'vitest';
-import { createRecipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import type { Weekday } from '@whiskmate/shared/model';
 import { RecipePreview } from './recipe-preview.ng';
 
-const shakshuka = createRecipe({
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  ingredients: [],
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  steps: [],
-});
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 function buttonByLabel(
   root: ParentNode,

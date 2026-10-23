@@ -7,46 +7,34 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { RecipeDetail } from './recipe-detail.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: 'Eggs poached in a spiced tomato sauce.',
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [
+const shakshuka = recipeMother
+  .withBasicInfo({
+    name: 'Shakshuka',
+    description: 'Eggs poached in a spiced tomato sauce.',
+  })
+  .withIngredients([
     { quantity: { amount: 3, unit: 'tbsp' }, name: 'olive oil' },
     { quantity: { amount: 6, unit: '' }, name: 'large eggs' },
     { name: 'fresh coriander, to serve' },
-  ],
-  steps: ['Heat the olive oil.', 'Crack the eggs into the sauce.'],
-};
+  ])
+  .withSteps(['Heat the olive oil.', 'Crack the eggs into the sauce.'])
+  .build();
 
-const harissaChicken: Recipe = {
-  id: 'harissa-chicken',
-  course: 'main',
-  name: 'Harissa-Roasted Chicken',
-  description: null,
-  pictureUri: 'https://example.com/harissa-chicken.jpg',
-  ingredients: [],
-  steps: [],
-};
+const harissaChicken = recipeMother
+  .withBasicInfo('Harissa-Roasted Chicken')
+  .build();
 
-const cheesecake: Recipe = {
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [],
-  steps: [],
-};
+const cheesecake = recipeMother
+  .withBasicInfo({ name: 'Lemon and Ricotta Cheesecake', course: 'dessert' })
+  .build();
 
 describe(RecipeDetail.name, () => {
   it('shows the recipe name, course, description and picture', async () => {
-    const { fixture } = mountRecipeDetail('shakshuka');
+    const { fixture } = mountRecipeDetail(shakshuka.id);
     await fixture.whenStable();
 
     const root: HTMLElement = fixture.nativeElement;
@@ -61,7 +49,7 @@ describe(RecipeDetail.name, () => {
   });
 
   it('shows ingredients with their quantities and steps', async () => {
-    const { fixture } = mountRecipeDetail('shakshuka');
+    const { fixture } = mountRecipeDetail(shakshuka.id);
     await fixture.whenStable();
 
     expect(textsOf(fixture.nativeElement, 'ingredient')).toEqual([
@@ -76,19 +64,19 @@ describe(RecipeDetail.name, () => {
   });
 
   it('links to cooking mode and scaler', async () => {
-    const { fixture } = mountRecipeDetail('shakshuka');
+    const { fixture } = mountRecipeDetail(shakshuka.id);
     await fixture.whenStable();
 
     expect(
       linkByText(fixture.nativeElement, 'Start cooking').getAttribute('href'),
-    ).toBe('/recipes/shakshuka/cook');
+    ).toBe(`/recipes/${shakshuka.id}/cook`);
     expect(
       linkByText(fixture.nativeElement, 'Scale servings').getAttribute('href'),
-    ).toBe('/recipes/shakshuka/scale');
+    ).toBe(`/recipes/${shakshuka.id}/scale`);
   });
 
   it('shows similar recipes of the same course', async () => {
-    const { fixture } = mountRecipeDetail('shakshuka');
+    const { fixture } = mountRecipeDetail(shakshuka.id);
     await fixture.whenStable();
 
     expect(textsOf(fixture.nativeElement, 'similar-recipe')).toEqual([
@@ -97,13 +85,13 @@ describe(RecipeDetail.name, () => {
   });
 
   it('adds the recipe to favorites', async () => {
-    const { fixture, userFavorites } = mountRecipeDetail('shakshuka');
+    const { fixture, userFavorites } = mountRecipeDetail(shakshuka.id);
     await fixture.whenStable();
 
     buttonByLabel(fixture.nativeElement, 'Add to favorites').click();
     await fixture.whenStable();
 
-    expect(userFavorites.favoriteIds()).toEqual(new Set(['shakshuka']));
+    expect(userFavorites.favoriteIds()).toEqual(new Set([shakshuka.id]));
   });
 
   it('shows a message when the recipe does not exist', async () => {

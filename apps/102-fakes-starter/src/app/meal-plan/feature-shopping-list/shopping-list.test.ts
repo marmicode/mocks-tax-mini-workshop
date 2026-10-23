@@ -9,34 +9,26 @@ import {
   MealPlanStore,
   type WeekdayAssignments,
 } from '@whiskmate/shared-meal-plan/domain';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { WEEKDAYS } from '@whiskmate/shared/model';
 import { ShoppingList } from './shopping-list.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withIngredients([
     { name: 'olive oil', quantity: { amount: 3, unit: 'tbsp' } },
     { name: 'large eggs', quantity: { amount: 6, unit: '' } },
     { name: 'fresh coriander, to serve' },
-  ],
-  steps: [],
-};
+  ])
+  .build();
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: 'olive oil', quantity: { amount: 2, unit: 'tbsp' } }],
-  steps: [],
-};
+const hummus = recipeMother
+  .withBasicInfo('Hummus with Ful')
+  .withIngredients([
+    { name: 'olive oil', quantity: { amount: 2, unit: 'tbsp' } },
+  ])
+  .build();
 
 const emptyAssignments: WeekdayAssignments = {
   monday: null,
@@ -62,7 +54,7 @@ describe(ShoppingList.name, () => {
   it('lists the ingredients of the planned recipes', async () => {
     const { fixture } = mountShoppingList({
       ...emptyAssignments,
-      monday: 'shakshuka',
+      monday: shakshuka.id,
     });
     await fixture.whenStable();
 
@@ -77,8 +69,8 @@ describe(ShoppingList.name, () => {
   it('merges ingredients shared by several recipes', async () => {
     const { fixture } = mountShoppingList({
       ...emptyAssignments,
-      monday: 'shakshuka',
-      tuesday: 'hummus-ful',
+      monday: shakshuka.id,
+      tuesday: hummus.id,
     });
     await fixture.whenStable();
 
@@ -91,7 +83,7 @@ describe(ShoppingList.name, () => {
   it('counts down the items left as they are checked', async () => {
     const { fixture } = mountShoppingList({
       ...emptyAssignments,
-      monday: 'shakshuka',
+      monday: shakshuka.id,
     });
     await fixture.whenStable();
 
@@ -104,7 +96,7 @@ describe(ShoppingList.name, () => {
   it('celebrates once every item is checked', async () => {
     const { fixture } = mountShoppingList({
       ...emptyAssignments,
-      monday: 'hummus-ful',
+      monday: hummus.id,
     });
     await fixture.whenStable();
 

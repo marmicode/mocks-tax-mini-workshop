@@ -5,18 +5,10 @@ import {
   provideRecipeRepositoryFake,
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { RecipeIdAvailability } from './recipe-id-availability';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 describe(RecipeIdAvailability.name, () => {
   it('reports an unknown id as available', async () => {

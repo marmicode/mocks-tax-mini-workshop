@@ -7,28 +7,13 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { RecentlyViewedPage } from './recently-viewed.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
-  steps: [],
-};
+const hummus = recipeMother.withBasicInfo('Hummus with Ful').build();
 
 describe(RecentlyViewedPage.name, () => {
   it('shows a message when no recipe was viewed', async () => {
@@ -43,7 +28,7 @@ describe(RecentlyViewedPage.name, () => {
 
   it('lists recipes in the recently viewed order', async () => {
     const { fixture } = mountRecentlyViewedPage({
-      viewedIds: ['shakshuka', 'hummus-ful'],
+      viewedIds: [shakshuka.id, hummus.id],
     });
     await fixture.whenStable();
 
@@ -54,17 +39,17 @@ describe(RecentlyViewedPage.name, () => {
   });
 
   it('links to the recipe detail', async () => {
-    const { fixture } = mountRecentlyViewedPage({ viewedIds: ['shakshuka'] });
+    const { fixture } = mountRecentlyViewedPage({ viewedIds: [shakshuka.id] });
     await fixture.whenStable();
 
     expect(
       fixture.nativeElement.querySelector('li a')?.getAttribute('href'),
-    ).toBe('/recipes/shakshuka');
+    ).toBe(`/recipes/${shakshuka.id}`);
   });
 
   it('skips recipes that no longer exist', async () => {
     const { fixture } = mountRecentlyViewedPage({
-      viewedIds: ['shakshuka', 'deleted-recipe'],
+      viewedIds: [shakshuka.id, 'deleted-recipe'],
     });
     await fixture.whenStable();
 

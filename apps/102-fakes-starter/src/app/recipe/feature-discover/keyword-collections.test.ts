@@ -6,28 +6,13 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { KeywordCollections } from './keyword-collections.ng';
 
-const soup: Recipe = {
-  id: 'lentil-soup',
-  course: 'starter',
-  name: 'Red Lentil Soup',
-  description: null,
-  pictureUri: 'https://example.com/soup.jpg',
-  ingredients: [],
-  steps: [],
-};
+const soup = recipeMother.withBasicInfo('Red Lentil Soup').build();
 
-const cake: Recipe = {
-  id: 'orange-polenta-cake',
-  course: 'dessert',
-  name: 'Orange Polenta Cake',
-  description: null,
-  pictureUri: 'https://example.com/cake.jpg',
-  ingredients: [],
-  steps: [],
-};
+const cake = recipeMother.withBasicInfo('Orange Polenta Cake').build();
 
 describe(KeywordCollections.name, () => {
   it('shows the soups by default', async () => {

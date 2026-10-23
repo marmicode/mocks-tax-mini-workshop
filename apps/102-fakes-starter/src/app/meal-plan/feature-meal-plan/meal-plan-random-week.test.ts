@@ -10,6 +10,7 @@ import {
   type WeekdayAssignments,
 } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import {
   provideLocalStorageFake,
   provideRandomAdapterFake,
@@ -18,44 +19,20 @@ import {
 import { WEEKDAYS } from '@whiskmate/shared/model';
 import { MealPlanRandomWeek } from './meal-plan-random-week.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
-  steps: ['Blend.'],
-};
+const hummus = recipeMother
+  .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+  .build();
 
 /* A long recipe: 6 steps. */
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [
-    'Heat the oil.',
-    'Cook the onions.',
-    'Add the peppers.',
-    'Pour the tomatoes.',
-    'Poach the eggs.',
-    'Serve.',
-  ],
-};
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withManySteps()
+  .build();
 
 /* A quick recipe: 3 steps. */
-const lambKofte: Recipe = {
-  id: 'lamb-kofte',
-  course: 'main',
-  name: 'Lamb Kofte with Yogurt and Sumac',
-  description: null,
-  pictureUri: 'https://example.com/lamb-kofte.jpg',
-  ingredients: [],
-  steps: ['Mix.', 'Shape.', 'Grill.'],
-};
+const lambKofte = recipeMother
+  .withBasicInfo('Lamb Kofte with Yogurt and Sumac')
+  .build();
 
 const fullWeek: WeekdayAssignments = {
   monday: 'harissa-chicken',
@@ -121,7 +98,7 @@ describe(MealPlanRandomWeek.name, () => {
     buttonByText(fixture.nativeElement, 'Apply').click();
     await fixture.whenStable();
 
-    expect(mealPlanStore.assignments().friday).toBe('lamb-kofte');
+    expect(mealPlanStore.assignments().friday).toBe(lambKofte.id);
     expect(router.url).toBe('/meal-plan');
   });
 

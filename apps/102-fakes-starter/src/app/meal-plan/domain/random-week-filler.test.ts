@@ -7,50 +7,27 @@ import {
 } from '@whiskmate/recipe/infra';
 import type { WeekdayAssignments } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import {
   provideRandomAdapterFake,
   RandomAdapterFake,
 } from '@whiskmate/shared/infra';
 import { RandomWeekFiller } from './random-week-filler';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
-  steps: ['Blend.'],
-};
+const hummus = recipeMother
+  .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+  .build();
 
 /* A long recipe: 6 steps. */
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [
-    'Heat the oil.',
-    'Cook the onions.',
-    'Add the peppers.',
-    'Pour the tomatoes.',
-    'Poach the eggs.',
-    'Serve.',
-  ],
-};
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withManySteps()
+  .build();
 
 /* A quick recipe: 3 steps. */
-const lambKofte: Recipe = {
-  id: 'lamb-kofte',
-  course: 'main',
-  name: 'Lamb Kofte with Yogurt and Sumac',
-  description: null,
-  pictureUri: 'https://example.com/lamb-kofte.jpg',
-  ingredients: [],
-  steps: ['Mix.', 'Shape.', 'Grill.'],
-};
+const lambKofte = recipeMother
+  .withBasicInfo('Lamb Kofte with Yogurt and Sumac')
+  .build();
 
 const fullWeek: WeekdayAssignments = {
   monday: 'harissa-chicken',
@@ -108,7 +85,7 @@ describe(RandomWeekFiller.name, () => {
     const suggestions = await firstValueFrom(
       randomWeekFiller.fill({
         ...fullWeek,
-        monday: 'shakshuka',
+        monday: shakshuka.id,
         sunday: null,
       }),
     );

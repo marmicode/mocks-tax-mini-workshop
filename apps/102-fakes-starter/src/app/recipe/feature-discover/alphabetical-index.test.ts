@@ -6,37 +6,16 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AlphabeticalIndex } from './alphabetical-index.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-const salad: Recipe = {
-  id: 'burnt-aubergine-salad',
-  course: 'starter',
-  name: 'Burnt Aubergine with Tahini and Pomegranate',
-  description: null,
-  pictureUri: 'https://example.com/salad.jpg',
-  ingredients: [],
-  steps: [],
-};
+const salad = recipeMother
+  .withBasicInfo('Burnt Aubergine with Tahini and Pomegranate')
+  .build();
 
-const sabich: Recipe = {
-  id: 'sabich',
-  course: 'main',
-  name: 'Sabich',
-  description: null,
-  pictureUri: 'https://example.com/sabich.jpg',
-  ingredients: [],
-  steps: [],
-};
+const sabich = recipeMother.withBasicInfo('Sabich').build();
 
 describe(AlphabeticalIndex.name, () => {
   it('groups recipes by first letter in alphabetical order', async () => {
@@ -59,18 +38,7 @@ describe(AlphabeticalIndex.name, () => {
 
   it('puts recipes not starting with a letter at the end', async () => {
     const { fixture } = mountAlphabeticalIndex({
-      recipes: [
-        {
-          id: '7-hour-lamb',
-          course: 'main',
-          name: '7-hour Lamb',
-          description: null,
-          pictureUri: 'https://example.com/lamb.jpg',
-          ingredients: [],
-          steps: [],
-        },
-        shakshuka,
-      ],
+      recipes: [recipeMother.withBasicInfo('7-hour Lamb').build(), shakshuka],
     });
     await fixture.whenStable();
 

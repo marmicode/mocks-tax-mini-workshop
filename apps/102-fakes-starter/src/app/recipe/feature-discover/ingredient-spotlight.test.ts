@@ -6,31 +6,22 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import {
   provideRandomAdapterFake,
   RandomAdapterFake,
 } from '@whiskmate/shared/infra';
 import { IngredientSpotlight } from './ingredient-spotlight.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: '400g chickpeas' }, { name: 'Tahini' }],
-  steps: [],
-};
+const hummus = recipeMother
+  .withBasicInfo('Hummus with Ful')
+  .withIngredients([{ name: '400g chickpeas' }, { name: 'Tahini' }])
+  .build();
 
-const salad: Recipe = {
-  id: 'burnt-aubergine-salad',
-  course: 'starter',
-  name: 'Burnt Aubergine with Tahini and Pomegranate',
-  description: null,
-  pictureUri: 'https://example.com/salad.jpg',
-  ingredients: [{ name: '2 aubergines, burnt' }, { name: 'tahini' }],
-  steps: [],
-};
+const salad = recipeMother
+  .withBasicInfo('Burnt Aubergine with Tahini and Pomegranate')
+  .withIngredients([{ name: '2 aubergines, burnt' }, { name: 'tahini' }])
+  .build();
 
 describe(IngredientSpotlight.name, () => {
   it('picks a random ingredient among all distinct ingredients', async () => {

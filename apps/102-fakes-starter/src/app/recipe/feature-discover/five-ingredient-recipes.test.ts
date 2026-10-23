@@ -6,50 +6,20 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { FiveIngredientRecipes } from './five-ingredient-recipes.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: 'chickpeas' }, { name: 'tahini' }],
-  steps: [],
-};
+const hummus = recipeMother.withBasicInfo('Hummus with Ful').build();
 
-const salad: Recipe = {
-  id: 'burnt-aubergine-salad',
-  course: 'starter',
-  name: 'Burnt Aubergine with Tahini and Pomegranate',
-  description: null,
-  pictureUri: 'https://example.com/salad.jpg',
-  ingredients: [
-    { name: 'aubergine' },
-    { name: 'tahini' },
-    { name: 'pomegranate' },
-  ],
-  steps: [],
-};
+const salad = recipeMother
+  .withBasicInfo('Burnt Aubergine with Tahini and Pomegranate')
+  .build();
 
-const tagine: Recipe = {
-  id: 'lamb-tagine',
-  course: 'main',
-  name: 'Lamb Tagine',
-  description: null,
-  pictureUri: 'https://example.com/tagine.jpg',
-  ingredients: [
-    { name: 'lamb' },
-    { name: 'onions' },
-    { name: 'apricots' },
-    { name: 'almonds' },
-    { name: 'cinnamon' },
-    { name: 'cumin' },
-    { name: 'honey' },
-  ],
-  steps: [],
-};
+const tagine = recipeMother
+  .withBasicInfo('Lamb Tagine')
+  .withManyIngredients()
+  .build();
 
 describe(FiveIngredientRecipes.name, () => {
   it('shows only recipes with at most five ingredients', async () => {

@@ -6,51 +6,27 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { RecipeByIngredientCount } from './recipe-by-ingredient-count.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: 'chickpeas' }, { name: 'tahini' }],
-  steps: [],
-};
+const hummus = recipeMother.withBasicInfo('Hummus with Ful').build();
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [
+/* Between the "at most 3" and "at most 5" buttons. */
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withIngredients([
     { name: 'eggs' },
     { name: 'tomatoes' },
     { name: 'peppers' },
     { name: 'onion' },
-  ],
-  steps: [],
-};
+  ])
+  .build();
 
-const cheesecake: Recipe = {
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [
-    { name: 'ricotta' },
-    { name: 'eggs' },
-    { name: 'sugar' },
-    { name: 'lemons' },
-    { name: 'flour' },
-    { name: 'butter' },
-    { name: 'vanilla' },
-  ],
-  steps: [],
-};
+const cheesecake = recipeMother
+  .withBasicInfo('Lemon and Ricotta Cheesecake')
+  .withManyIngredients()
+  .build();
 
 describe(RecipeByIngredientCount.name, () => {
   it('shows recipes with at most 5 ingredients by default', async () => {

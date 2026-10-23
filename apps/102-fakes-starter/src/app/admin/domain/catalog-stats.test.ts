@@ -6,37 +6,36 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { CatalogStats } from './catalog-stats';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: 'Creamy hummus.',
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: 'chickpeas' }, { name: 'tahini' }],
-  steps: ['Blend.'],
-};
+const hummus = recipeMother
+  .withBasicInfo({
+    name: 'Hummus with Ful',
+    course: 'starter',
+    description: 'Creamy hummus.',
+  })
+  .withSomeIngredients()
+  .withSomeSteps()
+  .build();
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [{ name: 'eggs' }, { name: 'tomatoes' }, { name: 'peppers' }],
-  steps: ['Cook the sauce.', 'Poach the eggs.', 'Serve.'],
-};
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withSomeIngredients()
+  .withSomeSteps()
+  .build();
 
-const kofte: Recipe = {
-  id: 'lamb-kofte',
-  course: 'main',
-  name: 'Lamb Kofte',
-  description: '   ',
-  pictureUri: 'https://example.com/kofte.jpg',
-  ingredients: [{ name: 'lamb' }],
-  steps: ['Shape.', 'Grill.'],
-};
+const kofte = recipeMother
+  .withBasicInfo({ name: 'Lamb Kofte', description: '   ' })
+  .withSomeIngredients()
+  .withSomeSteps()
+  .build();
+
+const stew = recipeMother
+  .withBasicInfo('Slow-cooked Lamb Stew')
+  .withManyIngredients()
+  .withManySteps()
+  .build();
 
 describe(CatalogStats.name, () => {
   it('counts recipes per course', async () => {
@@ -53,8 +52,8 @@ describe(CatalogStats.name, () => {
 
     const stats = await firstValueFrom(catalogStats.stats());
 
-    expect(stats.averageIngredientCount).toBe(2);
-    expect(stats.averageStepCount).toBe(2);
+    expect(stats.averageIngredientCount).toBe(3);
+    expect(stats.averageStepCount).toBe(3);
   });
 
   it('counts recipes with a missing or blank description', async () => {
@@ -80,12 +79,12 @@ describe(CatalogStats.name, () => {
   });
 
   it('computes fractional averages', async () => {
-    const { catalogStats } = setUpCatalogStats([hummus, shakshuka]);
+    const { catalogStats } = setUpCatalogStats([hummus, stew]);
 
     const stats = await firstValueFrom(catalogStats.stats());
 
-    expect(stats.averageIngredientCount).toBe(2.5);
-    expect(stats.averageStepCount).toBe(2);
+    expect(stats.averageIngredientCount).toBe(5.5);
+    expect(stats.averageStepCount).toBe(5.5);
   });
 
   it('summarizes a single described recipe', async () => {
@@ -96,8 +95,8 @@ describe(CatalogStats.name, () => {
     expect(stats).toEqual({
       recipeCount: 1,
       countByCourse: { starter: 1, main: 0, dessert: 0 },
-      averageIngredientCount: 2,
-      averageStepCount: 1,
+      averageIngredientCount: 3,
+      averageStepCount: 3,
       missingDescriptionCount: 0,
     });
   });

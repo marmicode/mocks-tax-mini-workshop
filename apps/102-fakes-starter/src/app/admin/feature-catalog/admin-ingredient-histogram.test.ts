@@ -6,6 +6,7 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminIngredientHistogram } from './admin-ingredient-histogram.ng';
 
 describe(AdminIngredientHistogram.name, () => {
@@ -19,18 +20,13 @@ describe(AdminIngredientHistogram.name, () => {
   it('counts a single recipe', async () => {
     const { fixture } = mountAdminIngredientHistogram({
       recipes: [
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: 'Eggs poached in a spiced tomato sauce.',
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [
+        recipeMother
+          .withBasicInfo('Shakshuka')
+          .withIngredients([
             { name: 'eggs', quantity: { amount: 6, unit: '' } },
             { name: 'tomatoes', quantity: { amount: 800, unit: 'g' } },
-          ],
-          steps: ['Cook.'],
-        },
+          ])
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -43,85 +39,44 @@ describe(AdminIngredientHistogram.name, () => {
   it('groups recipes with the same ingredient count', async () => {
     const { fixture } = mountAdminIngredientHistogram({
       recipes: [
-        {
-          id: 'hummus-ful',
-          course: 'starter',
-          name: 'Hummus with Ful',
-          description: 'Creamy hummus.',
-          pictureUri: 'https://example.com/hummus.jpg',
-          ingredients: [{ name: 'chickpeas' }, { name: 'tahini' }],
-          steps: ['Blend.'],
-        },
-        {
-          id: 'courgette-fritters',
-          course: 'starter',
-          name: 'Courgette Fritters',
-          description: null,
-          pictureUri: 'https://example.com/fritters.jpg',
-          ingredients: [{ name: 'courgettes' }, { name: 'eggs' }],
-          steps: ['Fry.'],
-        },
+        recipeMother
+          .withBasicInfo('Hummus with Ful')
+          .withSomeIngredients()
+          .build(),
+        recipeMother
+          .withBasicInfo('Courgette Fritters')
+          .withSomeIngredients()
+          .build(),
       ],
     });
     await fixture.whenStable();
 
     expect(histogram(fixture.nativeElement)).toEqual([
-      { ingredientCount: '2', recipeCount: '2' },
+      { ingredientCount: '3', recipeCount: '2' },
     ]);
   });
 
   it('sorts buckets by ingredient count', async () => {
     const { fixture } = mountAdminIngredientHistogram({
       recipes: [
-        {
-          id: 'tahini-halva-brownies',
-          course: 'dessert',
-          name: 'Tahini and Halva Brownies',
-          description: null,
-          pictureUri: '/images/tahini-halva-brownies.svg',
-          ingredients: [
-            { name: 'dark chocolate' },
-            { name: 'butter' },
-            { name: 'tahini' },
-            { name: 'halva' },
-          ],
-          steps: ['Bake.'],
-        },
-        {
-          id: 'hummus-ful',
-          course: 'starter',
-          name: 'Hummus with Ful',
-          description: 'Creamy hummus.',
-          pictureUri: 'https://example.com/hummus.jpg',
-          ingredients: [],
-          steps: ['Blend.'],
-        },
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: null,
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook.'],
-        },
-        {
-          id: 'courgette-fritters',
-          course: 'starter',
-          name: 'Courgette Fritters',
-          description: null,
-          pictureUri: 'https://example.com/fritters.jpg',
-          ingredients: [{ name: 'courgettes' }],
-          steps: ['Fry.'],
-        },
+        recipeMother
+          .withBasicInfo('Tahini and Halva Brownies')
+          .withManyIngredients()
+          .build(),
+        recipeMother.withBasicInfo('Hummus with Ful').build(),
+        recipeMother.withBasicInfo('Shakshuka').withSomeIngredients().build(),
+        recipeMother
+          .withBasicInfo('Courgette Fritters')
+          .withSomeIngredients()
+          .build(),
       ],
     });
     await fixture.whenStable();
 
     expect(histogram(fixture.nativeElement)).toEqual([
       { ingredientCount: '0', recipeCount: '1' },
-      { ingredientCount: '1', recipeCount: '2' },
-      { ingredientCount: '4', recipeCount: '1' },
+      { ingredientCount: '3', recipeCount: '2' },
+      { ingredientCount: '8', recipeCount: '1' },
     ]);
   });
 });

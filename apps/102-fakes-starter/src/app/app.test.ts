@@ -6,30 +6,16 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import { MealPlanStore } from '@whiskmate/shared-meal-plan/domain';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { App } from './app';
 import { appRoutes } from './app.routes';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-const cheesecake: Recipe = {
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [],
-  steps: [],
-};
+const cheesecake = recipeMother
+  .withBasicInfo('Lemon and Ricotta Cheesecake')
+  .build();
 
 describe(App.name, () => {
   it('redirects to the search page and shows every recipe', async () => {
@@ -61,7 +47,7 @@ describe(App.name, () => {
 
   it('shows the planned recipes on the meal plan page', async () => {
     const { fixture, router, mealPlanStore } = await mountApp();
-    mealPlanStore.assign({ weekday: 'monday', recipeId: 'shakshuka' });
+    mealPlanStore.assign({ weekday: 'monday', recipeId: shakshuka.id });
 
     await router.navigateByUrl('/meal-plan');
     await fixture.whenStable();

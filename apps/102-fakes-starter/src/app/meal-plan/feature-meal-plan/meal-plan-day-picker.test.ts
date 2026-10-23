@@ -10,39 +10,20 @@ import {
   type WeekdayAssignments,
 } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { WEEKDAYS, type Weekday } from '@whiskmate/shared/model';
 import { MealPlanDayPicker } from './meal-plan-day-picker.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
-  steps: [],
-};
+const hummus = recipeMother
+  .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+  .build();
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-const lambKofte: Recipe = {
-  id: 'lamb-kofte',
-  course: 'main',
-  name: 'Lamb Kofte with Yogurt and Sumac',
-  description: null,
-  pictureUri: 'https://example.com/lamb-kofte.jpg',
-  ingredients: [],
-  steps: [],
-};
+const lambKofte = recipeMother
+  .withBasicInfo('Lamb Kofte with Yogurt and Sumac')
+  .build();
 
 const emptyAssignments: WeekdayAssignments = {
   monday: null,
@@ -72,7 +53,7 @@ describe(MealPlanDayPicker.name, () => {
   it('does not list mains that are already planned', async () => {
     const { fixture } = mountMealPlanDayPicker({
       weekday: 'monday',
-      assignments: { ...emptyAssignments, tuesday: 'shakshuka' },
+      assignments: { ...emptyAssignments, tuesday: shakshuka.id },
       recipes: [shakshuka, lambKofte],
     });
     await fixture.whenStable();
@@ -93,14 +74,14 @@ describe(MealPlanDayPicker.name, () => {
     buttonByText(fixture.nativeElement, 'Pick Shakshuka').click();
     await fixture.whenStable();
 
-    expect(mealPlanStore.assignments().thursday).toBe('shakshuka');
+    expect(mealPlanStore.assignments().thursday).toBe(shakshuka.id);
     expect(router.url).toBe('/meal-plan');
   });
 
   it('says there is nothing left to pick when every main is planned', async () => {
     const { fixture } = mountMealPlanDayPicker({
       weekday: 'monday',
-      assignments: { ...emptyAssignments, tuesday: 'shakshuka' },
+      assignments: { ...emptyAssignments, tuesday: shakshuka.id },
       recipes: [hummus, shakshuka],
     });
     await fixture.whenStable();

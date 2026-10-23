@@ -6,21 +6,19 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminMissingSteps } from './admin-missing-steps.ng';
 
 describe(AdminMissingSteps.name, () => {
   it('shows an empty state when every recipe has steps', async () => {
     const { fixture } = mountAdminMissingSteps({
       recipes: [
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: 'Eggs poached in a spiced tomato sauce.',
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook the sauce.', 'Crack the eggs.'],
-        },
+        recipeMother
+          .withBasicInfo({
+            name: 'Shakshuka',
+          })
+          .withSomeSteps()
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -31,15 +29,11 @@ describe(AdminMissingSteps.name, () => {
   it('lists recipes without any step', async () => {
     const { fixture } = mountAdminMissingSteps({
       recipes: [
-        {
-          id: 'hummus-ful',
-          course: 'starter',
-          name: 'Hummus with Ful',
-          description: 'Creamy hummus.',
-          pictureUri: 'https://example.com/hummus.jpg',
-          ingredients: [{ name: 'chickpeas' }],
-          steps: [],
-        },
+        recipeMother
+          .withBasicInfo({
+            name: 'Hummus with Ful',
+          })
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -50,15 +44,10 @@ describe(AdminMissingSteps.name, () => {
   it('lists recipes with only blank steps', async () => {
     const { fixture } = mountAdminMissingSteps({
       recipes: [
-        {
-          id: 'courgette-fritters',
-          course: 'starter',
-          name: 'Courgette Fritters',
-          description: null,
-          pictureUri: 'https://example.com/fritters.jpg',
-          ingredients: [{ name: 'courgettes' }],
-          steps: ['', '  '],
-        },
+        recipeMother
+          .withBasicInfo({ name: 'Courgette Fritters', course: 'starter' })
+          .withSteps(['', '  '])
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -71,24 +60,17 @@ describe(AdminMissingSteps.name, () => {
   it('ignores recipes with at least one real step', async () => {
     const { fixture } = mountAdminMissingSteps({
       recipes: [
-        {
-          id: 'tahini-halva-brownies',
-          course: 'dessert',
-          name: 'Tahini and Halva Brownies',
-          description: null,
-          pictureUri: '/images/tahini-halva-brownies.svg',
-          ingredients: [{ name: 'dark chocolate' }],
-          steps: ['', 'Bake.'],
-        },
-        {
-          id: 'hummus-ful',
-          course: 'starter',
-          name: 'Hummus with Ful',
-          description: 'Creamy hummus.',
-          pictureUri: 'https://example.com/hummus.jpg',
-          ingredients: [{ name: 'chickpeas' }],
-          steps: [],
-        },
+        recipeMother
+          .withBasicInfo({
+            name: 'Tahini and Halva Brownies',
+          })
+          .withSteps(['', 'Bake.'])
+          .build(),
+        recipeMother
+          .withBasicInfo({
+            name: 'Hummus with Ful',
+          })
+          .build(),
       ],
     });
     await fixture.whenStable();

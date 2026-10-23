@@ -6,27 +6,24 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { Admin } from './admin.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: 'Creamy hummus.',
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: 'chickpeas' }, { name: 'tahini' }],
-  steps: ['Blend.', 'Serve.'],
-};
+const hummus = recipeMother
+  .withBasicInfo({
+    name: 'Hummus with Ful',
+    course: 'starter',
+    description: 'Creamy hummus.',
+  })
+  .withSomeIngredients()
+  .withSomeSteps()
+  .build();
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [{ name: 'eggs' }, { name: 'tomatoes' }, { name: 'peppers' }],
-  steps: ['Cook the sauce.', 'Poach the eggs.', 'Serve.', 'Enjoy.'],
-};
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withSomeIngredients()
+  .withManySteps()
+  .build();
 
 describe(Admin.name, () => {
   it('shows the recipe count and the count per course', async () => {
@@ -49,8 +46,8 @@ describe(Admin.name, () => {
 
     expect(tiles(fixture.nativeElement)).toEqual(
       expect.arrayContaining([
-        '2.5 Avg. ingredients',
-        '3 Avg. steps',
+        '3 Avg. ingredients',
+        '5.5 Avg. steps',
         '1 Missing descriptions',
       ]),
     );

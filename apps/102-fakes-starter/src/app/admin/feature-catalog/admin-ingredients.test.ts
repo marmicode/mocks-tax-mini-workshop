@@ -6,30 +6,21 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminIngredients } from './admin-ingredients.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withIngredients([
     { name: 'Olive oil', quantity: { amount: 3, unit: 'tbsp' } },
     { name: 'eggs' },
-  ],
-  steps: [],
-};
+  ])
+  .build();
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: 'olive oil' }, { name: 'tahini' }],
-  steps: [],
-};
+const hummus = recipeMother
+  .withBasicInfo('Hummus with Ful')
+  .withIngredients([{ name: 'olive oil' }, { name: 'tahini' }])
+  .build();
 
 describe(AdminIngredients.name, () => {
   it('counts how many recipes use each ingredient', async () => {
@@ -51,30 +42,23 @@ describe(AdminIngredients.name, () => {
     await fixture.whenStable();
 
     expect(recipeRepositoryFake.getRecipesSync()).toEqual([
-      {
-        id: 'shakshuka',
-        course: 'main',
-        name: 'Shakshuka',
-        description: null,
-        pictureUri: 'https://example.com/shakshuka.jpg',
-        ingredients: [
+      recipeMother
+        .withBasicInfo('Shakshuka')
+        .withIngredients([
           {
             name: 'extra virgin olive oil',
             quantity: { amount: 3, unit: 'tbsp' },
           },
           { name: 'eggs' },
-        ],
-        steps: [],
-      },
-      {
-        id: 'hummus-ful',
-        course: 'starter',
-        name: 'Hummus with Ful',
-        description: null,
-        pictureUri: 'https://example.com/hummus.jpg',
-        ingredients: [{ name: 'extra virgin olive oil' }, { name: 'tahini' }],
-        steps: [],
-      },
+        ])
+        .build(),
+      recipeMother
+        .withBasicInfo('Hummus with Ful')
+        .withIngredients([
+          { name: 'extra virgin olive oil' },
+          { name: 'tahini' },
+        ])
+        .build(),
     ]);
   });
 

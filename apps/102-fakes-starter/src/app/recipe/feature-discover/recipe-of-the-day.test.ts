@@ -6,41 +6,27 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import {
   ClockAdapterFake,
   provideClockAdapterFake,
 } from '@whiskmate/shared/infra';
 import { RecipeOfTheDay } from './recipe-of-the-day.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: 'Eggs poached in a spiced tomato sauce.',
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother
+  .withBasicInfo({
+    name: 'Shakshuka',
+    description: 'Eggs poached in a spiced tomato sauce.',
+  })
+  .build();
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
-  steps: [],
-};
+const hummus = recipeMother
+  .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+  .build();
 
-const cheesecake: Recipe = {
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [],
-  steps: [],
-};
+const cheesecake = recipeMother
+  .withBasicInfo('Lemon and Ricotta Cheesecake')
+  .build();
 
 describe(RecipeOfTheDay.name, () => {
   it('picks the recipe matching the day of the year', async () => {
@@ -70,10 +56,10 @@ describe(RecipeOfTheDay.name, () => {
       root.querySelector('[data-testid="recipe-description"]')?.textContent,
     ).toContain('Eggs poached in a spiced tomato sauce.');
     expect(root.querySelector('img')?.getAttribute('src')).toBe(
-      'https://example.com/shakshuka.jpg',
+      shakshuka.pictureUri,
     );
     expect(root.querySelector('a')?.getAttribute('href')).toBe(
-      '/recipes/shakshuka',
+      `/recipes/${shakshuka.id}`,
     );
   });
 

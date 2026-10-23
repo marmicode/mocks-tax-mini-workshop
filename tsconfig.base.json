@@ -75,6 +75,9 @@
       "@whiskmate/shared-recipe/model": [
         "./apps/102-fakes-starter/src/app/shared-recipe/model/index.ts"
       ],
+      "@whiskmate/shared-recipe/testing": [
+        "./apps/102-fakes-starter/src/app/shared-recipe/testing/index.ts"
+      ],
       "@whiskmate/shared/infra": [
         "./apps/102-fakes-starter/src/app/shared/infra/index.ts"
       ],

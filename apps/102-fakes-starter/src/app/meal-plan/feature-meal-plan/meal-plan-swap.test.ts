@@ -10,49 +10,24 @@ import {
   type WeekdayAssignments,
 } from '@whiskmate/shared-meal-plan/domain';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { provideLocalStorageFake } from '@whiskmate/shared/infra';
 import { WEEKDAYS, type Weekday } from '@whiskmate/shared/model';
 import { MealPlanSwap } from './meal-plan-swap.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
-  steps: [],
-};
+const hummus = recipeMother
+  .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+  .build();
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-const lambKofte: Recipe = {
-  id: 'lamb-kofte',
-  course: 'main',
-  name: 'Lamb Kofte with Yogurt and Sumac',
-  description: null,
-  pictureUri: 'https://example.com/lamb-kofte.jpg',
-  ingredients: [],
-  steps: [],
-};
+const lambKofte = recipeMother
+  .withBasicInfo('Lamb Kofte with Yogurt and Sumac')
+  .build();
 
-const harissaChicken: Recipe = {
-  id: 'harissa-chicken',
-  course: 'main',
-  name: 'Harissa-Roasted Chicken',
-  description: null,
-  pictureUri: 'https://example.com/harissa-chicken.jpg',
-  ingredients: [],
-  steps: [],
-};
+const harissaChicken = recipeMother
+  .withBasicInfo('Harissa-Roasted Chicken')
+  .build();
 
 const emptyAssignments: WeekdayAssignments = {
   monday: null,
@@ -68,7 +43,7 @@ describe(MealPlanSwap.name, () => {
   it('shows the planned recipe and the other recipes of its course', async () => {
     const { fixture } = mountMealPlanSwap({
       weekday: 'monday',
-      assignments: { ...emptyAssignments, monday: 'shakshuka' },
+      assignments: { ...emptyAssignments, monday: shakshuka.id },
     });
     await fixture.whenStable();
 
@@ -87,8 +62,8 @@ describe(MealPlanSwap.name, () => {
       weekday: 'monday',
       assignments: {
         ...emptyAssignments,
-        monday: 'shakshuka',
-        tuesday: 'harissa-chicken',
+        monday: shakshuka.id,
+        tuesday: harissaChicken.id,
       },
     });
     await fixture.whenStable();
@@ -101,7 +76,7 @@ describe(MealPlanSwap.name, () => {
   it('assigns the picked recipe and goes back to the meal plan', async () => {
     const { fixture, mealPlanStore, router } = mountMealPlanSwap({
       weekday: 'friday',
-      assignments: { ...emptyAssignments, friday: 'shakshuka' },
+      assignments: { ...emptyAssignments, friday: shakshuka.id },
     });
     await fixture.whenStable();
 
@@ -111,14 +86,14 @@ describe(MealPlanSwap.name, () => {
     ).click();
     await fixture.whenStable();
 
-    expect(mealPlanStore.assignments().friday).toBe('lamb-kofte');
+    expect(mealPlanStore.assignments().friday).toBe(lambKofte.id);
     expect(router.url).toBe('/meal-plan');
   });
 
   it('says there is no alternative when every recipe of the course is planned', async () => {
     const { fixture } = mountMealPlanSwap({
       weekday: 'monday',
-      assignments: { ...emptyAssignments, monday: 'shakshuka' },
+      assignments: { ...emptyAssignments, monday: shakshuka.id },
       recipes: [hummus, shakshuka],
     });
     await fixture.whenStable();

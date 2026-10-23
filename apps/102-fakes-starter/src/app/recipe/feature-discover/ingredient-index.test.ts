@@ -6,34 +6,25 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { IngredientIndex } from './ingredient-index.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withIngredients([
     { name: '2 red peppers, sliced' },
     { name: 'garlic, crushed', quantity: { amount: 4, unit: 'cloves' } },
     { name: '800g tinned chopped tomatoes' },
-  ],
-  steps: [],
-};
+  ])
+  .build();
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [
+const hummus = recipeMother
+  .withBasicInfo('Hummus with Ful')
+  .withIngredients([
     { name: 'tahini', quantity: { amount: 4, unit: 'tbsp' } },
     { name: 'garlic', quantity: { amount: 1, unit: 'clove' } },
-  ],
-  steps: [],
-};
+  ])
+  .build();
 
 describe(IngredientIndex.name, () => {
   it('lists normalized ingredient names alphabetically', async () => {
@@ -102,13 +93,13 @@ describe(IngredientIndex.name, () => {
   it('lists a recipe only once when it uses an ingredient twice', async () => {
     const { fixture } = mountIngredientIndex({
       recipes: [
-        {
-          ...hummus,
-          ingredients: [
+        recipeMother
+          .withBasicInfo('Hummus with Ful')
+          .withIngredients([
             { name: 'garlic, crushed' },
             { name: '2 garlic, roasted' },
-          ],
-        },
+          ])
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -124,7 +115,7 @@ describe(IngredientIndex.name, () => {
     await fixture.whenStable();
 
     expect(recipeLinksFor(fixture.nativeElement, 'tahini')).toEqual([
-      '/recipes/hummus-ful',
+      `/recipes/${hummus.id}`,
     ]);
   });
 

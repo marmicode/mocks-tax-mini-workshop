@@ -6,37 +6,26 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminRecipeList } from './admin-recipe-list.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [{ name: 'eggs' }, { name: 'tomatoes' }],
-  steps: ['Cook the sauce.', 'Poach the eggs.', 'Serve.'],
-};
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withSomeIngredients()
+  .withSomeSteps()
+  .build();
 
-const cheesecake: Recipe = {
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [{ name: 'ricotta' }],
-  steps: ['Bake.'],
-};
+const cheesecake = recipeMother
+  .withBasicInfo({ name: 'Lemon and Ricotta Cheesecake', course: 'dessert' })
+  .withManyIngredients()
+  .withManySteps()
+  .build();
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: 'chickpeas' }, { name: 'tahini' }],
-  steps: ['Blend.'],
-};
+const hummus = recipeMother
+  .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+  .withSomeIngredients()
+  .withSomeSteps()
+  .build();
 
 describe(AdminRecipeList.name, () => {
   it('lists all recipes on load', async () => {
@@ -44,8 +33,8 @@ describe(AdminRecipeList.name, () => {
     await fixture.whenStable();
 
     expect(rows(fixture.nativeElement)).toEqual([
-      ['Shakshuka', 'main', '2', '3'],
-      ['Lemon and Ricotta Cheesecake', 'dessert', '1', '1'],
+      ['Shakshuka', 'main', '3', '3'],
+      ['Lemon and Ricotta Cheesecake', 'dessert', '8', '8'],
     ]);
   });
 
@@ -57,7 +46,7 @@ describe(AdminRecipeList.name, () => {
     await fixture.whenStable();
 
     expect(rows(fixture.nativeElement)).toEqual([
-      ['Lemon and Ricotta Cheesecake', 'dessert', '1', '1'],
+      ['Lemon and Ricotta Cheesecake', 'dessert', '8', '8'],
     ]);
   });
 
@@ -69,7 +58,7 @@ describe(AdminRecipeList.name, () => {
     await fixture.whenStable();
 
     expect(rows(fixture.nativeElement)).toEqual([
-      ['Lemon and Ricotta Cheesecake', 'dessert', '1', '1'],
+      ['Lemon and Ricotta Cheesecake', 'dessert', '8', '8'],
     ]);
   });
 
@@ -83,8 +72,8 @@ describe(AdminRecipeList.name, () => {
     await fixture.whenStable();
 
     expect(rows(fixture.nativeElement)).toEqual([
-      ['Shakshuka', 'main', '2', '3'],
-      ['Lemon and Ricotta Cheesecake', 'dessert', '1', '1'],
+      ['Shakshuka', 'main', '3', '3'],
+      ['Lemon and Ricotta Cheesecake', 'dessert', '8', '8'],
     ]);
   });
 
@@ -130,7 +119,7 @@ describe(AdminRecipeList.name, () => {
     await fixture.whenStable();
 
     expect(rows(fixture.nativeElement)).toEqual([
-      ['Lemon and Ricotta Cheesecake', 'dessert', '1', '1'],
+      ['Lemon and Ricotta Cheesecake', 'dessert', '8', '8'],
     ]);
   });
 
@@ -144,7 +133,7 @@ describe(AdminRecipeList.name, () => {
     await fixture.whenStable();
 
     expect(rows(fixture.nativeElement)).toEqual([
-      ['Shakshuka', 'main', '2', '3'],
+      ['Shakshuka', 'main', '3', '3'],
     ]);
   });
 
@@ -164,7 +153,7 @@ describe(AdminRecipeList.name, () => {
     await fixture.whenStable();
 
     expect(rows(fixture.nativeElement)).toEqual([
-      ['Hummus with Ful', 'starter', '2', '1'],
+      ['Hummus with Ful', 'starter', '3', '3'],
     ]);
   });
 });

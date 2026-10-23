@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, it } from 'vitest';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { MealPlanDay } from './meal-plan-day.ng';
+
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 describe(MealPlanDay.name, () => {
   it('shows the empty state', async () => {
@@ -18,27 +21,19 @@ describe(MealPlanDay.name, () => {
   it('shows the recipe', async () => {
     const fixture = TestBed.createComponent(MealPlanDay);
     fixture.componentRef.setInput('weekday', 'monday');
-    fixture.componentRef.setInput('recipe', {
-      name: 'Shakshuka',
-      pictureUri: 'https://example.com/shakshuka.jpg',
-    });
+    fixture.componentRef.setInput('recipe', shakshuka);
     await fixture.whenStable();
 
     const text = fixture.nativeElement.textContent ?? '';
     const picture = fixture.nativeElement.querySelector('img');
     expect(text).toContain('Shakshuka');
-    expect(picture?.getAttribute('src')).toBe(
-      'https://example.com/shakshuka.jpg',
-    );
+    expect(picture?.getAttribute('src')).toBe(shakshuka.pictureUri);
   });
 
   it('emits remove', async () => {
     const fixture = TestBed.createComponent(MealPlanDay);
     fixture.componentRef.setInput('weekday', 'monday');
-    fixture.componentRef.setInput('recipe', {
-      name: 'Shakshuka',
-      pictureUri: 'https://example.com/shakshuka.jpg',
-    });
+    fixture.componentRef.setInput('recipe', shakshuka);
     let emitted = 0;
     fixture.componentInstance.remove.subscribe(() => {
       emitted += 1;

@@ -7,27 +7,16 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { RecipeQuickSearch } from './recipe-quick-search.ng';
 
-const burntAubergine: Recipe = {
-  id: 'burnt-aubergine-salad',
-  course: 'starter',
-  name: 'Burnt Aubergine with Tahini and Pomegranate',
-  description: null,
-  pictureUri: 'https://example.com/burnt-aubergine.jpg',
-  ingredients: [],
-  steps: [],
-};
+const burntAubergine = recipeMother
+  .withBasicInfo('Burnt Aubergine with Tahini and Pomegranate')
+  .build();
 
-const roastedAubergine: Recipe = {
-  id: 'roasted-aubergine-tahini',
-  course: 'starter',
-  name: 'Roasted Aubergine with Tahini and Pine Nuts',
-  description: null,
-  pictureUri: 'https://example.com/roasted-aubergine.jpg',
-  ingredients: [],
-  steps: [],
-};
+const roastedAubergine = recipeMother
+  .withBasicInfo('Roasted Aubergine with Tahini and Pine Nuts')
+  .build();
 
 describe(RecipeQuickSearch.name, () => {
   it('suggests nothing with less than 2 characters', async () => {
@@ -58,11 +47,9 @@ describe(RecipeQuickSearch.name, () => {
 
   it('shows at most 5 suggestions', async () => {
     const { fixture } = mountQuickSearch({
-      recipes: Array.from({ length: 7 }, (_, index) => ({
-        ...burntAubergine,
-        id: `aubergine-${index}`,
-        name: `Aubergine ${index}`,
-      })),
+      recipes: Array.from({ length: 7 }, (_, index) =>
+        recipeMother.withBasicInfo(`Aubergine ${index}`).build(),
+      ),
     });
     await fixture.whenStable();
 
@@ -81,7 +68,7 @@ describe(RecipeQuickSearch.name, () => {
 
     expect(
       suggestionLinks(fixture.nativeElement)[0]?.getAttribute('href'),
-    ).toBe('/recipes/burnt-aubergine-salad');
+    ).toBe(`/recipes/${burntAubergine.id}`);
   });
 
   it('says when nothing matches', async () => {

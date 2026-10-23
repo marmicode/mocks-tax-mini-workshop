@@ -6,6 +6,7 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminStepHistogram } from './admin-step-histogram.ng';
 
 describe(AdminStepHistogram.name, () => {
@@ -19,15 +20,7 @@ describe(AdminStepHistogram.name, () => {
   it('counts a single recipe', async () => {
     const { fixture } = mountAdminStepHistogram({
       recipes: [
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: 'Eggs poached in a spiced tomato sauce.',
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook the sauce.', 'Crack the eggs.', 'Serve.'],
-        },
+        recipeMother.withBasicInfo('Shakshuka').withSomeSteps().build(),
       ],
     });
     await fixture.whenStable();
@@ -40,71 +33,37 @@ describe(AdminStepHistogram.name, () => {
   it('groups recipes with the same step count', async () => {
     const { fixture } = mountAdminStepHistogram({
       recipes: [
-        {
-          id: 'hummus-ful',
-          course: 'starter',
-          name: 'Hummus with Ful',
-          description: 'Creamy hummus.',
-          pictureUri: 'https://example.com/hummus.jpg',
-          ingredients: [{ name: 'chickpeas' }],
-          steps: ['Blend.', 'Serve.'],
-        },
-        {
-          id: 'courgette-fritters',
-          course: 'starter',
-          name: 'Courgette Fritters',
-          description: null,
-          pictureUri: 'https://example.com/fritters.jpg',
-          ingredients: [{ name: 'courgettes' }],
-          steps: ['Grate.', 'Fry.'],
-        },
+        recipeMother.withBasicInfo('Hummus with Ful').withSomeSteps().build(),
+        recipeMother
+          .withBasicInfo('Courgette Fritters')
+          .withSomeSteps()
+          .build(),
       ],
     });
     await fixture.whenStable();
 
     expect(histogram(fixture.nativeElement)).toEqual([
-      { stepCount: '2', recipeCount: '2' },
+      { stepCount: '3', recipeCount: '2' },
     ]);
   });
 
   it('sorts buckets by step count, including recipes without steps', async () => {
     const { fixture } = mountAdminStepHistogram({
       recipes: [
-        {
-          id: 'tahini-halva-brownies',
-          course: 'dessert',
-          name: 'Tahini and Halva Brownies',
-          description: null,
-          pictureUri: '/images/tahini-halva-brownies.svg',
-          ingredients: [{ name: 'butter' }],
-          steps: ['Melt.', 'Mix.', 'Pour.', 'Bake.'],
-        },
-        {
-          id: 'hummus-ful',
-          course: 'starter',
-          name: 'Hummus with Ful',
-          description: 'Creamy hummus.',
-          pictureUri: 'https://example.com/hummus.jpg',
-          ingredients: [{ name: 'chickpeas' }],
-          steps: [],
-        },
-        {
-          id: 'shakshuka',
-          course: 'main',
-          name: 'Shakshuka',
-          description: null,
-          pictureUri: 'https://example.com/shakshuka.jpg',
-          ingredients: [{ name: 'eggs' }],
-          steps: ['Cook.'],
-        },
+        recipeMother
+          .withBasicInfo('Tahini and Halva Brownies')
+          .withManySteps()
+          .build(),
+        recipeMother.withBasicInfo('Hummus with Ful').build(),
+        recipeMother.withBasicInfo('Shakshuka').withSomeSteps().build(),
       ],
     });
     await fixture.whenStable();
 
     expect(histogram(fixture.nativeElement)).toEqual([
       { stepCount: '0', recipeCount: '1' },
-      { stepCount: '1', recipeCount: '1' },
-      { stepCount: '4', recipeCount: '1' },
+      { stepCount: '3', recipeCount: '1' },
+      { stepCount: '8', recipeCount: '1' },
     ]);
   });
 });

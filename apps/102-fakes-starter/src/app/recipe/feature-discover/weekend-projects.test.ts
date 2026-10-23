@@ -6,27 +6,15 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { WeekendProjects } from './weekend-projects.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [],
-  steps: ['Blend.', 'Serve.'],
-};
+const hummus = recipeMother.withBasicInfo('Hummus with Ful').build();
 
-const lamb: Recipe = {
-  id: 'slow-roasted-lamb',
-  course: 'main',
-  name: 'Slow-roasted Lamb',
-  description: null,
-  pictureUri: 'https://example.com/lamb.jpg',
-  ingredients: [],
-  steps: ['Marinate.', 'Sear.', 'Roast.', 'Rest.', 'Carve.'],
-};
+const lamb = recipeMother
+  .withBasicInfo('Slow-roasted Lamb')
+  .withManySteps()
+  .build();
 
 describe(WeekendProjects.name, () => {
   it('shows the most involved recipes first', async () => {
@@ -47,20 +35,17 @@ describe(WeekendProjects.name, () => {
       fixture.nativeElement
         .querySelector('[data-testid="step-count"]')
         ?.textContent?.trim(),
-    ).toBe('5 steps');
+    ).toBe('8 steps');
   });
 
   it('keeps only the top five projects', async () => {
     const { fixture } = mountWeekendProjects({
-      recipes: [1, 2, 3, 4, 5, 6].map((stepCount) => ({
-        id: `recipe-${stepCount}`,
-        course: 'main' as const,
-        name: `Recipe ${stepCount}`,
-        description: null,
-        pictureUri: `https://example.com/recipe-${stepCount}.jpg`,
-        ingredients: [],
-        steps: Array.from({ length: stepCount }, () => 'Cook.'),
-      })),
+      recipes: [1, 2, 3, 4, 5, 6].map((stepCount) =>
+        recipeMother
+          .withBasicInfo(`Recipe ${stepCount}`)
+          .withSteps(Array.from({ length: stepCount }, () => 'Stir.'))
+          .build(),
+      ),
     });
     await fixture.whenStable();
 

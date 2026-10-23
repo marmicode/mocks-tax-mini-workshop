@@ -11,24 +11,16 @@ import {
   provideRecipeRepositoryFake,
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { recipeTitleResolver } from './recipe-title.resolver';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 describe('recipeTitleResolver', () => {
   it('uses the recipe name as title', async () => {
     setUpResolver();
 
-    const title = await resolveTitle({ recipeId: 'shakshuka' });
+    const title = await resolveTitle({ recipeId: shakshuka.id });
 
     expect(title).toBe('Shakshuka · Whiskmate');
   });

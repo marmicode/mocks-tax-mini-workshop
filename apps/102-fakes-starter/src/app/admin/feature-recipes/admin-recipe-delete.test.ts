@@ -5,22 +5,14 @@ import {
   provideRecipeRepositoryFake,
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminRecipeDelete } from './admin-recipe-delete.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 describe(AdminRecipeDelete.name, () => {
   it('shows the recipe and asks for confirmation', async () => {
-    const { fixture } = mountAdminRecipeDelete('shakshuka');
+    const { fixture } = mountAdminRecipeDelete(shakshuka.id);
     await fixture.whenStable();
 
     expect(fixture.nativeElement.querySelector('h2')?.textContent).toContain(
@@ -29,8 +21,9 @@ describe(AdminRecipeDelete.name, () => {
   });
 
   it('removes the recipe and goes back to the list', async () => {
-    const { fixture, recipeRepositoryFake, router } =
-      mountAdminRecipeDelete('shakshuka');
+    const { fixture, recipeRepositoryFake, router } = mountAdminRecipeDelete(
+      shakshuka.id,
+    );
     await fixture.whenStable();
 
     buttonByText(fixture.nativeElement, 'Delete').click();
@@ -41,8 +34,9 @@ describe(AdminRecipeDelete.name, () => {
   });
 
   it('links back to the list without removing anything', async () => {
-    const { fixture, recipeRepositoryFake } =
-      mountAdminRecipeDelete('shakshuka');
+    const { fixture, recipeRepositoryFake } = mountAdminRecipeDelete(
+      shakshuka.id,
+    );
     await fixture.whenStable();
 
     const cancel = [...fixture.nativeElement.querySelectorAll('a')].find(

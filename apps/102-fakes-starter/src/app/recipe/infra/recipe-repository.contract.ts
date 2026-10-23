@@ -1,6 +1,7 @@
 import { firstValueFrom } from 'rxjs';
 import { describe, expect, it } from 'vitest';
-import { createRecipe, type Recipe } from '@whiskmate/shared-recipe/model';
+import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import {
   createRecipeSearchParams,
   type RecipeRepositoryDef,
@@ -54,8 +55,8 @@ export function verifyRecipeRepositoryContract(
         cheesecake,
       ]);
 
-      expect(await search(recipeRepository, { maxIngredientCount: 2 })).toEqual(
-        [hummus],
+      expect(await search(recipeRepository, { maxIngredientCount: 5 })).toEqual(
+        [hummus, shakshuka],
       );
     });
 
@@ -66,7 +67,7 @@ export function verifyRecipeRepositoryContract(
         cheesecake,
       ]);
 
-      expect(await search(recipeRepository, { maxStepCount: 2 })).toEqual([
+      expect(await search(recipeRepository, { maxStepCount: 5 })).toEqual([
         hummus,
         cheesecake,
       ]);
@@ -102,7 +103,7 @@ export function verifyRecipeRepositoryContract(
       ]);
 
       expect(
-        await search(recipeRepository, { keywords: 'a', maxStepCount: 2 }),
+        await search(recipeRepository, { keywords: 'a', maxStepCount: 5 }),
       ).toEqual([cheesecake]);
     });
   });
@@ -115,7 +116,7 @@ export function verifyRecipeRepositoryContract(
       ]);
 
       expect(
-        await firstValueFrom(recipeRepository.findById({ id: 'shakshuka' })),
+        await firstValueFrom(recipeRepository.findById({ id: shakshuka.id })),
       ).toEqual(shakshuka);
     });
 
@@ -136,7 +137,7 @@ export function verifyRecipeRepositoryContract(
 
       expect(created).toEqual(shakshuka);
       expect(
-        await firstValueFrom(recipeRepository.findById({ id: 'shakshuka' })),
+        await firstValueFrom(recipeRepository.findById({ id: shakshuka.id })),
       ).toEqual(shakshuka);
       expect(await search(recipeRepository)).toEqual([hummus, shakshuka]);
     });
@@ -157,7 +158,10 @@ export function verifyRecipeRepositoryContract(
         hummus,
         shakshuka,
       ]);
-      const updatedHummus = createRecipe({ ...hummus, name: 'Hummus' });
+      const updatedHummus = recipeMother
+        .withBasicInfo({ name: 'Hummus', course: 'starter' })
+        .withId(hummus.id)
+        .build();
 
       const updated = await firstValueFrom(
         recipeRepository.update(updatedHummus),
@@ -165,7 +169,7 @@ export function verifyRecipeRepositoryContract(
 
       expect(updated).toEqual(updatedHummus);
       expect(
-        await firstValueFrom(recipeRepository.findById({ id: 'hummus-ful' })),
+        await firstValueFrom(recipeRepository.findById({ id: hummus.id })),
       ).toEqual(updatedHummus);
       expect(await search(recipeRepository)).toEqual([
         updatedHummus,
@@ -189,10 +193,10 @@ export function verifyRecipeRepositoryContract(
         shakshuka,
       ]);
 
-      await firstValueFrom(recipeRepository.remove({ id: 'hummus-ful' }));
+      await firstValueFrom(recipeRepository.remove({ id: hummus.id }));
 
       expect(
-        await firstValueFrom(recipeRepository.findById({ id: 'hummus-ful' })),
+        await firstValueFrom(recipeRepository.findById({ id: hummus.id })),
       ).toBeUndefined();
       expect(await search(recipeRepository)).toEqual([shakshuka]);
     });
@@ -228,38 +232,16 @@ function search(
   );
 }
 
-const hummus = createRecipe({
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: 'Creamy hummus topped with warm ful.',
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: 'chickpeas' }, { name: 'tahini' }],
-  steps: ['Blend the chickpeas with the tahini.'],
-});
+const hummus = recipeMother
+  .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
+  .build();
 
-const shakshuka = createRecipe({
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [{ name: 'eggs' }, { name: 'tomatoes' }, { name: 'peppers' }],
-  steps: ['Cook the sauce.', 'Poach the eggs.', 'Serve.'],
-});
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withManySteps()
+  .build();
 
-const cheesecake = createRecipe({
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [
-    { name: 'ricotta' },
-    { name: 'eggs' },
-    { name: 'sugar' },
-    { name: 'lemons' },
-    { name: 'flour' },
-  ],
-  steps: ['Mix everything.', 'Bake.'],
-});
+const cheesecake = recipeMother
+  .withBasicInfo({ name: 'Lemon and Ricotta Cheesecake', course: 'dessert' })
+  .withManyIngredients()
+  .build();

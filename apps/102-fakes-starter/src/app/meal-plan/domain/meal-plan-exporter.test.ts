@@ -6,28 +6,14 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { WeekdayAssignments } from '@whiskmate/shared-meal-plan/domain';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { MealPlanExporter } from './meal-plan-exporter';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-const cheesecake: Recipe = {
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [],
-  steps: [],
-};
+const cheesecake = recipeMother
+  .withBasicInfo('Lemon and Ricotta Cheesecake')
+  .build();
 
 const emptyAssignments: WeekdayAssignments = {
   monday: null,
@@ -64,8 +50,8 @@ describe(MealPlanExporter.name, () => {
     const text = await firstValueFrom(
       exporter.toText({
         ...emptyAssignments,
-        monday: 'shakshuka',
-        sunday: 'lemon-ricotta-cheesecake',
+        monday: shakshuka.id,
+        sunday: cheesecake.id,
       }),
     );
 

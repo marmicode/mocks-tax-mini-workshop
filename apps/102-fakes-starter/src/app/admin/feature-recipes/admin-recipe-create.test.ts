@@ -5,32 +5,25 @@ import {
   provideRecipeRepositoryFake,
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminRecipeCreate } from './admin-recipe-create.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-const falafel: Recipe = {
-  id: 'falafel-bowl',
-  course: 'starter',
-  name: 'Falafel Bowl',
-  description: 'Crispy falafel with tahini.',
-  pictureUri: 'https://example.com/falafel.jpg',
-  ingredients: [
+const falafel = recipeMother
+  .withBasicInfo({
+    name: 'Falafel Bowl',
+    course: 'starter',
+    description: 'Crispy falafel with tahini.',
+  })
+  .withPictureUri('https://example.com/falafel.jpg')
+  .withIngredients([
     { quantity: { amount: 400, unit: 'g' }, name: 'chickpeas' },
     { quantity: { amount: 2, unit: 'tbsp' }, name: 'tahini' },
     { name: 'fresh parsley' },
-  ],
-  steps: ['Blend the chickpeas.', 'Shape and fry.'],
-};
+  ])
+  .withSteps(['Blend the chickpeas.', 'Shape and fry.'])
+  .build();
 
 describe(AdminRecipeCreate.name, () => {
   it('derives the id from the name and checks it is available', async () => {
@@ -80,7 +73,7 @@ describe(AdminRecipeCreate.name, () => {
     const { fixture } = mountAdminRecipeCreate();
     await fixture.whenStable();
 
-    typeInto(fieldByLabel(fixture.nativeElement, 'Id'), 'shakshuka');
+    typeInto(fieldByLabel(fixture.nativeElement, 'Id'), shakshuka.id);
     await fixture.whenStable();
 
     expect(fixture.nativeElement.textContent).toContain(

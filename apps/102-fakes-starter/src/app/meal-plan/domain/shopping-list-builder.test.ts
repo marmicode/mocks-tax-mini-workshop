@@ -6,35 +6,25 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { WeekdayAssignments } from '@whiskmate/shared-meal-plan/domain';
-import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { ShoppingListBuilder } from './shopping-list-builder';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [
+const shakshuka = recipeMother
+  .withBasicInfo('Shakshuka')
+  .withIngredients([
     { name: 'olive oil', quantity: { amount: 3, unit: 'tbsp' } },
     { name: 'large eggs', quantity: { amount: 6, unit: '' } },
     { name: 'fresh coriander, to serve' },
-  ],
-  steps: [],
-};
+  ])
+  .build();
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [
+const hummus = recipeMother
+  .withBasicInfo('Hummus with Ful')
+  .withIngredients([
     { name: 'Olive oil', quantity: { amount: 2, unit: 'tbsp' } },
     { name: 'tahini', quantity: { amount: 100, unit: 'g' } },
-  ],
-  steps: [],
-};
+  ])
+  .build();
 
 const emptyAssignments: WeekdayAssignments = {
   monday: null,
@@ -59,7 +49,7 @@ describe(ShoppingListBuilder.name, () => {
     const { builder } = setUpShoppingListBuilder();
 
     const items = await firstValueFrom(
-      builder.build({ ...emptyAssignments, monday: 'shakshuka' }),
+      builder.build({ ...emptyAssignments, monday: shakshuka.id }),
     );
 
     expect(items).toEqual([
@@ -83,8 +73,8 @@ describe(ShoppingListBuilder.name, () => {
     const items = await firstValueFrom(
       builder.build({
         ...emptyAssignments,
-        monday: 'shakshuka',
-        tuesday: 'hummus-ful',
+        monday: shakshuka.id,
+        tuesday: hummus.id,
       }),
     );
 
@@ -101,8 +91,8 @@ describe(ShoppingListBuilder.name, () => {
     const items = await firstValueFrom(
       builder.build({
         ...emptyAssignments,
-        monday: 'hummus-ful',
-        friday: 'hummus-ful',
+        monday: hummus.id,
+        friday: hummus.id,
       }),
     );
 

@@ -6,67 +6,21 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { SimilarRecipes } from './similar-recipes.ng';
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [],
-  steps: [],
-};
-
-const harissaChicken: Recipe = {
-  id: 'harissa-chicken',
-  course: 'main',
-  name: 'Harissa-Roasted Chicken',
-  description: null,
-  pictureUri: 'https://example.com/harissa-chicken.jpg',
-  ingredients: [],
-  steps: [],
-};
-
-const lambKofte: Recipe = {
-  id: 'lamb-kofte',
-  course: 'main',
-  name: 'Lamb Kofte',
-  description: null,
-  pictureUri: 'https://example.com/lamb-kofte.jpg',
-  ingredients: [],
-  steps: [],
-};
-
-const cauliflowerCake: Recipe = {
-  id: 'cauliflower-cake',
-  course: 'main',
-  name: 'Cauliflower Cake',
-  description: null,
-  pictureUri: 'https://example.com/cauliflower-cake.jpg',
-  ingredients: [],
-  steps: [],
-};
-
-const filoPie: Recipe = {
-  id: 'sweet-potato-filo-pie',
-  course: 'main',
-  name: 'Sweet Potato and Feta Filo Pie',
-  description: null,
-  pictureUri: 'https://example.com/filo-pie.jpg',
-  ingredients: [],
-  steps: [],
-};
-
-const cheesecake: Recipe = {
-  id: 'lemon-ricotta-cheesecake',
-  course: 'dessert',
-  name: 'Lemon and Ricotta Cheesecake',
-  description: null,
-  pictureUri: 'https://example.com/cheesecake.jpg',
-  ingredients: [],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
+const harissaChicken = recipeMother
+  .withBasicInfo('Harissa-Roasted Chicken')
+  .build();
+const lambKofte = recipeMother.withBasicInfo('Lamb Kofte').build();
+const cauliflowerCake = recipeMother.withBasicInfo('Cauliflower Cake').build();
+const filoPie = recipeMother
+  .withBasicInfo('Sweet Potato and Feta Filo Pie')
+  .build();
+const cheesecake = recipeMother
+  .withBasicInfo({ name: 'Lemon and Ricotta Cheesecake', course: 'dessert' })
+  .build();
 
 describe(SimilarRecipes.name, () => {
   it('shows only recipes of the same course', async () => {
@@ -111,7 +65,7 @@ describe(SimilarRecipes.name, () => {
     await fixture.whenStable();
 
     expect(similarLinks(fixture.nativeElement)[0]?.getAttribute('href')).toBe(
-      '/recipes/harissa-chicken',
+      `/recipes/${harissaChicken.id}`,
     );
   });
 

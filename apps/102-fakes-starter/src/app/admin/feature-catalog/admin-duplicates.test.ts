@@ -6,69 +6,36 @@ import {
   RecipeRepositoryFake,
 } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminDuplicates } from './admin-duplicates.ng';
 
-const hummus: Recipe = {
-  id: 'hummus-ful',
-  course: 'starter',
-  name: 'Hummus with Ful',
-  description: null,
-  pictureUri: 'https://example.com/hummus.jpg',
-  ingredients: [{ name: 'chickpeas' }, { name: 'tahini' }],
-  steps: [],
-};
+const hummus = recipeMother.withBasicInfo('Hummus with Ful').build();
 
-const fulHummus: Recipe = {
-  id: 'ful-and-hummus',
-  course: 'starter',
-  name: 'Ful & Hummus',
-  description: null,
-  pictureUri: 'https://example.com/ful.jpg',
-  ingredients: [{ name: 'fava beans' }],
-  steps: [],
-};
+const fulHummus = recipeMother.withBasicInfo('Ful & Hummus').build();
 
-const aubergine: Recipe = {
-  id: 'burnt-aubergine-salad',
-  course: 'starter',
-  name: 'Burnt Aubergine Salad',
-  description: null,
-  pictureUri: 'https://example.com/aubergine.jpg',
-  ingredients: [
+const aubergine = recipeMother
+  .withBasicInfo('Burnt Aubergine Salad')
+  .withIngredients([
     { name: 'aubergines' },
     { name: 'tahini' },
     { name: 'lemon juice' },
     { name: 'pomegranate' },
     { name: 'parsley' },
-  ],
-  steps: [],
-};
+  ])
+  .build();
 
-const roastedAubergine: Recipe = {
-  id: 'roasted-aubergine-tahini',
-  course: 'starter',
-  name: 'Roasted Aubergine with Tahini',
-  description: null,
-  pictureUri: 'https://example.com/roasted-aubergine.jpg',
-  ingredients: [
+const roastedAubergine = recipeMother
+  .withBasicInfo('Roasted Aubergine with Tahini')
+  .withIngredients([
     { name: 'Aubergines' },
     { name: 'tahini' },
     { name: 'lemon juice' },
     { name: 'pomegranate' },
     { name: 'mint' },
-  ],
-  steps: [],
-};
+  ])
+  .build();
 
-const shakshuka: Recipe = {
-  id: 'shakshuka',
-  course: 'main',
-  name: 'Shakshuka',
-  description: null,
-  pictureUri: 'https://example.com/shakshuka.jpg',
-  ingredients: [{ name: 'eggs' }, { name: 'tomatoes' }],
-  steps: [],
-};
+const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
 describe(AdminDuplicates.name, () => {
   it('shows "no duplicates" when every recipe is distinct', async () => {
@@ -113,8 +80,8 @@ describe(AdminDuplicates.name, () => {
       ),
     ].map((link) => (link as HTMLAnchorElement).getAttribute('href'));
     expect(links).toEqual([
-      '/admin/recipes/hummus-ful/edit',
-      '/admin/recipes/ful-and-hummus/edit',
+      `/admin/recipes/${hummus.id}/edit`,
+      `/admin/recipes/${fulHummus.id}/edit`,
     ]);
   });
 
@@ -133,16 +100,16 @@ describe(AdminDuplicates.name, () => {
     const { fixture } = mountAdminDuplicates({
       recipes: [
         aubergine,
-        {
-          ...roastedAubergine,
-          ingredients: [
+        recipeMother
+          .withBasicInfo('Roasted Aubergine with Tahini')
+          .withIngredients([
             { name: 'aubergines' },
             { name: 'tahini' },
             { name: 'lemon juice' },
             { name: 'garlic' },
             { name: 'mint' },
-          ],
-        },
+          ])
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -155,8 +122,15 @@ describe(AdminDuplicates.name, () => {
   it('reports same-name recipes as name duplicates even if ingredients match too', async () => {
     const { fixture } = mountAdminDuplicates({
       recipes: [
-        hummus,
-        { ...hummus, id: 'hummus-copy', name: 'hummus with ful!' },
+        recipeMother
+          .withBasicInfo('Hummus with Ful')
+          .withIngredients([{ name: 'chickpeas' }, { name: 'tahini' }])
+          .build(),
+        recipeMother
+          .withBasicInfo('hummus with ful!')
+          .withId('hummus-copy')
+          .withIngredients([{ name: 'chickpeas' }, { name: 'tahini' }])
+          .build(),
       ],
     });
     await fixture.whenStable();
@@ -171,7 +145,7 @@ describe(AdminDuplicates.name, () => {
       recipes: [
         hummus,
         fulHummus,
-        { ...fulHummus, id: 'ful-with-hummus', name: 'Ful with Hummus' },
+        recipeMother.withBasicInfo('Ful with Hummus').build(),
       ],
     });
     await fixture.whenStable();
