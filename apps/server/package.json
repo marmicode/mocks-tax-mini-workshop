@@ -5,5 +5,12 @@
   "type": "module",
   "scripts": {
     "start": "node main.mjs"
+  },
+  "nx": {
+    "targets": {
+      "start": {
+        "continuous": true
+      }
+    }
   }
 }

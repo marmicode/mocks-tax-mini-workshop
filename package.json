@@ -5,6 +5,7 @@
   "scripts": {
     "start": "nx serve",
     "start-server": "nx start server",
+    "start-web": "nx serve --excludeTaskDependencies",
     "cook": "node --experimental-strip-types tools/cook/main.ts",
     "limbo": "tools/limbo.sh"
   },

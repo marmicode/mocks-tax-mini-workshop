@@ -49,6 +49,7 @@
       }
     },
     "serve": {
+      "dependsOn": ["server:start"],
       "continuous": true,
       "executor": "@angular/build:dev-server",
       "defaultConfiguration": "development",
