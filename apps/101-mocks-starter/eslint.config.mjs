@@ -27,19 +27,6 @@ export default [
     },
   },
   {
-    files: ['**/*.ts'],
-    ignores: ['**/src/app/shared/infra/clock-adapter.ts'],
-    rules: {
-      'no-restricted-globals': [
-        'error',
-        {
-          name: 'Date',
-          message: 'Use ClockAdapter instead of Date.',
-        },
-      ],
-    },
-  },
-  {
     files: ['**/*.html'],
     // Override or add rules here
     rules: {},
