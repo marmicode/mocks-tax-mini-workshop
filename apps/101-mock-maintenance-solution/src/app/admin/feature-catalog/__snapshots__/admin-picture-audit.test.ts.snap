@@ -4,6 +4,7 @@ exports[`AdminPictureAudit > flags missing pictures 1`] = `
 [
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": null,

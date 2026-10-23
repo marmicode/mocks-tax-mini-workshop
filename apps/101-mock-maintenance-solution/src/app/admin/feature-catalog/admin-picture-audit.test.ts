@@ -13,6 +13,7 @@ const WHOLE_CATALOG_SEARCH_KEY = searchKey({
   keywords: '',
   maxIngredientCount: null,
   maxStepCount: null,
+  courses: [],
 });
 
 describe(AdminPictureAudit.name, () => {
@@ -24,6 +25,7 @@ describe(AdminPictureAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -103,6 +105,7 @@ describe(AdminPictureAudit.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(search.mock.calls).toMatchSnapshot();
     expect(rowTexts(fixture.nativeElement)).toEqual([

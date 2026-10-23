@@ -41,6 +41,7 @@ describe(RecipeSearch.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -70,6 +71,7 @@ describe(RecipeSearch.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -88,6 +90,7 @@ describe(RecipeSearch.name, () => {
       keywords: 'shak',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -102,11 +105,13 @@ describe(RecipeSearch.name, () => {
             keywords: '',
             maxIngredientCount: null,
             maxStepCount: null,
+            courses: [],
           })]: [shakshuka, cheesecake],
           [JSON.stringify({
             keywords: '',
             maxIngredientCount: 5,
             maxStepCount: null,
+            courses: [],
           })]: [shakshuka],
         }[JSON.stringify(params)] ?? [],
       ),
@@ -127,6 +132,7 @@ describe(RecipeSearch.name, () => {
     expect(search.mock.lastCall).toMatchInlineSnapshot(`
       [
         {
+          "courses": [],
           "keywords": "",
           "maxIngredientCount": null,
           "maxStepCount": 3,
@@ -146,7 +152,7 @@ describe(RecipeSearch.name, () => {
       'Lemon and Ricotta Cheesecake',
     ]);
     expect(search).toHaveBeenCalledTimes(2);
-    expect(search.mock.calls[0]?.[0]).not.toHaveProperty('courses');
+    expect(search.mock.calls[0]?.[0]).toHaveProperty('courses', []);
     expect(search).toHaveBeenNthCalledWith(2, {
       keywords: '',
       maxIngredientCount: null,
@@ -203,6 +209,7 @@ describe(RecipeSearch.name, () => {
       keywords: '',
       maxIngredientCount: 8,
       maxStepCount: 4,
+      courses: [],
     });
   });
 
@@ -231,6 +238,7 @@ describe(RecipeSearch.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([]);
     expect(
@@ -256,6 +264,7 @@ describe(RecipeSearch.name, () => {
       'keywords',
       'maxIngredientCount',
       'maxStepCount',
+      'courses',
     ]);
   });
 
@@ -278,7 +287,7 @@ describe(RecipeSearch.name, () => {
   it('removes a recipe from favorites', async () => {
     const { fixture, search, userFavorites } = await mountRecipeSearch();
     search.mockImplementation((params) =>
-      'courses' in params ? of([]) : of([shakshuka]),
+      params.courses.length > 0 ? of([]) : of([shakshuka]),
     );
     vi.spyOn(userFavorites, 'favoriteIds').mockReturnValue(
       new Set([shakshuka.id]),
@@ -312,6 +321,7 @@ describe(RecipeSearch.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(assign).toHaveBeenCalledExactlyOnceWith({
       weekday: 'wednesday',
@@ -354,7 +364,7 @@ async function mountRecipeSearch() {
     .spyOn(recipeRepository, 'search')
     .mockImplementation(({ courses }) =>
       of(
-        courses
+        courses.length > 0
           ? catalog.filter((recipe) => courses.includes(recipe.course))
           : catalog,
       ),
@@ -433,7 +443,13 @@ function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
 
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
   return (
-    Object.keys(params).length === 3 &&
-    Object.values(params).every((value) => value === '' || value === null)
+    Object.keys(params).length === 4 &&
+    Object.values(params).every(
+      (value) => value === '' || value === null || isEmptyArray(value),
+    )
   );
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

@@ -46,6 +46,7 @@ describe(App.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -53,6 +54,7 @@ describe(App.name, () => {
         ],
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -96,6 +98,7 @@ describe(App.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -139,7 +142,7 @@ async function mountApp() {
     .spyOn(recipeRepository, 'search')
     .mockImplementation(({ courses }) =>
       of(
-        courses
+        courses.length > 0
           ? [shakshuka].filter((recipe) => courses.includes(recipe.course))
           : [shakshuka],
       ),

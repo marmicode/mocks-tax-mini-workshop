@@ -67,6 +67,7 @@ describe(MealPlanDayPicker.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -103,6 +104,7 @@ describe(MealPlanDayPicker.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -150,6 +152,7 @@ describe(MealPlanDayPicker.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -180,7 +183,7 @@ function mountMealPlanDayPicker({
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation(({ courses }) => {
       /* The day picker filters mains itself, it never asks for a course. */
-      if (courses != null) {
+      if (courses.length > 0) {
         throw new Error('Invalid call');
       }
       return of(catalog);
@@ -201,7 +204,7 @@ function mountMealPlanDayPicker({
 function toQueryString(params: RecipeSearchParams): string {
   return new URLSearchParams(
     Object.entries(params)
-      .filter(([, value]) => value != null)
+      .filter(([, value]) => value != null && !isEmptyArray(value))
       .map(([key, value]) => [key, String(value)]),
   ).toString();
 }
@@ -220,4 +223,8 @@ function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
     throw new Error(`Button "${text}" not found.`);
   }
   return button;
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

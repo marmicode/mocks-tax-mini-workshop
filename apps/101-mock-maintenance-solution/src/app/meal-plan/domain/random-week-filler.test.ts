@@ -60,6 +60,7 @@ describe(RandomWeekFiller.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -74,6 +75,7 @@ describe(RandomWeekFiller.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": 4,
@@ -131,6 +133,7 @@ describe(RandomWeekFiller.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -142,7 +145,7 @@ function setUpRandomWeekFiller({
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation(({ courses }) => {
       /* The filler picks mains itself, it never asks for a course. */
-      if (courses != null) {
+      if (courses.length > 0) {
         throw new Error('Invalid call');
       }
       return of(catalog);
@@ -156,7 +159,13 @@ function setUpRandomWeekFiller({
 
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
   return (
-    Object.keys(params).length === 3 &&
-    Object.values(params).every((value) => value === '' || value === null)
+    Object.keys(params).length === 4 &&
+    Object.values(params).every(
+      (value) => value === '' || value === null || isEmptyArray(value),
+    )
   );
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

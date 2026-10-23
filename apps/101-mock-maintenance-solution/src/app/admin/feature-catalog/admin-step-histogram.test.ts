@@ -14,13 +14,14 @@ describe(AdminStepHistogram.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
   it('shows an empty state when there are no recipes', async () => {
     const { fixture, search } = mountAdminStepHistogram();
     search.mockImplementation((params) => {
-      if ('courses' in params) {
+      if (params.courses.length > 0) {
         throw new Error(
           `histogram must cover every course ${JSON.stringify(params)}`,
         );
@@ -36,7 +37,7 @@ describe(AdminStepHistogram.name, () => {
   it('counts a single recipe', async () => {
     const { fixture, search } = mountAdminStepHistogram();
     search.mockImplementation((params) =>
-      'courses' in params
+      params.courses.length > 0
         ? of([])
         : of([
             {
@@ -87,6 +88,7 @@ describe(AdminStepHistogram.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(histogram(fixture.nativeElement)).toEqual([
       { stepCount: '2', recipeCount: '2' },
@@ -167,5 +169,9 @@ function emptyState(root: HTMLElement): string | undefined {
 }
 
 function isBlankFilter(value: unknown): boolean {
-  return value === '' || value === null;
+  return value === '' || value === null || isEmptyArray(value);
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

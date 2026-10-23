@@ -51,7 +51,7 @@ describe(SurpriseMe.name, () => {
     await fixture.whenStable();
 
     expect(search.mock.calls.map(([params]) => searchKey(params))).toEqual([
-      'keywords=&maxIngredientCount=&maxStepCount=',
+      'keywords=&maxIngredientCount=&maxStepCount=&courses=',
       'keywords=&maxIngredientCount=&maxStepCount=&courses=dessert',
     ]);
   });
@@ -76,13 +76,14 @@ describe(SurpriseMe.name, () => {
     expect(search.mock.lastCall).toMatchInlineSnapshot(`
       [
         {
+          "courses": [],
           "keywords": "",
           "maxIngredientCount": null,
           "maxStepCount": null,
         },
       ]
     `);
-    expect(search.mock.lastCall?.[0]).not.toHaveProperty('courses');
+    expect(search.mock.lastCall?.[0]).toHaveProperty('courses', []);
   });
 
   it('picks another recipe when asked again', async () => {
@@ -101,6 +102,7 @@ describe(SurpriseMe.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -113,6 +115,7 @@ describe(SurpriseMe.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(pick).not.toHaveBeenCalled();
     expect(
@@ -197,7 +200,7 @@ function mountSurpriseMe() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation((params) =>
       of(
-        params.courses == null
+        params.courses.length === 0
           ? catalog
           : catalog.filter((recipe) => params.courses?.includes(recipe.course)),
       ),

@@ -27,7 +27,12 @@ const roastedAubergine: Recipe = {
   steps: [],
 };
 
-const SEARCH_PARAM_KEYS = ['keywords', 'maxIngredientCount', 'maxStepCount'];
+const SEARCH_PARAM_KEYS = [
+  'keywords',
+  'maxIngredientCount',
+  'maxStepCount',
+  'courses',
+];
 
 describe(RecipeQuickSearch.name, () => {
   it('does not search with less than 2 characters', async () => {
@@ -63,6 +68,7 @@ describe(RecipeQuickSearch.name, () => {
         keywords: 'aub',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       })
         ? of(
             Array.from({ length: 7 }, (_, index) => ({
@@ -108,6 +114,7 @@ describe(RecipeQuickSearch.name, () => {
       keywords: 'xyz',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -151,6 +158,7 @@ describe(RecipeQuickSearch.name, () => {
       keywords: 'au',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -170,6 +178,7 @@ describe(RecipeQuickSearch.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "aub",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -177,6 +186,7 @@ describe(RecipeQuickSearch.name, () => {
         ],
         [
           {
+            "courses": [],
             "keywords": "pine",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -199,6 +209,7 @@ describe(RecipeQuickSearch.name, () => {
       keywords: 'aub',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(suggestionNames(fixture.nativeElement)).toEqual([]);
     expect(

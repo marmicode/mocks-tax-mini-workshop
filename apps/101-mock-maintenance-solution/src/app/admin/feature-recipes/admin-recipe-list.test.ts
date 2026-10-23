@@ -44,6 +44,7 @@ describe(AdminRecipeList.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -61,6 +62,7 @@ describe(AdminRecipeList.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -68,6 +70,7 @@ describe(AdminRecipeList.name, () => {
         ],
         [
           {
+            "courses": [],
             "keywords": "lemon",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -111,7 +114,7 @@ describe(AdminRecipeList.name, () => {
     ]);
     expect(search).toHaveBeenCalledTimes(3);
     expect(search).toHaveBeenLastCalledWith(
-      expect.not.objectContaining({ courses: expect.anything() }),
+      expect.objectContaining({ courses: [] }),
     );
   });
 
@@ -123,6 +126,7 @@ describe(AdminRecipeList.name, () => {
           keywords: '',
           maxIngredientCount: null,
           maxStepCount: null,
+          courses: [],
         })]: [shakshuka],
       }),
     );
@@ -157,6 +161,7 @@ describe(AdminRecipeList.name, () => {
         'keywords',
         'maxIngredientCount',
         'maxStepCount',
+        'courses',
       ]);
       return of(catalog);
     });
@@ -217,14 +222,15 @@ describe(AdminRecipeList.name, () => {
 
     expect(search).toHaveBeenCalledTimes(4);
     expect(search.mock.lastCall).toMatchInlineSnapshot(`
-        [
-          {
-            "keywords": "hummus",
-            "maxIngredientCount": null,
-            "maxStepCount": null,
-          },
-        ]
-      `);
+      [
+        {
+          "courses": [],
+          "keywords": "hummus",
+          "maxIngredientCount": null,
+          "maxStepCount": null,
+        },
+      ]
+    `);
   });
 });
 
@@ -234,7 +240,7 @@ function mountAdminRecipeList() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation((params) => {
       const recipes =
-        'courses' in params
+        params.courses.length > 0
           ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
           : catalog;
       return of(

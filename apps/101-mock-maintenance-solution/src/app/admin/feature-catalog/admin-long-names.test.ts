@@ -14,6 +14,7 @@ describe(AdminLongNames.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -38,6 +39,7 @@ describe(AdminLongNames.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -54,7 +56,9 @@ describe(AdminLongNames.name, () => {
     const { fixture, search } = mountAdminLongNames();
     search.mockImplementation((params) => {
       if (
-        !Object.values(params).every((value) => value === '' || value === null)
+        !Object.values(params).every(
+          (value) => value === '' || value === null || isEmptyArray(value),
+        )
       ) {
         return throwError(
           () => new Error(`unexpected search ${JSON.stringify(params)}`),
@@ -118,6 +122,7 @@ describe(AdminLongNames.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Slow-Roasted Lamb Shoulder with Pomegranate (43)',
@@ -192,4 +197,8 @@ function maxLengthInput(root: HTMLElement): HTMLInputElement {
 
 function emptyState(root: HTMLElement): string | undefined {
   return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

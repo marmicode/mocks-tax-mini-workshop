@@ -159,7 +159,7 @@ export class AdminRecipeList {
       this._recipeRepository.search(
         createRecipeSearchParams({
           keywords,
-          ...(course !== '' ? { courses: [course] } : {}),
+          courses: course !== '' ? [course] : [],
         }),
       ),
   });

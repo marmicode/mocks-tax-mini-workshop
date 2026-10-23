@@ -48,8 +48,9 @@ describe(AdminExport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
-    expect(search.mock.lastCall?.[0]).not.toHaveProperty('courses');
+    expect(search.mock.lastCall?.[0]).toHaveProperty('courses', []);
   });
 
   it('previews the exported recipes as JSON', async () => {
@@ -66,6 +67,7 @@ describe(AdminExport.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -82,6 +84,7 @@ describe(AdminExport.name, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       })]: recipesByCourse['all'],
       [searchKey({
         keywords: '',
@@ -146,13 +149,14 @@ describe(AdminExport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
   it('previews an empty export when the catalog is empty', async () => {
     const { fixture, search } = mountAdminExport();
     search.mockImplementation((params) =>
-      Object.keys(params).length === 3
+      Object.keys(params).length === 4
         ? of([])
         : throwError(() => new Error(`unexpected search ${searchKey(params)}`)),
     );
@@ -244,7 +248,7 @@ function mountAdminExport() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation(({ courses }) =>
       of(
-        courses === undefined
+        courses.length === 0
           ? recipesByCourse['all']
           : recipesByCourse[courses[0]],
       ),

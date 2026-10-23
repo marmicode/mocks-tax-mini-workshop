@@ -3,14 +3,16 @@
     {
       "keywords": "",
       "maxIngredientCount": null,
-      "maxStepCount": null
+      "maxStepCount": null,
+      "courses": []
     }
   ],
   [
     {
       "keywords": "lemon",
       "maxIngredientCount": null,
-      "maxStepCount": null
+      "maxStepCount": null,
+      "courses": []
     }
   ],
   [

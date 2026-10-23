@@ -4,6 +4,7 @@ exports[`AdminExport > goes back to all courses 1`] = `
 [
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": null,
@@ -21,6 +22,7 @@ exports[`AdminExport > goes back to all courses 1`] = `
   ],
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": null,

@@ -94,6 +94,7 @@ describe(SimplestRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -122,8 +123,9 @@ function recipeNames(root: HTMLElement): string[] {
 }
 
 /* Simplest recipes are sorted client-side, so the backend must be asked
- * for the whole catalog: `keywords=&maxIngredientCount=&maxStepCount=`. */
-const WHOLE_CATALOG_QUERY = 'keywords=&maxIngredientCount=&maxStepCount=';
+ * for the whole catalog: `keywords=&maxIngredientCount=&maxStepCount=&courses=`. */
+const WHOLE_CATALOG_QUERY =
+  'keywords=&maxIngredientCount=&maxStepCount=&courses=';
 
 function givenCatalog(
   search: MockInstance<RecipeRepository['search']>,

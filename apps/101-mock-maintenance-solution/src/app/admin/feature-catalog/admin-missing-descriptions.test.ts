@@ -14,6 +14,7 @@ describe(AdminMissingDescriptions.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -21,7 +22,7 @@ describe(AdminMissingDescriptions.name, () => {
     const { fixture, search } = mountAdminMissingDescriptions();
     search.mockImplementation((params) => {
       expect(params.keywords).toBe('');
-      expect(params.courses).toBeUndefined();
+      expect(params.courses).toEqual([]);
       return of([
         {
           id: 'shakshuka',
@@ -45,7 +46,7 @@ describe(AdminMissingDescriptions.name, () => {
     const { fixture, search } = mountAdminMissingDescriptions();
     search.mockImplementation((params) =>
       of(
-        Object.keys(params).length === 3
+        Object.keys(params).length === 4
           ? [
               {
                 id: 'tahini-halva-brownies',
@@ -106,6 +107,7 @@ describe(AdminMissingDescriptions.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowNames(fixture.nativeElement)).toEqual([
       'Courgette Fritters',

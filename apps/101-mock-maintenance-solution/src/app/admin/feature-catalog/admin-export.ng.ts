@@ -88,7 +88,7 @@ export class AdminExport {
     params: () => this.course(),
     stream: ({ params: course }) =>
       this._recipeRepository.search(
-        createRecipeSearchParams(course != null ? { courses: [course] } : {}),
+        createRecipeSearchParams({ courses: course != null ? [course] : [] }),
       ),
   });
 

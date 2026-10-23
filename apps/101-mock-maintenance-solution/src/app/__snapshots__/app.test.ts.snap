@@ -4,6 +4,7 @@ exports[`App > shows the admin link once signed in 1`] = `
 [
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": null,

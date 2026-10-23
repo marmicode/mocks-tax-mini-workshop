@@ -18,6 +18,7 @@ describe(AdminIngredientHistogram.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -37,7 +38,7 @@ describe(AdminIngredientHistogram.name, () => {
     const { fixture, search } = mountAdminIngredientHistogram();
     search.mockImplementation((params) => {
       switch (toQueryString(params)) {
-        case 'keywords=&maxIngredientCount=&maxStepCount=':
+        case 'keywords=&maxIngredientCount=&maxStepCount=&courses=':
           return of([
             {
               id: 'shakshuka',
@@ -95,6 +96,7 @@ describe(AdminIngredientHistogram.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(histogram(fixture.nativeElement)).toEqual([
       { ingredientCount: '2', recipeCount: '2' },

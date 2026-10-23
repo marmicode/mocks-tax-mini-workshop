@@ -48,6 +48,7 @@ describe(CatalogStats.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -70,6 +71,7 @@ describe(CatalogStats.name, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       })]: [hummus, shakshuka, kofte],
     };
     search.mockImplementation((params) => {
@@ -96,6 +98,7 @@ describe(CatalogStats.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(stats.missingDescriptionCount).toBe(2);
   });
@@ -110,6 +113,7 @@ describe(CatalogStats.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -129,7 +133,7 @@ describe(CatalogStats.name, () => {
   it('computes fractional averages', async () => {
     const { catalogStats, search } = setUpCatalogStats();
     search.mockImplementation((params) =>
-      'courses' in params
+      params.courses.length > 0
         ? throwError(() => new Error('stats must not filter by course'))
         : of([hummus, shakshuka]),
     );
@@ -150,6 +154,7 @@ describe(CatalogStats.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(stats).toEqual({
       recipeCount: 1,
@@ -182,11 +187,17 @@ function setUpCatalogStats() {
 
 function isWholeCatalogSearch(params: RecipeSearchParams) {
   return (
-    Object.keys(params).length === 3 &&
-    Object.values(params).every((value) => value === '' || value === null)
+    Object.keys(params).length === 4 &&
+    Object.values(params).every(
+      (value) => value === '' || value === null || isEmptyArray(value),
+    )
   );
 }
 
 function searchKey(params: RecipeSearchParams) {
   return JSON.stringify(params);
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

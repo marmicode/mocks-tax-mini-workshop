@@ -41,6 +41,7 @@ describe(AdminIngredients.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -48,7 +49,7 @@ describe(AdminIngredients.name, () => {
     const { fixture, search } = mountAdminIngredients();
     search.mockImplementation(({ courses }) =>
       of(
-        courses
+        courses.length > 0
           ? [shakshuka, hummus].filter((recipe) =>
               courses.includes(recipe.course),
             )
@@ -127,6 +128,7 @@ describe(AdminIngredients.name, () => {
           keywords: '',
           maxIngredientCount: null,
           maxStepCount: null,
+          courses: [],
         }),
         [
           {
@@ -159,6 +161,7 @@ describe(AdminIngredients.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(update).not.toHaveBeenCalled();
   });
@@ -176,6 +179,7 @@ describe(AdminIngredients.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -283,6 +287,6 @@ function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
     params.keywords === '' &&
     params.maxIngredientCount === null &&
     params.maxStepCount === null &&
-    params.courses === undefined
+    params.courses.length === 0
   );
 }

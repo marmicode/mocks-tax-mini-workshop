@@ -35,6 +35,7 @@ describe(PictureGallery.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -45,6 +46,7 @@ describe(PictureGallery.name, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       });
       return of([hummus, salad]);
     });
@@ -60,7 +62,9 @@ describe(PictureGallery.name, () => {
     const { fixture, search } = mountPictureGallery();
     search.mockImplementationOnce((params) =>
       of(
-        Object.values(params).every((value) => value === '' || value === null)
+        Object.values(params).every(
+          (value) => value === '' || value === null || isEmptyArray(value),
+        )
           ? [salad]
           : [],
       ),
@@ -96,6 +100,7 @@ describe(PictureGallery.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -114,7 +119,7 @@ function mountPictureGallery() {
     .mockImplementation((params) => {
       const catalog = [hummus, salad];
       return of(
-        params.courses
+        params.courses.length > 0
           ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
           : catalog,
       );
@@ -129,4 +134,8 @@ function pictureSources(root: HTMLElement): string[] {
   return [...root.querySelectorAll('img')].map(
     (img) => img.getAttribute('src') ?? '',
   );
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

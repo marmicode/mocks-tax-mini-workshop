@@ -4,6 +4,7 @@ exports[`Favorites > disables add when the store says the recipe cannot be added
 [
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": null,

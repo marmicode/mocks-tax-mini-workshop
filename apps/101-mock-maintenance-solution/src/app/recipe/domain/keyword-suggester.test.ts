@@ -48,6 +48,7 @@ describe(KeywordSuggester.name, () => {
       keywords: 'lem',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -83,6 +84,7 @@ describe(KeywordSuggester.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "zz",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -129,5 +131,10 @@ function searchKey({
   maxStepCount,
   courses,
 }: RecipeSearchParams): string {
-  return [keywords, maxIngredientCount, maxStepCount, courses ?? '*'].join('|');
+  return [
+    keywords,
+    maxIngredientCount,
+    maxStepCount,
+    courses.length > 0 ? courses : '*',
+  ].join('|');
 }

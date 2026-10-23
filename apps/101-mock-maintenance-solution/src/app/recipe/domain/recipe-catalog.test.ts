@@ -41,7 +41,7 @@ describe(RecipeCatalog.name, () => {
     search.mockImplementation(({ courses }) => {
       const catalog = [hummus, shakshuka, cheesecake];
       return of(
-        courses
+        courses.length > 0
           ? catalog.filter((recipe) => courses.includes(recipe.course))
           : catalog,
       );
@@ -62,6 +62,7 @@ describe(RecipeCatalog.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(count).toBe(0);
   });
@@ -69,7 +70,7 @@ describe(RecipeCatalog.name, () => {
   it('lists recipe names alphabetically', async () => {
     const { recipeCatalog, search } = setUpRecipeCatalog();
     search.mockImplementation((params) =>
-      Object.keys(params).length === 3
+      Object.keys(params).length === 4
         ? of([shakshuka, hummus, cheesecake])
         : throwError(
             () => new Error(`unexpected search ${JSON.stringify(params)}`),
@@ -98,6 +99,7 @@ describe(RecipeCatalog.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(names).toEqual(['Shakshuka']);
   });
@@ -107,7 +109,7 @@ describe(RecipeCatalog.name, () => {
     search.mockImplementation((params) => {
       const catalog = [hummus, shakshuka, cheesecake];
       return of(
-        'courses' in params
+        params.courses.length > 0
           ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
           : catalog,
       );

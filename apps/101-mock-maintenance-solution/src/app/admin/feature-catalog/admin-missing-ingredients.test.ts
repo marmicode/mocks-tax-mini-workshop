@@ -19,6 +19,7 @@ describe(AdminMissingIngredients.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -66,6 +67,7 @@ describe(AdminMissingIngredients.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Courgette Fritters — no ingredients',

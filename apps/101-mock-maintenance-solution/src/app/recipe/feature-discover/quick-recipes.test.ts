@@ -28,11 +28,18 @@ const salad: Recipe = {
 };
 
 const quickRecipesBySearch: Record<string, Recipe[]> = {
-  [JSON.stringify({ keywords: '', maxIngredientCount: null, maxStepCount: 5 })]:
-    [hummus, salad],
-  [JSON.stringify({ keywords: '', maxIngredientCount: 6, maxStepCount: 5 })]: [
-    hummus,
-  ],
+  [JSON.stringify({
+    keywords: '',
+    maxIngredientCount: null,
+    maxStepCount: 5,
+    courses: [],
+  })]: [hummus, salad],
+  [JSON.stringify({
+    keywords: '',
+    maxIngredientCount: 6,
+    maxStepCount: 5,
+    courses: [],
+  })]: [hummus],
 };
 
 describe(QuickRecipes.name, () => {
@@ -44,6 +51,7 @@ describe(QuickRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 5,
+      courses: [],
     });
   });
 
@@ -68,6 +76,7 @@ describe(QuickRecipes.name, () => {
     expect(search.mock.lastCall).toMatchInlineSnapshot(`
       [
         {
+          "courses": [],
           "keywords": "",
           "maxIngredientCount": 6,
           "maxStepCount": 5,
@@ -89,6 +98,7 @@ describe(QuickRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 5,
+      courses: [],
     });
   });
 
@@ -101,6 +111,7 @@ describe(QuickRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 5,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -140,6 +151,7 @@ describe(QuickRecipes.name, () => {
       keywords: '',
       maxIngredientCount: 6,
       maxStepCount: 5,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([]);
     expect(

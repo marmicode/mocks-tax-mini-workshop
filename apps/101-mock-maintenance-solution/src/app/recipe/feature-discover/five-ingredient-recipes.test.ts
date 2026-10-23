@@ -39,6 +39,7 @@ describe(FiveIngredientRecipes.name, () => {
       keywords: '',
       maxIngredientCount: 5,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -64,6 +65,7 @@ describe(FiveIngredientRecipes.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": 5,
             "maxStepCount": null,
@@ -71,6 +73,7 @@ describe(FiveIngredientRecipes.name, () => {
         ],
         [
           {
+            "courses": [],
             "keywords": "hummus",
             "maxIngredientCount": 5,
             "maxStepCount": null,
@@ -91,7 +94,7 @@ describe(FiveIngredientRecipes.name, () => {
     await fixture.whenStable();
 
     expect(searchKey(search.mock.lastCall?.[0])).toBe(
-      'keywords=&maxIngredientCount=5&maxStepCount=',
+      'keywords=&maxIngredientCount=5&maxStepCount=&courses=',
     );
   });
 
@@ -104,6 +107,7 @@ describe(FiveIngredientRecipes.name, () => {
       keywords: '',
       maxIngredientCount: 5,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -130,11 +134,11 @@ function mountFiveIngredientRecipes() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation((params) => {
       switch (searchKey(params)) {
-        case 'keywords=&maxIngredientCount=5&maxStepCount=':
+        case 'keywords=&maxIngredientCount=5&maxStepCount=&courses=':
           return of([hummus, salad]);
-        case 'keywords=hummus&maxIngredientCount=5&maxStepCount=':
+        case 'keywords=hummus&maxIngredientCount=5&maxStepCount=&courses=':
           return of([hummus]);
-        case 'keywords=salad&maxIngredientCount=5&maxStepCount=':
+        case 'keywords=salad&maxIngredientCount=5&maxStepCount=&courses=':
           return of([salad]);
         default:
           return throwError(

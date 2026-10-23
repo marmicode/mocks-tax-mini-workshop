@@ -38,6 +38,7 @@ describe(Favorites.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -58,6 +59,7 @@ describe(Favorites.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([]);
     expect(
@@ -110,6 +112,7 @@ describe(Favorites.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeNames(fixture.nativeElement)).toEqual([]);
     expect(
@@ -147,6 +150,7 @@ describe(Favorites.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector(
@@ -175,7 +179,7 @@ function mountFavorites(favoriteIds: string[]) {
     .mockImplementation((params) => {
       const catalog = [shakshuka, cheesecake];
       return of(
-        'courses' in params
+        params.courses.length > 0
           ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
           : catalog,
       );

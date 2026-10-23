@@ -46,11 +46,13 @@ describe(ThreeStepRecipes.name, () => {
             keywords: '',
             maxIngredientCount: null,
             maxStepCount: 3,
+            courses: [],
           })]: of([hummus, salad]),
           [JSON.stringify({
             keywords: '',
             maxIngredientCount: null,
             maxStepCount: 2,
+            courses: [],
           })]: of([salad]),
         })[JSON.stringify(params)] ?? of([]),
     );
@@ -69,6 +71,7 @@ describe(ThreeStepRecipes.name, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: 3,
+        courses: [],
       });
       return of([salad]);
     });
@@ -104,6 +107,7 @@ describe(ThreeStepRecipes.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 3,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -142,6 +146,12 @@ function isThreeStepSearch(params: RecipeSearchParams): boolean {
   const { maxStepCount, ...otherParams } = params;
   return (
     maxStepCount === 3 &&
-    Object.values(otherParams).every((value) => value === '' || value === null)
+    Object.values(otherParams).every(
+      (value) => value === '' || value === null || isEmptyArray(value),
+    )
   );
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

@@ -38,6 +38,7 @@ describe(WeekendProjects.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -119,6 +120,7 @@ describe(WeekendProjects.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -152,7 +154,7 @@ function filterByCourses(
   recipes: Recipe[],
   params: RecipeSearchParams,
 ): Recipe[] {
-  return 'courses' in params
+  return params.courses.length > 0
     ? recipes.filter((recipe) => params.courses?.includes(recipe.course))
     : recipes;
 }

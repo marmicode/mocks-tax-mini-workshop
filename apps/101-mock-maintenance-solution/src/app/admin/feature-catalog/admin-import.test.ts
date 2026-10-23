@@ -126,6 +126,7 @@ describe(AdminImport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(textByTestId(fixture.nativeElement, 'import-summary')).toBe(
       '1 created, 1 updated',
@@ -136,6 +137,7 @@ describe(AdminImport.name, () => {
     const { fixture, search, create, update } = mountAdminImport();
     search.mockImplementation((params) => {
       expect(Object.keys(params).sort()).toEqual([
+        'courses',
         'keywords',
         'maxIngredientCount',
         'maxStepCount',
@@ -162,10 +164,8 @@ describe(AdminImport.name, () => {
   it('updates every recipe that already exists', async () => {
     const { fixture, search, create, update } = mountAdminImport();
     const existingRecipesBySearch: Record<string, Recipe[]> = {
-      '{"keywords":"","maxIngredientCount":null,"maxStepCount":null}': [
-        shakshuka,
-        brownies,
-      ],
+      '{"keywords":"","maxIngredientCount":null,"maxStepCount":null,"courses":[]}':
+        [shakshuka, brownies],
     };
     search.mockImplementation((params) =>
       of(existingRecipesBySearch[JSON.stringify(params)] ?? []),
@@ -202,6 +202,7 @@ describe(AdminImport.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -235,6 +236,7 @@ describe(AdminImport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(create).toHaveBeenCalledExactlyOnceWith({
       id: 'tahini-halva-brownies',
@@ -268,8 +270,10 @@ function mountAdminImport() {
 
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
   return (
-    Object.keys(params).length === 3 &&
-    Object.values(params).every((value) => value === '' || value === null)
+    Object.keys(params).length === 4 &&
+    Object.values(params).every(
+      (value) => value === '' || value === null || isEmptyArray(value),
+    )
   );
 }
 
@@ -316,4 +320,8 @@ function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
     throw new Error(`Button "${text}" not found.`);
   }
   return button;
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

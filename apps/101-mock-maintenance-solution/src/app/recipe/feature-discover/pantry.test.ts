@@ -55,6 +55,7 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="pantry-hint"]'),
@@ -132,6 +133,7 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-match-message"]')
@@ -152,6 +154,7 @@ describe(Pantry.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -190,6 +193,7 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(matchedRecipeNames(fixture.nativeElement)).toEqual([]);
     expect(
@@ -209,6 +213,7 @@ describe(Pantry.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-match-message"]')
@@ -264,5 +269,11 @@ function textsOf(root: HTMLElement, testId: string): string[] {
  * The pantry matches ingredients locally so it needs the whole catalog.
  */
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
-  return Object.values(params).every((value) => value === '' || value === null);
+  return Object.values(params).every(
+    (value) => value === '' || value === null || isEmptyArray(value),
+  );
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

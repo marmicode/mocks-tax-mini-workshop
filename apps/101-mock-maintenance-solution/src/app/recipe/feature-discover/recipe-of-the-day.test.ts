@@ -49,6 +49,7 @@ describe(RecipeOfTheDay.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -103,6 +104,7 @@ describe(RecipeOfTheDay.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
@@ -150,6 +152,7 @@ describe(RecipeOfTheDay.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(recipeName(fixture.nativeElement)).toBe('Hummus with Ful');
   });
@@ -181,7 +184,13 @@ function recipeName(root: HTMLElement): string | undefined {
 
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
   return (
-    Object.keys(params).length === 3 &&
-    Object.values(params).every((value) => value === '' || value === null)
+    Object.keys(params).length === 4 &&
+    Object.values(params).every(
+      (value) => value === '' || value === null || isEmptyArray(value),
+    )
   );
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

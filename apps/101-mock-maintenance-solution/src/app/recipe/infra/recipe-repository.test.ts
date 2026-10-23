@@ -35,6 +35,7 @@ describe(RecipeRepository.name, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       }),
     );
 
@@ -43,9 +44,9 @@ describe(RecipeRepository.name, () => {
       (request) =>
         request.method === 'POST' &&
         request.url === '/api/recipes/search' &&
-        Object.keys(request.body).length === 3 &&
+        Object.keys(request.body).length === 4 &&
         Object.values(request.body).every(
-          (value) => value === '' || value === null,
+          (value) => value === '' || value === null || isEmptyArray(value),
         ),
       'unfiltered recipe search',
     );
@@ -62,6 +63,7 @@ describe(RecipeRepository.name, () => {
         keywords: 'shak',
         maxIngredientCount: 5,
         maxStepCount: 3,
+        courses: [],
       }),
     );
 
@@ -73,6 +75,7 @@ describe(RecipeRepository.name, () => {
       keywords: 'shak',
       maxIngredientCount: 5,
       maxStepCount: 3,
+      courses: [],
     });
     req.flush([]);
 
@@ -174,6 +177,7 @@ describe(createRecipeSearchParams.name, () => {
   it('creates search params with defaults', () => {
     expect(createRecipeSearchParams()).toMatchInlineSnapshot(`
       {
+        "courses": [],
         "keywords": "",
         "maxIngredientCount": null,
         "maxStepCount": null,
@@ -186,6 +190,7 @@ describe(createRecipeSearchParams.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 3,
+      courses: [],
     });
   });
 });
@@ -197,4 +202,8 @@ function setUpRecipeRepository() {
   const repository = TestBed.inject(RecipeRepository);
   const httpTesting = TestBed.inject(HttpTestingController);
   return { repository, httpTesting };
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

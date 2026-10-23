@@ -42,6 +42,7 @@ describe(RecipeKeywordChips.name, () => {
       keywords: 'le',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -74,6 +75,7 @@ describe(RecipeKeywordChips.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "le",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -81,6 +83,7 @@ describe(RecipeKeywordChips.name, () => {
         ],
         [
           {
+            "courses": [],
             "keywords": "lentil",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -102,6 +105,7 @@ describe(RecipeKeywordChips.name, () => {
           keywords: 'ricotta',
           maxIngredientCount: null,
           maxStepCount: null,
+          courses: [],
         });
         return of([]);
       });
@@ -195,7 +199,9 @@ function searchCatalog(
 ): Recipe[] {
   return catalog
     .filter((recipe) => recipe.name.toLowerCase().includes(keywords))
-    .filter((recipe) => (courses ? courses.includes(recipe.course) : true));
+    .filter((recipe) =>
+      courses.length > 0 ? courses.includes(recipe.course) : true,
+    );
 }
 
 function isKeywordOnlySearch({
@@ -204,6 +210,12 @@ function isKeywordOnlySearch({
 }: RecipeSearchParams): boolean {
   return (
     keywords.length > 0 &&
-    Object.values(otherParams).every((value) => value === null)
+    Object.values(otherParams).every(
+      (value) => value === null || isEmptyArray(value),
+    )
   );
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

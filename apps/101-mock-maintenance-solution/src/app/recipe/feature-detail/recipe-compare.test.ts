@@ -43,6 +43,7 @@ describe(RecipeCompare.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(findById).not.toHaveBeenCalled();
     expect(optionLabels(selects(fixture.nativeElement)[0])).toEqual([
@@ -63,6 +64,7 @@ describe(RecipeCompare.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -84,7 +86,7 @@ describe(RecipeCompare.name, () => {
 
     const root: HTMLElement = fixture.nativeElement;
     expect(searchKey(search.mock.calls[0][0])).toBe(
-      'keywords=&maxIngredientCount=&maxStepCount=',
+      'keywords=&maxIngredientCount=&maxStepCount=&courses=',
     );
     expect(textOf(root, 'left-name')).toBe('Shakshuka');
     expect(textOf(root, 'right-name')).toBe('Hummus with Ful');
@@ -149,6 +151,7 @@ describe(RecipeCompare.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
@@ -180,7 +183,7 @@ describe(RecipeCompare.name, () => {
       right: 'hummus-ful',
     });
     search.mockImplementationOnce((params) => {
-      expect(params).not.toHaveProperty('courses');
+      expect(params).toHaveProperty('courses', []);
       expect(isWholeCatalogSearch(params)).toBe(true);
       return of([shakshuka, hummus]);
     });
@@ -259,8 +262,10 @@ function cellsOf(root: HTMLElement, testId: string): string[] {
  */
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
   return (
-    Object.keys(params).length === 3 &&
-    Object.values(params).every((value) => value === '' || value === null)
+    Object.keys(params).length === 4 &&
+    Object.values(params).every(
+      (value) => value === '' || value === null || isEmptyArray(value),
+    )
   );
 }
 
@@ -268,4 +273,8 @@ function searchKey(params: RecipeSearchParams): string {
   return new URLSearchParams(
     Object.entries(params).map(([key, value]) => [key, String(value ?? '')]),
   ).toString();
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

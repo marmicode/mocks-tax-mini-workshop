@@ -80,6 +80,7 @@ describe(AdminDuplicates.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -87,7 +88,7 @@ describe(AdminDuplicates.name, () => {
     const { fixture, search } = mountAdminDuplicates();
     search.mockImplementation((params) => {
       expect(params.keywords).toBe('');
-      expect(params).not.toHaveProperty('courses');
+      expect(params).toHaveProperty('courses', []);
       return of([hummus, shakshuka]);
     });
     await fixture.whenStable();
@@ -119,6 +120,7 @@ describe(AdminDuplicates.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(pairTexts(fixture.nativeElement)).toEqual([
       'Burnt Aubergine Salad ↔ Roasted Aubergine with Tahini (same ingredients)',
@@ -147,6 +149,7 @@ describe(AdminDuplicates.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -169,6 +172,7 @@ describe(AdminDuplicates.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(pairTexts(fixture.nativeElement)).toEqual([]);
     expect(
@@ -211,6 +215,7 @@ describe(AdminDuplicates.name, () => {
         'keywords',
         'maxIngredientCount',
         'maxStepCount',
+        'courses',
       ]);
       return of([
         hummus,
@@ -263,10 +268,16 @@ function pairTexts(root: HTMLElement): string[] {
 
 function respondToWholeCatalogSearch(recipes: Recipe[]) {
   return (params: RecipeSearchParams) =>
-    Object.keys(params).length === 3 &&
-    Object.values(params).every((value) => value === '' || value === null)
+    Object.keys(params).length === 4 &&
+    Object.values(params).every(
+      (value) => value === '' || value === null || isEmptyArray(value),
+    )
       ? of(recipes)
       : throwError(
           () => new Error(`unexpected search ${JSON.stringify(params)}`),
         );
+}
+
+function isEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 0;
 }

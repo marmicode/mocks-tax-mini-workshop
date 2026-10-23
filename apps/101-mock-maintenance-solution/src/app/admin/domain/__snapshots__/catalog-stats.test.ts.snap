@@ -4,6 +4,7 @@ exports[`CatalogStats > searches the catalog again every time stats are requeste
 [
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": null,
@@ -11,6 +12,7 @@ exports[`CatalogStats > searches the catalog again every time stats are requeste
   ],
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": null,

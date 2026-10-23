@@ -46,6 +46,7 @@ const allRecipes = JSON.stringify({
   keywords: '',
   maxIngredientCount: null,
   maxStepCount: null,
+  courses: [],
 });
 
 describe(AlphabeticalIndex.name, () => {
@@ -57,6 +58,7 @@ describe(AlphabeticalIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -98,6 +100,7 @@ describe(AlphabeticalIndex.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -129,6 +132,7 @@ describe(AlphabeticalIndex.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')

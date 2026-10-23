@@ -46,7 +46,7 @@ const sketchyFritters: Recipe = {
 };
 
 const WHOLE_CATALOG_QUERY =
-  'keywords=&maxIngredientCount=null&maxStepCount=null';
+  'keywords=&maxIngredientCount=null&maxStepCount=null&courses=';
 
 describe(AdminQualityReport.name, () => {
   it('searches all recipes', async () => {
@@ -57,6 +57,7 @@ describe(AdminQualityReport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -77,6 +78,7 @@ describe(AdminQualityReport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowTexts(fixture.nativeElement)).toEqual([
       'Tahini and Halva Brownies 75% Missing description',
@@ -142,6 +144,7 @@ describe(AdminQualityReport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(rowNames(fixture.nativeElement)).toEqual([
       'Shakshuka',
@@ -180,6 +183,7 @@ describe(AdminQualityReport.name, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -201,6 +205,7 @@ describe(AdminQualityReport.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(
       rows(fixture.nativeElement).map((row) =>
@@ -237,7 +242,7 @@ function searchCatalog(catalog: Recipe[]) {
       maxStepCount: null,
     });
     return of(
-      courses
+      courses.length > 0
         ? catalog.filter((recipe) => courses.includes(recipe.course))
         : catalog,
     );
