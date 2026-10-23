@@ -118,8 +118,8 @@ importers:
         specifier: ~5.0.5
         version: 5.0.5(vitest@5.0.5)
       '@wallabyjs/cli':
-        specifier: ''
-        version: 1.0.26
+        specifier: 1.0.28
+        version: 1.0.28
       angular-eslint:
         specifier: ^22.1.0
         version: 22.2.0(chokidar@5.0.0)(eslint@9.39.5(jiti@1.21.7)(supports-color@7.2.0))(supports-color@7.2.0)(typescript-eslint@8.69.0(eslint@9.39.5(jiti@1.21.7)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3))(typescript@6.0.3)
@@ -3622,8 +3622,8 @@ packages:
   '@vitest/utils@5.0.5':
     resolution: {integrity: sha512-/rBu7gzLDQI/SC79Tn98b5DwOgaHU/Gt4I9OVeP3YofzNaYtbImRCOJQmT1S6vOJg9gEIlWC+r3QxKkjuSa1nQ==}
 
-  '@wallabyjs/cli@1.0.26':
-    resolution: {integrity: sha512-Y5jwMQDj2EDWEhtrzTDQLpgzWDVvB+Y2CckmYSMan8vDqE0BHpxHe4CouCY51cBtYzh+g21gIDh078HxAlXa0g==}
+  '@wallabyjs/cli@1.0.28':
+    resolution: {integrity: sha512-0A2l440vH/1PggUjfkWYZnxOts1PpqpUWquaGl5bjaFdB+mq++Sk78V0WnxgZjSSVOsUkaPUJ8GGRrdcTrjOgg==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -12767,7 +12767,7 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.2.0
 
-  '@wallabyjs/cli@1.0.26': {}
+  '@wallabyjs/cli@1.0.28': {}
 
   '@webassemblyjs/ast@1.14.1':
     dependencies:
