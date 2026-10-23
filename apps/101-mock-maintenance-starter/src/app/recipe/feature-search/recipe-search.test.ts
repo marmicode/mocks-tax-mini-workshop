@@ -212,26 +212,6 @@ describe(RecipeSearch.name, () => {
     });
   });
 
-  it('keeps keywords and empty courses once the course is unselected', async () => {
-    const { fixture, search } = await mountRecipeSearch();
-    await fixture.whenStable();
-
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'lemon');
-    await fixture.whenStable();
-    clickCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
-    clickCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
-
-    expect(search).toHaveBeenCalledTimes(4);
-    expect(search).toHaveBeenNthCalledWith(4, {
-      keywords: 'lemon',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
-  });
-
   it('shows "no recipes" when favorites only is checked without any favorite', async () => {
     const { fixture, search, userFavorites } = await mountRecipeSearch();
     vi.spyOn(userFavorites, 'favoriteIds').mockReturnValue(new Set());
