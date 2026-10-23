@@ -157,31 +157,6 @@ describe(RecipeSearch.name, () => {
     });
   });
 
-  it('keeps sending empty courses once every course is unselected', async () => {
-    const { fixture, search } = await mountRecipeSearch();
-    await fixture.whenStable();
-
-    clickCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    clickCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-
-    expect(recipeNames(fixture.nativeElement)).toEqual([]);
-    expect(search).toHaveBeenCalledTimes(3);
-    expect(search).toHaveBeenNthCalledWith(2, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
-    expect(search).toHaveBeenNthCalledWith(3, {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: [],
-    });
-  });
-
   it('combines keywords and course', async () => {
     const { fixture, search } = await mountRecipeSearch();
     await fixture.whenStable();

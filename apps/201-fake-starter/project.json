@@ -5,7 +5,6 @@
   "prefix": "wm",
   "sourceRoot": "apps/201-fake-starter/src",
   "tags": ["type:app"],
-  "implicitDependencies": ["201-fake-starter-*"],
   "targets": {
     "build": {
       "executor": "@angular/build:application",

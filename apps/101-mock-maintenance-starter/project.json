@@ -5,7 +5,6 @@
   "prefix": "wm",
   "sourceRoot": "apps/101-mock-maintenance-starter/src",
   "tags": ["type:app"],
-  "implicitDependencies": ["101-mock-maintenance-starter-*"],
   "targets": {
     "build": {
       "executor": "@angular/build:application",
