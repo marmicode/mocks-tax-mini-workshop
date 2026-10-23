@@ -73,6 +73,9 @@
       "@whiskmate/shared-recipe/model": [
         "./apps/whiskmate/src/app/shared-recipe/model/index.ts"
       ],
+      "@whiskmate/shared-recipe/testing": [
+        "./apps/whiskmate/src/app/shared-recipe/testing/index.ts"
+      ],
       "@whiskmate/shared/infra": [
         "./apps/whiskmate/src/app/shared/infra/index.ts"
       ],

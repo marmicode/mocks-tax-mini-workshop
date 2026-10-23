@@ -63,9 +63,7 @@
       "@whiskmate/recipe/model": [
         "./apps/102-fakes-starter/src/app/recipe/model/index.ts"
       ],
-      "@whiskmate/recipe/ui": [
-        "./apps/102-fakes-starter/src/app/recipe/ui/index.ts"
-      ],
+      "@whiskmate/recipe/ui": ["./apps/102-fakes-starter/src/app/recipe/ui/index.ts"],
       "@whiskmate/recipe/ui-search": [
         "./apps/102-fakes-starter/src/app/recipe/ui-search/index.ts"
       ],
@@ -84,9 +82,7 @@
       "@whiskmate/shared/model": [
         "./apps/102-fakes-starter/src/app/shared/model/index.ts"
       ],
-      "@whiskmate/shared/ui": [
-        "./apps/102-fakes-starter/src/app/shared/ui/index.ts"
-      ]
+      "@whiskmate/shared/ui": ["./apps/102-fakes-starter/src/app/shared/ui/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
