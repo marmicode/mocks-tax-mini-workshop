@@ -39,12 +39,14 @@ export interface RecipeRepositoryDef {
   remove(params: { id: string }): Observable<void>;
 }
 
+const RECIPES_URL = 'http://localhost:3333/api/recipes';
+
 @Injectable({ providedIn: 'root' })
 export class RecipeRepository implements RecipeRepositoryDef {
   private _http = inject(HttpClient);
 
   search(params: RecipeSearchParams): Observable<Recipe[]> {
-    return this._http.post<Recipe[]>('/api/recipes/search', params);
+    return this._http.post<Recipe[]>(`${RECIPES_URL}/search`, params);
   }
 
   /**
@@ -53,7 +55,7 @@ export class RecipeRepository implements RecipeRepositoryDef {
    */
   findById({ id }: { id: string }): Observable<Recipe | undefined> {
     return this._http
-      .get<Recipe>(`/api/recipes/${encodeURIComponent(id)}`)
+      .get<Recipe>(`${RECIPES_URL}/${encodeURIComponent(id)}`)
       .pipe(
         catchError((error: unknown) =>
           error instanceof HttpErrorResponse && error.status === 404
@@ -64,17 +66,17 @@ export class RecipeRepository implements RecipeRepositoryDef {
   }
 
   create(recipe: Recipe): Observable<Recipe> {
-    return this._http.post<Recipe>('/api/recipes', recipe);
+    return this._http.post<Recipe>(RECIPES_URL, recipe);
   }
 
   update(recipe: Recipe): Observable<Recipe> {
     return this._http.put<Recipe>(
-      `/api/recipes/${encodeURIComponent(recipe.id)}`,
+      `${RECIPES_URL}/${encodeURIComponent(recipe.id)}`,
       recipe,
     );
   }
 
   remove({ id }: { id: string }): Observable<void> {
-    return this._http.delete<void>(`/api/recipes/${encodeURIComponent(id)}`);
+    return this._http.delete<void>(`${RECIPES_URL}/${encodeURIComponent(id)}`);
   }
 }

@@ -60,9 +60,6 @@
         "development": {
           "buildTarget": "102-fakes-starter:build:development"
         }
-      },
-      "options": {
-        "proxyConfig": "{projectRoot}/proxy.conf.json"
       }
     },
     "lint": {

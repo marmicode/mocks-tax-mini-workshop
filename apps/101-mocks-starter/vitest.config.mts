@@ -2,27 +2,46 @@ import { playwright } from '@vitest/browser-playwright';
 import { defineConfig, mergeConfig } from 'vitest/config';
 import viteConfig from './vite.config';
 
+const browserTestPatterns = ['src/**/!(*.wide).test.ts'];
+/* Wide tests talk to the real backend: start it with `nx start server`. */
+const wideTestPatterns = ['src/**/*.wide.test.ts'];
+
 export default mergeConfig(
   viteConfig,
   defineConfig({
     test: {
-      name: '101-mocks-starter',
-      watch: false,
       globals: true,
-      browser: {
-        enabled: true,
-        screenshotFailures: false,
-        headless: true,
-        provider: playwright(),
-        instances: [{ browser: 'chromium' }],
-      },
-      include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
       setupFiles: ['src/test-setup.ts'],
       reporters: ['default'],
       coverage: {
         reportsDirectory: '../../coverage/apps/101-mocks-starter',
         provider: 'v8',
       },
+      watch: false,
+      projects: [
+        {
+          extends: true,
+          test: {
+            name: 'browser',
+            include: browserTestPatterns,
+            browser: {
+              enabled: true,
+              screenshotFailures: false,
+              headless: true,
+              provider: playwright(),
+              instances: [{ browser: 'chromium' }],
+            },
+          },
+        },
+        {
+          extends: true,
+          test: {
+            name: 'wide',
+            environment: 'jsdom',
+            include: wideTestPatterns,
+          },
+        },
+      ],
     },
   }),
 );
