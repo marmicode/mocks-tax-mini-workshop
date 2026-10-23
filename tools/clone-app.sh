@@ -14,4 +14,4 @@ DESTINATION="${2#apps/}"
 
 cp -r apps/$SOURCE apps/$DESTINATION
 cd apps/$DESTINATION
-sed -i '' "s/$SOURCE/$DESTINATION/g" project.json
+grep -rlF "$SOURCE" . | xargs sed -i '' "s/$SOURCE/$DESTINATION/g"
