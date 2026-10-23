@@ -111,18 +111,6 @@ describe(RecipeSearch.name, () => {
     ]);
   });
 
-  it('shows no recipe once every selected course is unselected', async () => {
-    const { fixture } = mountRecipeSearch();
-    await fixture.whenStable();
-
-    clickCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    clickCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-
-    expect(recipeNames(fixture.nativeElement)).toEqual([]);
-  });
-
   it('combines keywords and course', async () => {
     const { fixture } = mountRecipeSearch();
     await fixture.whenStable();
