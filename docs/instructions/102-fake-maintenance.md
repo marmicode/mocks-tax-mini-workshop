@@ -18,11 +18,11 @@ Do [101. Mock Maintenance](./101-mock-maintenance.md) first.
 pnpm cook start 102-fake-maintenance
 ```
 
-Recipe search is covered by `RecipeRepositoryFake`. The fake and the HTTP repository share one contract, `verifyRecipeRepositoryContract`.
+Recipe search is covered by `RecipeRepositoryFake`.
 
 ## 🎯 Goal
 
-Show the drama of mocks, with the same prompt as 101, on a suite whose search behavior lives in one fake.
+Let's see if fakes make things easier.
 
 ## 📝 Steps
 
@@ -33,14 +33,10 @@ Backend search endpoint's courses is now a required array, fix that.
 Do not start the server, look at source code in apps/server, or look at git history.
 ```
 
-#### 2. Compare the two runs.
+#### 2. Read the diff.
 
-Put the 101 diff next to this one.
+Analyze the diff.
 
-- How many files moved?
-- Which tests failed before the agent edited them?
-- After the change, what does `courses: []` mean for a search that should return every recipe?
+#### 3. Ask about the default for `courses`.
 
-:::warning
-Leave the server off. The prompt is the whole exercise.
-:::
+Read the agent's conversation, or ask it which default it used for `courses`, and why.
