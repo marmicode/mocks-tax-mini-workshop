@@ -42,13 +42,7 @@ Count the files. Look at what each updated test actually checks.
 In one terminal:
 
 ```sh
-pnpm start-server
-```
-
-In another:
-
-```sh
 pnpm start
 ```
 
-Open the app. Search without picking a course, and see whether any recipes show up.
+Open the app. Find the bug.

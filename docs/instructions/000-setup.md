@@ -25,9 +25,9 @@ https://pnpm.io/installation
 ## 📥 Retrieve source code and install dependencies
 
 ```sh
-git clone https://github.com/marmicode/charted-coding-workshop.git
+git clone https://github.com/marmicode/mocks-tax-mini-workshop.git
 
-cd charted-coding-workshop
+cd mocks-tax-mini-workshop
 
 pnpm install
 ```
