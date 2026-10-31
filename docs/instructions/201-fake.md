@@ -80,12 +80,3 @@ pnpm start-server
 - keywords kept once the course is cleared
 
 `app.test.ts` loads `App` against the fake and expects both seeded recipes.
-
-#### 4. Replay the maintenance prompt.
-
-```text
-Backend search endpoint's courses is now a required array, fix that.
-Do not start the server, look at source code in apps/server, or look at git history.
-```
-
-Watch where it fails, and how many files the agent has to touch. Compare that with [101](./101-mock-maintenance.md) and [102](./102-fake-maintenance.md).
