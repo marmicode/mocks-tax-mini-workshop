@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -39,12 +40,11 @@ const responses: Record<string, Recipe[]> = {
     [cake],
 };
 
-describe(KeywordCollections.name, () => {
+describe(KeywordCollections, () => {
   it('searches soups by default', async () => {
-    const { fixture, search } = mountKeywordCollections();
-    await fixture.whenStable();
+    const { search } = mountKeywordCollections();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => search).toHaveBeenCalledExactlyOnceWith({
       keywords: 'soup',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -53,50 +53,48 @@ describe(KeywordCollections.name, () => {
   });
 
   it('shows the recipes of the collection', async () => {
-    const { fixture, search } = mountKeywordCollections();
-    await fixture.whenStable();
+    mountKeywordCollections();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Red Lentil Soup']);
+    await expect.poll(recipeNames).toEqual(['Red Lentil Soup']);
   });
 
   it('searches salads when the salads collection is chosen', async () => {
-    const { fixture, search } = mountKeywordCollections();
-    await fixture.whenStable();
+    const { search } = mountKeywordCollections();
 
-    clickToggle(fixture.nativeElement, 'Salads');
-    await fixture.whenStable();
+    await expect.poll(() => search.mock.calls.length).toBe(1);
 
-    expect(search).toHaveBeenCalledTimes(2);
+    await page.getByRole('radio', { name: 'Salads' }).click();
+
+    await expect.poll(() => search.mock.calls.length).toBe(2);
     expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('shows cakes when the cakes collection is chosen', async () => {
-    const { fixture, search } = mountKeywordCollections();
-    await fixture.whenStable();
+    mountKeywordCollections();
 
-    clickToggle(fixture.nativeElement, 'Cakes');
-    await fixture.whenStable();
+    await expect.poll(recipeNames).toEqual(['Red Lentil Soup']);
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Orange Polenta Cake']);
+    await page.getByRole('radio', { name: 'Cakes' }).click();
+
+    await expect.poll(recipeNames).toEqual(['Orange Polenta Cake']);
   });
 
   it('shows a message when the collection is empty', async () => {
-    const { fixture, search } = mountKeywordCollections();
-    await fixture.whenStable();
+    const { search } = mountKeywordCollections();
 
-    clickToggle(fixture.nativeElement, 'Salads');
-    await fixture.whenStable();
+    await expect.poll(recipeNames).toEqual(['Red Lentil Soup']);
 
+    await page.getByRole('radio', { name: 'Salads' }).click();
+
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('Nothing in this collection yet');
     expect(search).toHaveBeenLastCalledWith({
       keywords: 'salad',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: [],
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('Nothing in this collection yet');
   });
 });
 
@@ -126,24 +124,14 @@ function mountKeywordCollections() {
       return of(responses[JSON.stringify(params)] ?? []);
     });
 
-  const fixture = TestBed.createComponent(KeywordCollections);
+  TestBed.createComponent(KeywordCollections);
 
-  return { fixture, search };
+  return { search };
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function clickToggle(root: HTMLElement, label: string): void {
-  const toggle = [...root.querySelectorAll('mat-button-toggle')].find(
-    (el) => el.textContent?.trim() === label,
-  );
-  const button = toggle?.querySelector('button');
-  if (button == null) {
-    throw new Error(`Toggle "${label}" not found.`);
-  }
-  button.click();
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

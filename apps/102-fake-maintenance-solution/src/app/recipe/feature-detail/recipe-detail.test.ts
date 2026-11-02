@@ -1,5 +1,7 @@
+import { inputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import { UserFavorites } from '@whiskmate/recipe/domain';
 import {
@@ -32,85 +34,83 @@ const cheesecake = recipeMother
   .withBasicInfo({ name: 'Lemon and Ricotta Cheesecake', course: 'dessert' })
   .build();
 
-describe(RecipeDetail.name, () => {
+describe(RecipeDetail, () => {
   it('shows the recipe with the given id', async () => {
-    const { fixture } = mountRecipeDetail(harissaChicken.id);
-    await fixture.whenStable();
+    mountRecipeDetail(harissaChicken.id);
 
-    expect(textOf(fixture.nativeElement, 'recipe-name')).toBe(
-      'Harissa-Roasted Chicken',
-    );
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Harissa-Roasted Chicken');
   });
 
   it('shows the recipe name, course, description and picture', async () => {
-    const { fixture } = mountRecipeDetail(shakshuka.id);
-    await fixture.whenStable();
+    mountRecipeDetail(shakshuka.id);
 
-    const root: HTMLElement = fixture.nativeElement;
-    expect(textOf(root, 'recipe-name')).toBe('Shakshuka');
-    expect(textOf(root, 'recipe-course')).toBe('main');
-    expect(textOf(root, 'recipe-description')).toBe(
-      'Eggs poached in a spiced tomato sauce.',
-    );
-    expect(root.querySelector('img')?.getAttribute('src')).toBe(
-      'https://example.com/shakshuka.jpg',
-    );
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Shakshuka');
+    await expect
+      .element(page.getByTestId('recipe-course'))
+      .toHaveTextContent('main');
+    await expect
+      .element(page.getByTestId('recipe-description'))
+      .toHaveTextContent('Eggs poached in a spiced tomato sauce.');
+    await expect
+      .element(page.getByRole('img', { name: 'Shakshuka' }))
+      .toHaveAttribute('src', 'https://example.com/shakshuka.jpg');
   });
 
   it('shows ingredients with their quantities and steps', async () => {
-    const { fixture } = mountRecipeDetail(shakshuka.id);
-    await fixture.whenStable();
+    mountRecipeDetail(shakshuka.id);
 
-    expect(textsOf(fixture.nativeElement, 'ingredient')).toEqual([
-      '3 tbsp olive oil',
-      '6 large eggs',
-      'fresh coriander, to serve',
-    ]);
-    expect(textsOf(fixture.nativeElement, 'step')).toEqual([
-      'Heat the olive oil.',
-      'Crack the eggs into the sauce.',
-    ]);
+    await expect
+      .poll(() => textsOf('ingredient'))
+      .toEqual([
+        '3 tbsp olive oil',
+        '6 large eggs',
+        'fresh coriander, to serve',
+      ]);
+    await expect
+      .poll(() => textsOf('step'))
+      .toEqual(['Heat the olive oil.', 'Crack the eggs into the sauce.']);
   });
 
   it('links to cooking mode and scaler', async () => {
-    const { fixture } = mountRecipeDetail(shakshuka.id);
-    await fixture.whenStable();
+    mountRecipeDetail(shakshuka.id);
 
-    expect(
-      linkByText(fixture.nativeElement, 'Start cooking').getAttribute('href'),
-    ).toBe(`/recipes/${shakshuka.id}/cook`);
-    expect(
-      linkByText(fixture.nativeElement, 'Scale servings').getAttribute('href'),
-    ).toBe(`/recipes/${shakshuka.id}/scale`);
+    await expect
+      .element(page.getByRole('link', { name: /Start cooking/ }))
+      .toHaveAttribute('href', `/recipes/${shakshuka.id}/cook`);
+    await expect
+      .element(page.getByRole('link', { name: /Scale servings/ }))
+      .toHaveAttribute('href', `/recipes/${shakshuka.id}/scale`);
   });
 
   it('shows similar recipes of the same course', async () => {
-    const { fixture } = mountRecipeDetail(shakshuka.id);
-    await fixture.whenStable();
+    mountRecipeDetail(shakshuka.id);
 
-    expect(textsOf(fixture.nativeElement, 'similar-recipe')).toEqual([
-      'Harissa-Roasted Chicken',
-    ]);
+    await expect
+      .poll(() => textsOf('similar-recipe'))
+      .toEqual(['Harissa-Roasted Chicken']);
   });
 
   it('adds the recipe to favorites', async () => {
-    const { fixture, userFavorites } = mountRecipeDetail(shakshuka.id);
-    await fixture.whenStable();
+    const { userFavorites } = mountRecipeDetail(shakshuka.id);
 
-    buttonByLabel(fixture.nativeElement, 'Add to favorites').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Add to favorites' }).click();
 
-    expect(userFavorites.favoriteIds()).toEqual(new Set([shakshuka.id]));
+    await expect
+      .poll(() => userFavorites.favoriteIds())
+      .toEqual(new Set([shakshuka.id]));
   });
 
   it('shows a message when the recipe does not exist', async () => {
-    const { fixture } = mountRecipeDetail('missing');
-    await fixture.whenStable();
+    mountRecipeDetail('missing');
 
-    expect(textOf(fixture.nativeElement, 'recipe-not-found')).toBe(
-      'This recipe does not exist.',
-    );
-    expect(textsOf(fixture.nativeElement, 'similar-recipe')).toEqual([]);
+    await expect
+      .element(page.getByTestId('recipe-not-found'))
+      .toHaveTextContent('This recipe does not exist.');
+    await expect.poll(() => textsOf('similar-recipe')).toEqual([]);
   });
 });
 
@@ -131,38 +131,16 @@ function mountRecipeDetail(
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
   const userFavorites = TestBed.inject(UserFavorites);
 
-  const fixture = TestBed.createComponent(RecipeDetail);
-  fixture.componentRef.setInput('recipeId', recipeId);
+  TestBed.createComponent(RecipeDetail, {
+    bindings: [inputBinding('recipeId', () => recipeId)],
+  });
 
-  return { fixture, userFavorites };
+  return { userFavorites };
 }
 
-function textOf(root: HTMLElement, testId: string): string | undefined {
-  return root.querySelector(`[data-testid="${testId}"]`)?.textContent?.trim();
-}
-
-function textsOf(root: HTMLElement, testId: string): string[] {
-  return [...root.querySelectorAll(`[data-testid="${testId}"]`)].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function linkByText(root: HTMLElement, text: string): HTMLAnchorElement {
-  const link = [...root.querySelectorAll('a')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (link == null) {
-    throw new Error(`Link "${text}" not found.`);
-  }
-  return link;
-}
-
-function buttonByLabel(root: HTMLElement, label: string): HTMLButtonElement {
-  const button = root.querySelector<HTMLButtonElement>(
-    `button[aria-label="${label}"]`,
-  );
-  if (button == null) {
-    throw new Error(`Button "${label}" not found.`);
-  }
-  return button;
+function textsOf(testId: string) {
+  return page
+    .getByTestId(testId)
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

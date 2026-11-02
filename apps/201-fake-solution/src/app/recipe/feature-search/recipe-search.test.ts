@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -22,179 +23,143 @@ const cheesecake = recipeMother
   .withManyIngredients()
   .build();
 
-describe(RecipeSearch.name, () => {
+describe(RecipeSearch, () => {
   it('searches all recipes on load', async () => {
-    const { fixture } = mountRecipeSearch();
-    await fixture.whenStable();
+    mountRecipeSearch();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Shakshuka',
+        'Lemon and Ricotta Cheesecake',
+      ]);
   });
 
   it('renders the recipes returned by the repository', async () => {
-    const { fixture } = mountRecipeSearch({ recipes: [shakshuka, cheesecake] });
-    await fixture.whenStable();
+    mountRecipeSearch({ recipes: [shakshuka, cheesecake] });
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Shakshuka', 'Lemon and Ricotta Cheesecake']);
   });
 
   it('shows "no recipes" when the repository returns nothing', async () => {
-    const { fixture } = mountRecipeSearch({ recipes: [] });
-    await fixture.whenStable();
+    mountRecipeSearch({ recipes: [] });
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No recipes found');
+    await expect
+      .element(page.getByText('No recipes found'))
+      .toHaveTextContent('No recipes found');
   });
 
   it('searches by keywords', async () => {
-    const { fixture } = mountRecipeSearch();
-    await fixture.whenStable();
+    mountRecipeSearch();
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'shak');
-    await fixture.whenStable();
+    await page.getByLabelText('Keywords').fill('shak');
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Shakshuka']);
+    await expect.poll(recipeNames).toEqual(['Shakshuka']);
   });
 
   it('searches by max ingredients', async () => {
-    const { fixture } = mountRecipeSearch();
-    await fixture.whenStable();
+    mountRecipeSearch();
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Max Ingredients'), '5');
-    await fixture.whenStable();
+    await page.getByLabelText('Max Ingredients').fill('5');
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Shakshuka',
-    ]);
+    await expect.poll(recipeNames).toEqual(['Hummus with Ful', 'Shakshuka']);
   });
 
   it('searches by max steps', async () => {
-    const { fixture } = mountRecipeSearch();
-    await fixture.whenStable();
+    mountRecipeSearch();
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Max Steps'), '5');
-    await fixture.whenStable();
+    await page.getByLabelText('Max Steps').fill('5');
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Hummus with Ful', 'Lemon and Ricotta Cheesecake']);
   });
 
   it('searches by course', async () => {
-    const { fixture } = mountRecipeSearch();
-    await fixture.whenStable();
+    mountRecipeSearch();
 
-    clickCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'dessert' }).click();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect.poll(recipeNames).toEqual(['Lemon and Ricotta Cheesecake']);
   });
 
   it('searches by multiple courses', async () => {
-    const { fixture } = mountRecipeSearch();
-    await fixture.whenStable();
+    mountRecipeSearch();
 
-    clickCourse(fixture.nativeElement, 'starter');
-    await fixture.whenStable();
-    clickCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'starter' }).click();
+    await page.getByRole('button', { name: 'dessert' }).click();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Hummus with Ful', 'Lemon and Ricotta Cheesecake']);
   });
 
   it('shows all recipes again once every course is unselected', async () => {
-    const { fixture } = mountRecipeSearch();
-    await fixture.whenStable();
+    mountRecipeSearch();
 
-    clickCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    clickCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'main' }).click();
+    await page.getByRole('button', { name: 'main' }).click();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Shakshuka',
+        'Lemon and Ricotta Cheesecake',
+      ]);
   });
 
   it('combines keywords and course', async () => {
-    const { fixture } = mountRecipeSearch();
-    await fixture.whenStable();
+    mountRecipeSearch();
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'a');
-    await fixture.whenStable();
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await page.getByLabelText('Keywords').fill('a');
 
-    clickCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Shakshuka', 'Lemon and Ricotta Cheesecake']);
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await page.getByRole('button', { name: 'dessert' }).click();
+
+    await expect.poll(recipeNames).toEqual(['Lemon and Ricotta Cheesecake']);
   });
 
   it('combines max ingredients and max steps', async () => {
-    const { fixture } = mountRecipeSearch();
-    await fixture.whenStable();
+    mountRecipeSearch();
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Max Ingredients'), '5');
-    await fixture.whenStable();
-    typeInto(inputByLabel(fixture.nativeElement, 'Max Steps'), '5');
-    await fixture.whenStable();
+    await page.getByLabelText('Max Ingredients').fill('5');
+    await page.getByLabelText('Max Steps').fill('5');
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
+    await expect.poll(recipeNames).toEqual(['Hummus with Ful']);
   });
 
   it('searches all recipes again once keywords are cleared', async () => {
-    const { fixture } = mountRecipeSearch();
-    await fixture.whenStable();
+    mountRecipeSearch();
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'shak');
-    await fixture.whenStable();
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), '');
-    await fixture.whenStable();
+    await page.getByLabelText('Keywords').fill('shak');
+    await page.getByLabelText('Keywords').fill('');
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Shakshuka',
+        'Lemon and Ricotta Cheesecake',
+      ]);
   });
 
   it('keeps the keywords once the course is unselected', async () => {
-    const { fixture } = mountRecipeSearch();
-    await fixture.whenStable();
+    mountRecipeSearch();
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'a');
-    await fixture.whenStable();
-    clickCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
-    clickCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
+    await page.getByLabelText('Keywords').fill('a');
+    await page.getByRole('button', { name: 'dessert' }).click();
+    await page.getByRole('button', { name: 'dessert' }).click();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Shakshuka', 'Lemon and Ricotta Cheesecake']);
   });
 });
 
@@ -207,40 +172,12 @@ function mountRecipeSearch({
 
   TestBed.inject(RecipeRepositoryFake).configure({ recipes });
 
-  const fixture = TestBed.createComponent(RecipeSearch);
-
-  return { fixture };
+  TestBed.createComponent(RecipeSearch);
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function inputByLabel(root: HTMLElement, label: string): HTMLInputElement {
-  const field = [...root.querySelectorAll('mat-form-field')].find(
-    (el) => el.querySelector('mat-label')?.textContent?.trim() === label,
-  );
-  const input = field?.querySelector('input');
-  if (input == null) {
-    throw new Error(`Input "${label}" not found.`);
-  }
-  return input;
-}
-
-function typeInto(input: HTMLInputElement, value: string): void {
-  input.value = value;
-  input.dispatchEvent(new Event('input'));
-}
-
-function clickCourse(root: HTMLElement, course: string): void {
-  const toggle = [...root.querySelectorAll('mat-button-toggle')].find(
-    (el) => el.textContent?.trim() === course,
-  );
-  const button = toggle?.querySelector('button');
-  if (button == null) {
-    throw new Error(`Course "${course}" not found.`);
-  }
-  button.click();
+function recipeNames() {
+  return page
+    .getByRole('heading')
+    .elements()
+    .map((element) => element.textContent?.trim() ?? '');
 }

@@ -1,6 +1,8 @@
+import { inputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -66,83 +68,85 @@ const cheesecake: Recipe = {
   steps: [],
 };
 
-describe(SimilarRecipes.name, () => {
+describe(SimilarRecipes, () => {
   it('searches recipes of the same course', async () => {
-    const { fixture, search } = mountSimilarRecipes(shakshuka);
-    await fixture.whenStable();
+    const { search } = mountSimilarRecipes(shakshuka);
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['main'],
-    });
+    await expect
+      .poll(() => search)
+      .toHaveBeenCalledExactlyOnceWith({
+        keywords: '',
+        maxIngredientCount: null,
+        maxStepCount: null,
+        courses: ['main'],
+      });
   });
 
   it('excludes the current recipe', async () => {
-    const { fixture, search } = mountSimilarRecipes(shakshuka);
+    const { search, similarNames } = mountSimilarRecipes(shakshuka);
     search.mockReturnValue(of([shakshuka, harissaChicken]));
-    await fixture.whenStable();
 
+    await expect
+      .poll(() => similarNames())
+      .toEqual(['Harissa-Roasted Chicken']);
     expect(search).toHaveBeenCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['main'],
     });
-    expect(similarNames(fixture.nativeElement)).toEqual([
-      'Harissa-Roasted Chicken',
-    ]);
   });
 
   it('shows at most three similar recipes', async () => {
-    const { fixture, search } = mountSimilarRecipes(shakshuka);
+    const { search, similarNames } = mountSimilarRecipes(shakshuka);
     search.mockReturnValue(
       of([shakshuka, harissaChicken, lambKofte, cauliflowerCake, filoPie]),
     );
-    await fixture.whenStable();
 
+    await expect
+      .poll(() => similarNames())
+      .toEqual(['Harissa-Roasted Chicken', 'Lamb Kofte', 'Cauliflower Cake']);
     expect(search).toHaveBeenCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['main'],
     });
-    expect(similarNames(fixture.nativeElement)).toEqual([
-      'Harissa-Roasted Chicken',
-      'Lamb Kofte',
-      'Cauliflower Cake',
-    ]);
   });
 
   it('links to the similar recipe', async () => {
-    const { fixture, search } = mountSimilarRecipes(shakshuka);
+    const { search } = mountSimilarRecipes(shakshuka);
     search.mockReturnValue(of([harissaChicken]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByRole('link', { name: 'Harissa-Roasted Chicken' }))
+      .toHaveAttribute('href', '/recipes/harissa-chicken');
     expect(search).toHaveBeenCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['main'],
     });
-    expect(similarLinks(fixture.nativeElement)[0]?.getAttribute('href')).toBe(
-      '/recipes/harissa-chicken',
-    );
   });
 
   it('renders nothing when the recipe is the only one of its course', async () => {
-    const { fixture, search } = mountSimilarRecipes(cheesecake);
+    const { search, similarNames } = mountSimilarRecipes(cheesecake);
     search.mockReturnValue(of([cheesecake]));
-    await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['dessert'],
-    });
-    expect(fixture.nativeElement.textContent.trim()).toBe('');
+    await expect
+      .poll(() => search)
+      .toHaveBeenCalledWith({
+        keywords: '',
+        maxIngredientCount: null,
+        maxStepCount: null,
+        courses: ['dessert'],
+      });
+    await expect.poll(() => similarNames()).toEqual([]);
+    await expect
+      .element(
+        page.getByRole('heading', { name: 'More desserts you might like' }),
+      )
+      .not.toBeInTheDocument();
   });
 });
 
@@ -155,20 +159,16 @@ function mountSimilarRecipes(recipe: Recipe) {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockReturnValue(of([]));
 
-  const fixture = TestBed.createComponent(SimilarRecipes);
-  fixture.componentRef.setInput('recipe', recipe);
+  TestBed.createComponent(SimilarRecipes, {
+    bindings: [inputBinding('recipe', () => recipe)],
+  });
 
-  return { fixture, search };
-}
-
-function similarLinks(root: HTMLElement): HTMLAnchorElement[] {
-  return [
-    ...root.querySelectorAll<HTMLAnchorElement>(
-      '[data-testid="similar-recipe"]',
-    ),
-  ];
-}
-
-function similarNames(root: HTMLElement): string[] {
-  return similarLinks(root).map((link) => link.textContent?.trim() ?? '');
+  return {
+    search,
+    similarNames: () =>
+      page
+        .getByRole('link')
+        .elements()
+        .map((el) => el.textContent?.trim() ?? ''),
+  };
 }

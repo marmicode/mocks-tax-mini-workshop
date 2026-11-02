@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import {
   RecipeRepository,
@@ -30,46 +31,43 @@ const lentilSoup: Recipe = {
   steps: [],
 };
 
-describe(RecipeKeywordChips.name, () => {
+describe(RecipeKeywordChips, () => {
   it('searches recipes matching the typed prefix', async () => {
-    const { fixture, search } = mountRecipeKeywordChips();
-    await fixture.whenStable();
+    const { search } = mountRecipeKeywordChips();
 
-    typeKeywordPrefix(fixture.nativeElement, 'le');
-    await fixture.whenStable();
+    await page.getByRole('searchbox', { name: 'Keyword prefix' }).fill('le');
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'le',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    await expect
+      .poll(() => search)
+      .toHaveBeenCalledExactlyOnceWith({
+        keywords: 'le',
+        maxIngredientCount: null,
+        maxStepCount: null,
+      });
   });
 
   it('shows a chip for each suggested keyword', async () => {
-    const { fixture, search } = mountRecipeKeywordChips();
+    const { search, chipLabels } = mountRecipeKeywordChips();
     search.mockImplementation((params) =>
       of(searchCatalog([cheesecake, lentilSoup], params)),
     );
-    await fixture.whenStable();
 
-    typeKeywordPrefix(fixture.nativeElement, 'le');
-    await fixture.whenStable();
+    await page.getByRole('searchbox', { name: 'Keyword prefix' }).fill('le');
 
+    await expect.poll(() => chipLabels()).toEqual(['lemon', 'lentil']);
     expect(search).toHaveBeenCalledOnce();
-    expect(chipLabels(fixture.nativeElement)).toEqual(['lemon', 'lentil']);
   });
 
   it('searches recipes with the picked keyword', async () => {
-    const { fixture, search } = mountRecipeKeywordChips();
+    const { search, chipLabels, recipeNames } = mountRecipeKeywordChips();
     search.mockReturnValue(of([cheesecake, lentilSoup]));
-    await fixture.whenStable();
 
-    typeKeywordPrefix(fixture.nativeElement, 'le');
-    await fixture.whenStable();
+    await page.getByRole('searchbox', { name: 'Keyword prefix' }).fill('le');
+    await expect.poll(() => chipLabels()).toEqual(['lemon', 'lentil']);
     search.mockReturnValue(of([lentilSoup]));
-    chipByLabel(fixture.nativeElement, 'lentil').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'lentil' }).click();
 
+    await expect.poll(() => recipeNames()).toEqual(['Red Lentil Soup']);
     expect(search.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -88,11 +86,10 @@ describe(RecipeKeywordChips.name, () => {
         ],
       ]
     `);
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Red Lentil Soup']);
   });
 
   it('shows a message when the picked keyword matches no recipe', async () => {
-    const { fixture, search } = mountRecipeKeywordChips();
+    const { search } = mountRecipeKeywordChips();
     search
       .mockImplementationOnce((params) =>
         isKeywordOnlySearch(params) ? of([cheesecake]) : of([]),
@@ -105,29 +102,26 @@ describe(RecipeKeywordChips.name, () => {
         });
         return of([]);
       });
-    await fixture.whenStable();
 
-    typeKeywordPrefix(fixture.nativeElement, 'ri');
-    await fixture.whenStable();
-    chipByLabel(fixture.nativeElement, 'ricotta').click();
-    await fixture.whenStable();
+    await page.getByRole('searchbox', { name: 'Keyword prefix' }).fill('ri');
+    await page.getByRole('button', { name: 'ricotta' }).click();
 
+    await expect
+      .element(page.getByText('No recipes found for "ricotta".'))
+      .toHaveTextContent('No recipes found for "ricotta".');
     expect(search).toHaveBeenCalledTimes(2);
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No recipes found for "ricotta"');
   });
 
   it('does not search while the prefix is too short', async () => {
-    const { fixture, search } = mountRecipeKeywordChips();
-    await fixture.whenStable();
+    const { search, chipLabels } = mountRecipeKeywordChips();
 
-    typeKeywordPrefix(fixture.nativeElement, 'l');
-    await fixture.whenStable();
+    await page.getByRole('searchbox', { name: 'Keyword prefix' }).fill('l');
 
+    await expect
+      .element(page.getByRole('searchbox', { name: 'Keyword prefix' }))
+      .toHaveValue('l');
     expect(search).not.toHaveBeenCalled();
-    expect(chipLabels(fixture.nativeElement)).toEqual([]);
+    await expect.poll(() => chipLabels()).toEqual([]);
   });
 });
 
@@ -149,42 +143,21 @@ function mountRecipeKeywordChips() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockReturnValue(of([]));
 
-  const fixture = TestBed.createComponent(RecipeKeywordChips);
+  TestBed.createComponent(RecipeKeywordChips);
 
-  return { fixture, search };
-}
-
-function typeKeywordPrefix(root: HTMLElement, prefix: string): void {
-  const input = root.querySelector<HTMLInputElement>(
-    'input[aria-label="Keyword prefix"]',
-  );
-  if (input == null) {
-    throw new Error('Keyword prefix input not found.');
-  }
-  input.value = prefix;
-  input.dispatchEvent(new Event('input'));
-}
-
-function chipLabels(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="keyword-chip"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function chipByLabel(root: HTMLElement, label: string): HTMLButtonElement {
-  const chip = [
-    ...root.querySelectorAll<HTMLButtonElement>('[data-testid="keyword-chip"]'),
-  ].find((el) => el.textContent?.trim() === label);
-  if (chip == null) {
-    throw new Error(`Chip "${label}" not found.`);
-  }
-  return chip;
-}
-
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+  return {
+    search,
+    chipLabels: () =>
+      page
+        .getByTestId('keyword-chip')
+        .elements()
+        .map((el) => el.textContent?.trim() ?? ''),
+    recipeNames: () =>
+      page
+        .getByTestId('recipe-name')
+        .elements()
+        .map((el) => el.textContent?.trim() ?? ''),
+  };
 }
 
 /* Mimics the backend: keywords match the recipe name, and courses only

@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -35,68 +36,64 @@ const fullWeek: WeekdayAssignments = {
   sunday: 'harissa-chicken',
 };
 
-describe(MealPlanAutoFill.name, () => {
+describe(MealPlanAutoFill, () => {
   it('searches mains to fill the empty days', async () => {
-    const { fixture } = mountMealPlanAutoFill({
+    mountMealPlanAutoFill({
       assignments: { ...fullWeek, saturday: null, sunday: null },
       recipes: [hummus, shakshuka],
     });
-    await fixture.whenStable();
 
-    expect(suggestions(fixture.nativeElement)).toEqual([
-      'Saturday: Shakshuka',
-      'Sunday: Shakshuka',
-    ]);
+    await expect
+      .poll(() => suggestions())
+      .toEqual(['Saturday: Shakshuka', 'Sunday: Shakshuka']);
   });
 
   it('shows a suggestion for each empty day', async () => {
-    const { fixture } = mountMealPlanAutoFill({
+    mountMealPlanAutoFill({
       assignments: { ...fullWeek, saturday: null, sunday: null },
     });
-    await fixture.whenStable();
 
-    expect(suggestions(fixture.nativeElement)).toEqual([
-      'Saturday: Shakshuka',
-      'Sunday: Lamb Kofte with Yogurt and Sumac',
-    ]);
+    await expect
+      .poll(() => suggestions())
+      .toEqual([
+        'Saturday: Shakshuka',
+        'Sunday: Lamb Kofte with Yogurt and Sumac',
+      ]);
   });
 
   it('does not suggest recipes that are already planned', async () => {
-    const { fixture } = mountMealPlanAutoFill({
+    mountMealPlanAutoFill({
       assignments: { ...fullWeek, monday: shakshuka.id, sunday: null },
     });
-    await fixture.whenStable();
 
-    expect(suggestions(fixture.nativeElement)).toEqual([
-      'Sunday: Lamb Kofte with Yogurt and Sumac',
-    ]);
+    await expect
+      .poll(() => suggestions())
+      .toEqual(['Sunday: Lamb Kofte with Yogurt and Sumac']);
   });
 
   it('applies the suggestions and goes back to the meal plan', async () => {
-    const { fixture, mealPlanStore, router } = mountMealPlanAutoFill({
+    const { mealPlanStore, router } = mountMealPlanAutoFill({
       assignments: { ...fullWeek, saturday: null, sunday: null },
       recipes: [shakshuka],
     });
-    await fixture.whenStable();
 
-    buttonByText(fixture.nativeElement, 'Apply').click();
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('suggestion').first()).toBeVisible();
+    await page.getByRole('button', { name: 'Apply' }).click();
 
-    expect(mealPlanStore.assignments()).toEqual({
-      ...fullWeek,
-      saturday: shakshuka.id,
-      sunday: shakshuka.id,
-    });
-    expect(router.url).toBe('/meal-plan');
+    await expect
+      .poll(() => mealPlanStore.assignments())
+      .toEqual({
+        ...fullWeek,
+        saturday: shakshuka.id,
+        sunday: shakshuka.id,
+      });
+    await expect.poll(() => router.url).toBe('/meal-plan');
   });
 
   it('says there is nothing to suggest when the week is full', async () => {
-    const { fixture } = mountMealPlanAutoFill({ assignments: fullWeek });
-    await fixture.whenStable();
+    mountMealPlanAutoFill({ assignments: fullWeek });
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-suggestions"]'),
-    ).not.toBeNull();
+    await expect.element(page.getByTestId('no-suggestions')).toBeVisible();
   });
 });
 
@@ -120,9 +117,9 @@ function mountMealPlanAutoFill({
   planWeek(mealPlanStore, assignments);
   const router = TestBed.inject(Router);
 
-  const fixture = TestBed.createComponent(MealPlanAutoFill);
+  TestBed.createComponent(MealPlanAutoFill);
 
-  return { fixture, mealPlanStore, router };
+  return { mealPlanStore, router };
 }
 
 function planWeek(
@@ -137,18 +134,9 @@ function planWeek(
   }
 }
 
-function suggestions(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="suggestion"]')].map(
-    (el) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '',
-  );
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function suggestions() {
+  return page
+    .getByTestId('suggestion')
+    .elements()
+    .map((el) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '');
 }

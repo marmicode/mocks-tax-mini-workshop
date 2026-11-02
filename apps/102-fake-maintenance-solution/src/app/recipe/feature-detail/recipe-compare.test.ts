@@ -1,5 +1,7 @@
+import { inputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -25,95 +27,98 @@ const hummus = recipeMother
   .withSteps(['Blitz everything.'])
   .build();
 
-describe(RecipeCompare.name, () => {
+describe(RecipeCompare, () => {
   it('lists all recipes in the pickers', async () => {
-    const { fixture } = mountRecipeCompare({});
-    await fixture.whenStable();
+    mountRecipeCompare({});
 
-    expect(optionLabels(selects(fixture.nativeElement)[0])).toEqual([
-      'Pick a recipe',
-      'Shakshuka',
-      'Hummus with Ful',
-    ]);
+    await expect
+      .poll(() => optionLabels('Left recipe'))
+      .toEqual(['Pick a recipe', 'Shakshuka', 'Hummus with Ful']);
   });
 
   it('shows both compared recipes', async () => {
-    const { fixture } = mountRecipeCompare({
+    mountRecipeCompare({
       left: shakshuka.id,
       right: hummus.id,
     });
-    await fixture.whenStable();
 
-    expect(textOf(fixture.nativeElement, 'left-name')).toBe('Shakshuka');
-    expect(textOf(fixture.nativeElement, 'right-name')).toBe('Hummus with Ful');
+    await expect
+      .element(page.getByTestId('left-name'))
+      .toHaveTextContent('Shakshuka');
+    await expect
+      .element(page.getByTestId('right-name'))
+      .toHaveTextContent('Hummus with Ful');
   });
 
   it('compares course, ingredient count and step count', async () => {
-    const { fixture } = mountRecipeCompare({
+    mountRecipeCompare({
       left: shakshuka.id,
       right: hummus.id,
     });
-    await fixture.whenStable();
 
-    const root: HTMLElement = fixture.nativeElement;
-    expect(textOf(root, 'left-name')).toBe('Shakshuka');
-    expect(textOf(root, 'right-name')).toBe('Hummus with Ful');
-    expect(cellsOf(root, 'course-row')).toEqual(['main', 'starter']);
-    expect(cellsOf(root, 'ingredient-count-row')).toEqual(['3', '2']);
-    expect(cellsOf(root, 'step-count-row')).toEqual(['2', '1']);
+    await expect
+      .element(page.getByTestId('left-name'))
+      .toHaveTextContent('Shakshuka');
+    await expect
+      .element(page.getByTestId('right-name'))
+      .toHaveTextContent('Hummus with Ful');
+    await expect.poll(() => cellsOf('course-row')).toEqual(['main', 'starter']);
+    await expect
+      .poll(() => cellsOf('ingredient-count-row'))
+      .toEqual(['3', '2']);
+    await expect.poll(() => cellsOf('step-count-row')).toEqual(['2', '1']);
   });
 
   it('lists shared ingredients ignoring case', async () => {
-    const { fixture } = mountRecipeCompare({
+    mountRecipeCompare({
       left: shakshuka.id,
       right: hummus.id,
     });
-    await fixture.whenStable();
 
-    expect(
-      [
-        ...fixture.nativeElement.querySelectorAll(
-          '[data-testid="shared-ingredient"]',
-        ),
-      ].map((el) => (el as HTMLElement).textContent?.trim()),
-    ).toEqual(['olive oil']);
+    await expect
+      .poll(() => textsOf('shared-ingredient'))
+      .toEqual(['olive oil']);
   });
 
   it('navigates when a recipe is picked', async () => {
-    const { fixture, router } = mountRecipeCompare({});
-    await fixture.whenStable();
+    const { router } = mountRecipeCompare({});
 
-    const [leftSelect] = selects(fixture.nativeElement);
-    leftSelect.value = hummus.id;
-    leftSelect.dispatchEvent(new Event('change'));
-    await fixture.whenStable();
+    await expect
+      .poll(() => optionLabels('Left recipe'))
+      .toEqual(['Pick a recipe', 'Shakshuka', 'Hummus with Ful']);
 
-    expect(router.url).toBe(`/compare?left=${hummus.id}`);
+    await page.getByRole('combobox', { name: 'Left recipe' }).selectOptions(hummus.id);
+
+    await expect.poll(() => router.url).toBe(`/compare?left=${hummus.id}`);
   });
 
   it('preselects the compared recipes in the pickers', async () => {
-    const { fixture } = mountRecipeCompare({
+    mountRecipeCompare({
       left: hummus.id,
       right: shakshuka.id,
     });
-    await fixture.whenStable();
 
-    expect(
-      selects(fixture.nativeElement).map((select) => select.value),
-    ).toEqual([hummus.id, shakshuka.id]);
+    await expect
+      .element(page.getByRole('combobox', { name: 'Left recipe' }))
+      .toHaveValue(hummus.id);
+    await expect
+      .element(page.getByRole('combobox', { name: 'Right recipe' }))
+      .toHaveValue(shakshuka.id);
   });
 
   it('does not compare until both recipes are picked', async () => {
-    const { fixture } = mountRecipeCompare({
+    mountRecipeCompare({
       left: shakshuka.id,
     });
-    await fixture.whenStable();
 
-    expect(fixture.nativeElement.querySelector('table')).toBeNull();
+    await expect
+      .element(page.getByRole('combobox', { name: 'Left recipe' }))
+      .toHaveValue(shakshuka.id);
+    await expect.element(page.getByRole('table')).not.toBeInTheDocument();
   });
 
   it('tells when recipes share no ingredients', async () => {
-    const { fixture } = mountRecipeCompare({
+    mountRecipeCompare({
       left: shakshuka.id,
       right: hummus.id,
       recipes: [
@@ -124,29 +129,28 @@ describe(RecipeCompare.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(textOf(fixture.nativeElement, 'no-shared-ingredients')).toBe(
-      'No shared ingredients.',
-    );
+    await expect
+      .element(page.getByTestId('no-shared-ingredients'))
+      .toHaveTextContent('No shared ingredients.');
   });
 
   it('clears a side when "Pick a recipe" is chosen', async () => {
-    const { fixture, router } = mountRecipeCompare({
+    const { router } = mountRecipeCompare({
       left: shakshuka.id,
       right: hummus.id,
     });
     await router.navigateByUrl(
       `/compare?left=${shakshuka.id}&right=${hummus.id}`,
     );
-    await fixture.whenStable();
 
-    const [, rightSelect] = selects(fixture.nativeElement);
-    rightSelect.value = '';
-    rightSelect.dispatchEvent(new Event('change'));
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('left-name'))
+      .toHaveTextContent('Shakshuka');
 
-    expect(router.url).toBe(`/compare?left=${shakshuka.id}`);
+    await page.getByRole('combobox', { name: 'Right recipe' }).selectOptions('Pick a recipe');
+
+    await expect.poll(() => router.url).toBe(`/compare?left=${shakshuka.id}`);
   });
 });
 
@@ -169,27 +173,30 @@ function mountRecipeCompare({
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
   const router = TestBed.inject(Router);
 
-  const fixture = TestBed.createComponent(RecipeCompare);
-  fixture.componentRef.setInput('left', left);
-  fixture.componentRef.setInput('right', right);
+  TestBed.createComponent(RecipeCompare, {
+    bindings: [
+      inputBinding('left', () => left),
+      inputBinding('right', () => right),
+    ],
+  });
 
-  return { fixture, router };
+  return { router };
 }
 
-function selects(root: HTMLElement): HTMLSelectElement[] {
-  return [...root.querySelectorAll('select')];
+function optionLabels(label: 'Left recipe' | 'Right recipe') {
+  const select = page.getByRole('combobox', { name: label }).element() as HTMLSelectElement;
+  return [...select.options].map((option) => option.text.trim());
 }
 
-function optionLabels(select: HTMLSelectElement | undefined): string[] {
-  return [...(select?.options ?? [])].map((option) => option.text.trim());
-}
-
-function textOf(root: HTMLElement, testId: string): string | undefined {
-  return root.querySelector(`[data-testid="${testId}"]`)?.textContent?.trim();
-}
-
-function cellsOf(root: HTMLElement, testId: string): string[] {
-  return [...root.querySelectorAll(`[data-testid="${testId}"] td`)].map(
-    (el) => el.textContent?.trim() ?? '',
+function cellsOf(testId: string) {
+  return [...page.getByTestId(testId).element().querySelectorAll('td')].map(
+    (cell) => cell.textContent?.trim() ?? '',
   );
+}
+
+function textsOf(testId: string) {
+  return page
+    .getByTestId(testId)
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

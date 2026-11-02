@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import { MealPlanStore } from '@whiskmate/shared-meal-plan/domain';
@@ -48,12 +49,11 @@ const cheesecake: Recipe = {
   steps: [],
 };
 
-describe(MenuBuilder.name, () => {
+describe(MenuBuilder, () => {
   it('searches recipes for each course', async () => {
-    const { fixture, search } = mountMenuBuilder();
-    await fixture.whenStable();
+    const { search } = mountMenuBuilder();
 
-    expect(search).toHaveBeenCalledTimes(3);
+    await expect.poll(() => search.mock.calls.length).toBe(3);
     expect(search).toHaveBeenNthCalledWith(1, {
       keywords: '',
       maxIngredientCount: null,
@@ -75,24 +75,38 @@ describe(MenuBuilder.name, () => {
   });
 
   it('shows a three-course menu', async () => {
-    const { fixture, search } = mountMenuBuilder();
-    await fixture.whenStable();
+    const { search } = mountMenuBuilder();
 
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Shakshuka',
+        'Lemon and Ricotta Cheesecake',
+      ]);
     expect(search).toHaveBeenCalledTimes(3);
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-    ]);
   });
 
   it('swaps the starter', async () => {
-    const { fixture, search } = mountMenuBuilder();
-    await fixture.whenStable();
+    const { search } = mountMenuBuilder();
 
-    buttonByLabel(fixture.nativeElement, 'Swap starter').click();
-    await fixture.whenStable();
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Shakshuka',
+        'Lemon and Ricotta Cheesecake',
+      ]);
 
+    await page.getByRole('button', { name: 'Swap starter' }).click();
+
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Courgette and Herb Fritters',
+        'Shakshuka',
+        'Lemon and Ricotta Cheesecake',
+      ]);
     expect(search).toHaveBeenCalledTimes(4);
     expect(search).toHaveBeenLastCalledWith({
       keywords: '',
@@ -100,54 +114,45 @@ describe(MenuBuilder.name, () => {
       maxStepCount: null,
       courses: ['starter'],
     });
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Courgette and Herb Fritters',
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-    ]);
   });
 
   it('shows an empty course when the catalog has no recipe for it', async () => {
-    const { fixture, search } = mountMenuBuilder();
+    const { search } = mountMenuBuilder();
     search.mockImplementation(({ courses }) =>
       of(courses?.includes('dessert') ? [] : [shakshuka]),
     );
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('course-dessert').getByTestId('no-recipe'))
+      .toMatchTextContent('No dessert available.');
     expect(search).toHaveBeenCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['dessert'],
     });
-    expect(
-      fixture.nativeElement.querySelector(
-        '[data-testid="course-dessert"] [data-testid="no-recipe"]',
-      )?.textContent,
-    ).toContain('No dessert available.');
   });
 
   it('plans the main course on the picked weekday', async () => {
-    const { fixture, search, mealPlanStore } = mountMenuBuilder();
+    const { search, mealPlanStore } = mountMenuBuilder();
     const assign = vi
       .spyOn(mealPlanStore, 'assign')
       .mockImplementation(() => undefined);
-    await fixture.whenStable();
 
-    buttonByText(fixture.nativeElement, 'add menu to meal plan').click();
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'friday').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Add menu to meal plan' }).click();
+    await expect
+      .element(page.getByRole('button', { name: 'Friday' }))
+      .toBeVisible();
+    await page.getByRole('button', { name: 'Friday' }).click();
 
+    await expect
+      .element(page.getByTestId('added-message'))
+      .toMatchTextContent('Menu planned for friday.');
     expect(search).toHaveBeenCalledTimes(3);
     expect(assign).toHaveBeenCalledExactlyOnceWith({
       weekday: 'friday',
       recipeId: 'shakshuka',
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="added-message"]')
-        ?.textContent,
-    ).toContain('Menu planned for friday.');
   });
 });
 
@@ -179,33 +184,14 @@ function mountMenuBuilder() {
   );
   const mealPlanStore = TestBed.inject(MealPlanStore);
 
-  const fixture = TestBed.createComponent(MenuBuilder);
+  TestBed.createComponent(MenuBuilder);
 
-  return { fixture, search, mealPlanStore };
+  return { search, mealPlanStore };
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function buttonByLabel(root: HTMLElement, label: string): HTMLButtonElement {
-  const button = root.querySelector<HTMLButtonElement>(
-    `button[aria-label="${label}"]`,
-  );
-  if (button == null) {
-    throw new Error(`Button "${label}" not found.`);
-  }
-  return button;
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim().toLowerCase() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -42,12 +43,11 @@ const quickRecipesBySearch: Record<string, Recipe[]> = {
   })]: [hummus],
 };
 
-describe(QuickRecipes.name, () => {
+describe(QuickRecipes, () => {
   it('searches recipes with few steps', async () => {
-    const { fixture, search } = mountQuickRecipes();
-    await fixture.whenStable();
+    const { search } = mountQuickRecipes();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 5,
@@ -56,23 +56,24 @@ describe(QuickRecipes.name, () => {
   });
 
   it('shows the quick recipes', async () => {
-    const { fixture, search } = mountQuickRecipes();
-    await fixture.whenStable();
+    mountQuickRecipes();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
   });
 
   it('also caps ingredients when asked', async () => {
-    const { fixture, search } = mountQuickRecipes();
-    await fixture.whenStable();
+    const { search } = mountQuickRecipes();
 
-    checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
-    await fixture.whenStable();
+    await expect.poll(() => search.mock.calls.length).toBe(1);
 
-    expect(search).toHaveBeenCalledTimes(2);
+    await page.getByRole('checkbox', { name: 'At most 6 ingredients' }).click();
+
+    await expect.poll(() => search.mock.calls.length).toBe(2);
     expect(search.mock.lastCall).toMatchInlineSnapshot(`
       [
         {
@@ -86,15 +87,16 @@ describe(QuickRecipes.name, () => {
   });
 
   it('stops capping ingredients once unchecked', async () => {
-    const { fixture, search } = mountQuickRecipes();
-    await fixture.whenStable();
+    const { search } = mountQuickRecipes();
 
-    checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
-    await fixture.whenStable();
-    checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
-    await fixture.whenStable();
+    await expect.poll(() => search.mock.calls.length).toBe(1);
 
-    expect(search).toHaveBeenLastCalledWith({
+    await page.getByRole('checkbox', { name: 'At most 6 ingredients' }).click();
+    await expect.poll(() => search.mock.calls.length).toBe(2);
+
+    await page.getByRole('checkbox', { name: 'At most 6 ingredients' }).click();
+
+    await expect.poll(() => search).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 5,
@@ -103,61 +105,68 @@ describe(QuickRecipes.name, () => {
   });
 
   it('shows a message when there are no quick recipes', async () => {
-    const { fixture, search } = mountQuickRecipes();
+    const { search } = mountQuickRecipes();
     search.mockReturnValue(of([]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No quick recipes found');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 5,
       courses: [],
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No quick recipes found');
   });
 
   it('mentions the step cap', async () => {
-    const { fixture, search } = mountQuickRecipes();
-    await fixture.whenStable();
+    const { search } = mountQuickRecipes();
 
+    await expect
+      .element(page.getByText('Recipes with at most 5 steps.'))
+      .toMatchTextContent('Recipes with at most 5 steps.');
+    await expect.poll(() => search.mock.calls).toHaveLength(1);
     expect(search.mock.calls).toMatchSnapshot();
-    expect(fixture.nativeElement.textContent).toContain(
-      'Recipes with at most 5 steps.',
-    );
   });
 
   it('shows the recipes with few ingredients once capped', async () => {
-    const { fixture, search } = mountQuickRecipes();
-    await fixture.whenStable();
+    mountQuickRecipes();
 
-    checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
-    await fixture.whenStable();
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
+    await page.getByRole('checkbox', { name: 'At most 6 ingredients' }).click();
+
+    await expect.poll(recipeNames).toEqual(['Hummus with Ful']);
   });
 
   it('shows a message when no quick recipe has few ingredients', async () => {
-    const { fixture, search } = mountQuickRecipes();
-    await fixture.whenStable();
+    const { search } = mountQuickRecipes();
+
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
 
     search.mockReturnValue(of([]));
-    checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
-    await fixture.whenStable();
+    await page.getByRole('checkbox', { name: 'At most 6 ingredients' }).click();
 
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No quick recipes found');
     expect(search).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: 6,
       maxStepCount: 5,
       courses: [],
     });
-    expect(recipeNames(fixture.nativeElement)).toEqual([]);
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No quick recipes found');
+    await expect.poll(recipeNames).toEqual([]);
   });
 });
 
@@ -186,24 +195,14 @@ function mountQuickRecipes() {
           );
     });
 
-  const fixture = TestBed.createComponent(QuickRecipes);
+  TestBed.createComponent(QuickRecipes);
 
-  return { fixture, search };
+  return { search };
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function checkboxByLabel(root: HTMLElement, label: string): HTMLInputElement {
-  const checkbox = [...root.querySelectorAll('mat-checkbox')].find(
-    (el) => el.textContent?.trim() === label,
-  );
-  const input = checkbox?.querySelector('input');
-  if (input == null) {
-    throw new Error(`Checkbox "${label}" not found.`);
-  }
-  return input;
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

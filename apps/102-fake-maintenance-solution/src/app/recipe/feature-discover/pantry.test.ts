@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page, userEvent } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -31,9 +32,9 @@ const cheesecake = recipeMother
   .withIngredients([{ name: 'ricotta', quantity: { amount: 250, unit: 'g' } }])
   .build();
 
-describe(Pantry.name, () => {
+describe(Pantry, () => {
   it('searches all recipes', async () => {
-    const { fixture } = mountPantry({
+    mountPantry({
       recipes: [
         recipeMother
           .withBasicInfo({ name: 'Baklava', course: 'dessert' })
@@ -47,148 +48,120 @@ describe(Pantry.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="pantry-hint"]'),
-    ).not.toBeNull();
+    await expect.element(page.getByTestId('pantry-hint')).toBeVisible();
 
-    addIngredient(fixture.nativeElement, 'garlic');
-    await fixture.whenStable();
+    await addIngredient('garlic');
 
-    expect(matchedRecipeNames(fixture.nativeElement)).toEqual([
-      'Baklava',
-      'Shakshuka',
-      'Cassoulet',
-    ]);
+    await expect
+      .poll(matchedRecipeNames)
+      .toEqual(['Baklava', 'Shakshuka', 'Cassoulet']);
   });
 
   it('shows recipes using an ingredient I have', async () => {
-    const { fixture } = mountPantry();
-    await fixture.whenStable();
+    mountPantry();
 
-    addIngredient(fixture.nativeElement, 'Ricotta');
-    await fixture.whenStable();
+    await addIngredient('Ricotta');
 
-    expect(matchedRecipeNames(fixture.nativeElement)).toEqual([
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(matchedRecipeNames)
+      .toEqual(['Lemon and Ricotta Cheesecake']);
   });
 
   it('ranks recipes by number of matching ingredients', async () => {
-    const { fixture } = mountPantry();
-    await fixture.whenStable();
+    mountPantry();
 
-    addIngredient(fixture.nativeElement, 'garlic');
-    addIngredient(fixture.nativeElement, 'eggs');
-    await fixture.whenStable();
+    await addIngredient('garlic');
+    await addIngredient('eggs');
 
-    expect(matchedRecipeNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Hummus with Ful',
-    ]);
-    expect(textsOf(fixture.nativeElement, 'match-count')).toEqual([
-      '2/3 ingredients',
-      '1/2 ingredients',
-    ]);
+    await expect
+      .poll(matchedRecipeNames)
+      .toEqual(['Shakshuka', 'Hummus with Ful']);
+    await expect
+      .poll(() => textsOf('match-count'))
+      .toEqual(['2/3 ingredients', '1/2 ingredients']);
   });
 
   it('shows missing ingredients', async () => {
-    const { fixture } = mountPantry();
-    await fixture.whenStable();
+    mountPantry();
 
-    addIngredient(fixture.nativeElement, 'garlic');
-    await fixture.whenStable();
+    await addIngredient('garlic');
 
-    expect(textsOf(fixture.nativeElement, 'missing-ingredients')).toEqual([
-      'Missing: tahini',
-      'Missing: red peppers, large eggs',
-    ]);
+    await expect
+      .poll(() => textsOf('missing-ingredients'))
+      .toEqual(['Missing: tahini', 'Missing: red peppers, large eggs']);
   });
 
   it('removes an ingredient', async () => {
-    const { fixture } = mountPantry();
-    await fixture.whenStable();
+    mountPantry();
 
-    addIngredient(fixture.nativeElement, 'garlic');
-    addIngredient(fixture.nativeElement, 'ricotta');
-    await fixture.whenStable();
-    fixture.nativeElement
-      .querySelector('button[aria-label="Remove garlic"]')
-      ?.click();
-    await fixture.whenStable();
+    await addIngredient('garlic');
+    await addIngredient('ricotta');
+    await expect
+      .element(page.getByRole('button', { name: 'Remove garlic' }))
+      .toBeVisible();
+    await expect
+      .element(page.getByRole('button', { name: 'Remove ricotta' }))
+      .toBeVisible();
 
-    expect(matchedRecipeNames(fixture.nativeElement)).toEqual([
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await page.getByRole('button', { name: 'Remove garlic' }).click();
+
+    await expect
+      .poll(matchedRecipeNames)
+      .toEqual(['Lemon and Ricotta Cheesecake']);
   });
 
   it('tells when no recipe uses my ingredients', async () => {
-    const { fixture } = mountPantry();
-    await fixture.whenStable();
+    mountPantry();
 
-    addIngredient(fixture.nativeElement, 'saffron');
-    await fixture.whenStable();
+    await addIngredient('saffron');
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-match-message"]')
-        ?.textContent,
-    ).toContain('No recipe uses these ingredients.');
+    await expect
+      .element(page.getByTestId('no-match-message'))
+      .toMatchTextContent('No recipe uses these ingredients.');
   });
 
   it('ignores blank and duplicate ingredients', async () => {
-    const { fixture } = mountPantry();
-    await fixture.whenStable();
+    mountPantry();
 
-    addIngredient(fixture.nativeElement, 'garlic');
-    addIngredient(fixture.nativeElement, '  GARLIC ');
-    addIngredient(fixture.nativeElement, '   ');
-    await fixture.whenStable();
+    await addIngredient('garlic');
+    await addIngredient('  GARLIC ');
+    await addIngredient('   ');
 
-    expect(itemLabels(fixture.nativeElement)).toEqual(['Remove garlic']);
+    await expect.poll(itemLabels).toEqual(['Remove garlic']);
   });
 
   it('does not show missing ingredients when I have them all', async () => {
-    const { fixture } = mountPantry();
-    await fixture.whenStable();
+    mountPantry();
 
-    addIngredient(fixture.nativeElement, 'ricotta');
-    await fixture.whenStable();
+    await addIngredient('ricotta');
 
-    expect(textsOf(fixture.nativeElement, 'match-count')).toEqual([
-      '1/1 ingredients',
-    ]);
-    expect(textsOf(fixture.nativeElement, 'missing-ingredients')).toEqual([]);
+    await expect
+      .poll(() => textsOf('match-count'))
+      .toEqual(['1/1 ingredients']);
+    await expect.poll(() => textsOf('missing-ingredients')).toEqual([]);
   });
 
   it('shows the hint again once the last ingredient is removed', async () => {
-    const { fixture } = mountPantry();
-    await fixture.whenStable();
+    mountPantry();
 
-    addIngredient(fixture.nativeElement, 'tahini');
-    await fixture.whenStable();
-    fixture.nativeElement
-      .querySelector('button[aria-label="Remove tahini"]')
-      ?.click();
-    await fixture.whenStable();
+    await addIngredient('tahini');
+    await expect.poll(matchedRecipeNames).toEqual(['Hummus with Ful']);
 
-    expect(matchedRecipeNames(fixture.nativeElement)).toEqual([]);
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="pantry-hint"]'),
-    ).not.toBeNull();
+    await page.getByRole('button', { name: 'Remove tahini' }).click();
+
+    await expect.element(page.getByTestId('pantry-hint')).toBeVisible();
+    await expect.poll(matchedRecipeNames).toEqual([]);
   });
 
   it('tells when the repository returns no recipes', async () => {
-    const { fixture } = mountPantry({ recipes: [] });
-    await fixture.whenStable();
+    mountPantry({ recipes: [] });
 
-    addIngredient(fixture.nativeElement, 'garlic');
-    await fixture.whenStable();
+    await addIngredient('garlic');
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-match-message"]')
-        ?.textContent,
-    ).toContain('No recipe uses these ingredients.');
+    await expect
+      .element(page.getByTestId('no-match-message'))
+      .toMatchTextContent('No recipe uses these ingredients.');
   });
 });
 
@@ -201,34 +174,33 @@ function mountPantry({
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(Pantry);
-
-  return { fixture };
+  TestBed.createComponent(Pantry);
 }
 
-function addIngredient(root: HTMLElement, ingredient: string): void {
-  const input = root.querySelector('input');
-  if (input == null) {
-    throw new Error('Ingredient input not found.');
-  }
-  input.value = ingredient;
-  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+async function addIngredient(ingredient: string) {
+  const input = page.getByLabelText('Add an ingredient I have');
+  await input.fill(ingredient);
+  await userEvent.type(input, '{Enter}');
 }
 
-function itemLabels(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('.items button')].map(
-    (el) => el.getAttribute('aria-label') ?? '',
-  );
+function itemLabels() {
+  return page
+    .getByRole('button', { name: /^Remove / })
+    .elements()
+    .map((el) => el.getAttribute('aria-label') ?? '');
 }
 
-function matchedRecipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="pantry-match"] a')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function matchedRecipeNames() {
+  return page
+    .getByTestId('pantry-match')
+    .getByRole('link')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
-function textsOf(root: HTMLElement, testId: string): string[] {
-  return [...root.querySelectorAll(`[data-testid="${testId}"]`)].map(
-    (el) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '',
-  );
+function textsOf(testId: string) {
+  return page
+    .getByTestId(testId)
+    .elements()
+    .map((el) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '');
 }

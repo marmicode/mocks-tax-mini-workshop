@@ -1,6 +1,8 @@
+import { inputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -19,81 +21,86 @@ const hummus: Recipe = {
   steps: ['Blitz the chickpeas.', 'Add the tahini.', 'Top with the beans.'],
 };
 
-describe(RecipeCookingMode.name, () => {
+describe(RecipeCookingMode, () => {
   it('fetches the recipe and starts at the first step', async () => {
-    const { fixture, findById } = mountCookingMode('hummus-ful');
-    await fixture.whenStable();
+    const { findById } = mountCookingMode('hummus-ful');
 
+    await expect
+      .element(page.getByRole('heading', { name: 'Step 1 of 3' }))
+      .toHaveTextContent('Step 1 of 3');
+    await expect
+      .element(page.getByText('Blitz the chickpeas.'))
+      .toHaveTextContent('Blitz the chickpeas.');
+    await expect
+      .element(page.getByRole('button', { name: /Previous/ }))
+      .toBeDisabled();
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'hummus-ful' });
-    expect(textOf(fixture.nativeElement, 'step-counter')).toBe('Step 1 of 3');
-    expect(textOf(fixture.nativeElement, 'current-step')).toBe(
-      'Blitz the chickpeas.',
-    );
-    expect(buttonByText(fixture.nativeElement, 'Previous').disabled).toBe(true);
   });
 
   it('goes to the next step', async () => {
-    const { fixture, findById } = mountCookingMode('hummus-ful');
-    await fixture.whenStable();
+    const { findById } = mountCookingMode('hummus-ful');
 
-    buttonByText(fixture.nativeElement, 'Next').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: /Next/ }).click();
 
+    await expect
+      .element(page.getByRole('heading', { name: 'Step 2 of 3' }))
+      .toHaveTextContent('Step 2 of 3');
+    await expect
+      .element(page.getByText('Add the tahini.'))
+      .toHaveTextContent('Add the tahini.');
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'hummus-ful' });
-    expect(textOf(fixture.nativeElement, 'step-counter')).toBe('Step 2 of 3');
-    expect(textOf(fixture.nativeElement, 'current-step')).toBe(
-      'Add the tahini.',
-    );
   });
 
   it('goes back to the previous step', async () => {
-    const { fixture } = mountCookingMode('hummus-ful');
-    await fixture.whenStable();
+    mountCookingMode('hummus-ful');
 
-    buttonByText(fixture.nativeElement, 'Next').click();
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'Previous').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: /Next/ }).click();
+    await expect
+      .element(page.getByRole('heading', { name: 'Step 2 of 3' }))
+      .toBeVisible();
+    await page.getByRole('button', { name: /Previous/ }).click();
 
-    expect(textOf(fixture.nativeElement, 'step-counter')).toBe('Step 1 of 3');
+    await expect
+      .element(page.getByRole('heading', { name: 'Step 1 of 3' }))
+      .toHaveTextContent('Step 1 of 3');
   });
 
   it('wishes a nice meal on the last step', async () => {
-    const { fixture } = mountCookingMode('hummus-ful');
-    await fixture.whenStable();
+    mountCookingMode('hummus-ful');
 
-    buttonByText(fixture.nativeElement, 'Next').click();
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'Next').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: /Next/ }).click();
+    await expect
+      .element(page.getByRole('heading', { name: 'Step 2 of 3' }))
+      .toBeVisible();
+    await page.getByRole('button', { name: /Next/ }).click();
 
-    expect(textOf(fixture.nativeElement, 'step-counter')).toBe('Step 3 of 3');
-    expect(buttonByText(fixture.nativeElement, 'Next').disabled).toBe(true);
-    expect(textOf(fixture.nativeElement, 'done-message')).toContain(
-      'Enjoy your meal!',
-    );
+    await expect
+      .element(page.getByRole('heading', { name: 'Step 3 of 3' }))
+      .toHaveTextContent('Step 3 of 3');
+    await expect
+      .element(page.getByRole('button', { name: /Next/ }))
+      .toBeDisabled();
+    await expect
+      .element(page.getByTestId('done-message'))
+      .toMatchTextContent('Enjoy your meal!');
   });
 
   it('lists ingredients as a checklist', async () => {
-    const { fixture } = mountCookingMode('hummus-ful');
-    await fixture.whenStable();
+    const { ingredientNames } = mountCookingMode('hummus-ful');
 
-    expect(
-      [...fixture.nativeElement.querySelectorAll('mat-checkbox')].map((el) =>
-        (el as HTMLElement).textContent?.trim(),
-      ),
-    ).toEqual(['tinned chickpeas', 'tahini']);
+    await expect
+      .poll(() => ingredientNames())
+      .toEqual(['tinned chickpeas', 'tahini']);
   });
 
   it('shows a message when the recipe does not exist', async () => {
-    const { fixture, findById } = mountCookingMode('missing');
+    const { findById } = mountCookingMode('missing');
     findById.mockReturnValue(of(undefined));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByText('This recipe does not exist.'))
+      .toHaveTextContent('This recipe does not exist.');
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'missing' });
-    expect(textOf(fixture.nativeElement, 'recipe-not-found')).toBe(
-      'This recipe does not exist.',
-    );
   });
 });
 
@@ -106,25 +113,19 @@ function mountCookingMode(recipeId: string) {
     .spyOn(TestBed.inject(RecipeRepository), 'findById')
     .mockReturnValue(of(hummus));
 
-  const fixture = TestBed.createComponent(RecipeCookingMode);
-  fixture.componentRef.setInput('recipeId', recipeId);
+  TestBed.createComponent(RecipeCookingMode, {
+    bindings: [inputBinding('recipeId', () => recipeId)],
+  });
 
-  return { fixture, findById };
-}
-
-function textOf(root: HTMLElement, testId: string): string | undefined {
-  return root
-    .querySelector(`[data-testid="${testId}"]`)
-    ?.textContent?.trim()
-    .replace(/\s+/g, ' ');
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+  return {
+    findById,
+    ingredientNames: () =>
+      page
+        .getByRole('checkbox')
+        .elements()
+        .map((element) => {
+          const input = element as HTMLInputElement;
+          return input.labels?.[0]?.textContent?.trim() ?? '';
+        }),
+  };
 }

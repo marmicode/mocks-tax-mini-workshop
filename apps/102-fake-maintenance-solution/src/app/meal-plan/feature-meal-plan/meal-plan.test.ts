@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -30,100 +31,105 @@ const emptyAssignments: WeekdayAssignments = {
   sunday: null,
 };
 
-describe(MealPlan.name, () => {
+describe(MealPlan, () => {
   it('shows every day as empty when nothing is planned', async () => {
-    const { fixture } = mountMealPlan(emptyAssignments);
-    await fixture.whenStable();
+    mountMealPlan(emptyAssignments);
 
-    expect(dayElements(fixture.nativeElement)).toHaveLength(7);
-    for (const day of dayElements(fixture.nativeElement)) {
-      expect(day.textContent?.toLowerCase()).toContain('no recipe is planned');
-    }
+    await expect
+      .element(page.getByText('No recipe is planned', { exact: true }))
+      .toHaveLength(7);
   });
 
   it('shows the planned recipe', async () => {
-    const { fixture } = mountMealPlan({
+    mountMealPlan({
       ...emptyAssignments,
       monday: shakshuka.id,
     });
-    await fixture.whenStable();
 
-    const [monday] = dayElements(fixture.nativeElement);
-    expect(monday?.textContent).toContain('Shakshuka');
+    await expect
+      .element(page.getByText('Shakshuka', { exact: true }))
+      .toBeVisible();
   });
 
   it('shows each planned recipe', async () => {
-    const { fixture } = mountMealPlan({
+    mountMealPlan({
       ...emptyAssignments,
       monday: shakshuka.id,
       friday: cheesecake.id,
     });
-    await fixture.whenStable();
 
-    const [monday, , , , friday] = dayElements(fixture.nativeElement);
-    expect(monday?.textContent).toContain('Shakshuka');
-    expect(friday?.textContent).toContain('Lemon and Ricotta Cheesecake');
+    await expect
+      .element(page.getByText('Shakshuka', { exact: true }))
+      .toBeVisible();
+    await expect
+      .element(page.getByText('Lemon and Ricotta Cheesecake', { exact: true }))
+      .toBeVisible();
   });
 
   it('shows the name and picture of a planned recipe', async () => {
-    const { fixture } = mountMealPlan({
+    mountMealPlan({
       ...emptyAssignments,
       monday: shakshuka.id,
     });
-    await fixture.whenStable();
 
-    const [monday, ...otherDays] = dayElements(fixture.nativeElement);
-    expect(monday?.textContent).toContain('Shakshuka');
-    expect(monday?.querySelector('img')?.getAttribute('src')).toBe(
-      shakshuka.pictureUri,
-    );
-    for (const day of otherDays) {
-      expect(day.textContent?.toLowerCase()).toContain('no recipe is planned');
-    }
+    await expect
+      .element(page.getByText('Shakshuka', { exact: true }))
+      .toBeVisible();
+    await expect
+      .element(page.getByRole('img', { name: 'Shakshuka' }))
+      .toBeVisible();
+    expect(
+      page
+        .getByRole('img', { name: 'Shakshuka' })
+        .element()
+        .getAttribute('src'),
+    ).toBe(shakshuka.pictureUri);
+    await expect
+      .element(page.getByText('No recipe is planned', { exact: true }))
+      .toHaveLength(6);
   });
 
   it('renders a missing recipe as an empty day', async () => {
-    const { fixture } = mountMealPlan({
+    mountMealPlan({
       ...emptyAssignments,
       monday: 'missing',
     });
-    await fixture.whenStable();
 
-    const [monday] = dayElements(fixture.nativeElement);
-    expect(monday?.textContent).toContain('Monday');
-    expect(monday?.textContent?.toLowerCase()).toContain(
-      'no recipe is planned',
-    );
+    await expect
+      .element(page.getByText('Monday', { exact: true }))
+      .toBeVisible();
+    await expect
+      .element(page.getByText('No recipe is planned', { exact: true }))
+      .toHaveLength(7);
   });
 
   it('clears a day', async () => {
-    const { fixture, mealPlanStore } = mountMealPlan({
+    const { mealPlanStore } = mountMealPlan({
       ...emptyAssignments,
       monday: shakshuka.id,
     });
-    await fixture.whenStable();
 
-    fixture.nativeElement.querySelector('button')?.click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Remove' }).click();
 
-    expect(mealPlanStore.assignments().monday).toBeNull();
-    const [monday] = dayElements(fixture.nativeElement);
-    expect(monday?.textContent?.toLowerCase()).toContain(
-      'no recipe is planned',
-    );
+    await expect.poll(() => mealPlanStore.assignments().monday).toBeNull();
+    await expect
+      .element(page.getByText('No recipe is planned', { exact: true }))
+      .toHaveLength(7);
   });
 
   it('links each empty day to the recipe picker', async () => {
-    const { fixture } = mountMealPlan({
+    mountMealPlan({
       ...emptyAssignments,
       monday: shakshuka.id,
     });
-    await fixture.whenStable();
 
-    const pickLinks = [...fixture.nativeElement.querySelectorAll('a')].filter(
-      (el) => el.textContent?.trim() === 'Pick a recipe',
-    );
-    expect(pickLinks.map((el) => el.getAttribute('href'))).toEqual([
+    await expect
+      .element(page.getByText('Shakshuka', { exact: true }))
+      .toBeVisible();
+    await expect
+      .element(page.getByRole('link', { name: 'Pick a recipe' }))
+      .toHaveLength(6);
+    expect(pickHrefs()).toEqual([
       '/meal-plan/tuesday/pick',
       '/meal-plan/wednesday/pick',
       '/meal-plan/thursday/pick',
@@ -147,9 +153,9 @@ function mountMealPlan(assignments: WeekdayAssignments) {
   const mealPlanStore = TestBed.inject(MealPlanStore);
   planWeek(mealPlanStore, assignments);
 
-  const fixture = TestBed.createComponent(MealPlan);
+  TestBed.createComponent(MealPlan);
 
-  return { fixture, mealPlanStore };
+  return { mealPlanStore };
 }
 
 function planWeek(
@@ -164,6 +170,9 @@ function planWeek(
   }
 }
 
-function dayElements(root: HTMLElement): HTMLElement[] {
-  return [...root.querySelectorAll<HTMLElement>('wm-meal-plan-day')];
+function pickHrefs() {
+  return page
+    .getByRole('link', { name: 'Pick a recipe' })
+    .elements()
+    .map((link) => link.getAttribute('href'));
 }

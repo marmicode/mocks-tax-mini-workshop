@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -27,134 +28,131 @@ const hummus = recipeMother
   .withSomeSteps()
   .build();
 
-describe(AdminRecipeList.name, () => {
+describe(AdminRecipeList, () => {
   it('lists all recipes on load', async () => {
-    const { fixture } = mountAdminRecipeList();
-    await fixture.whenStable();
+    mountAdminRecipeList();
 
-    expect(rows(fixture.nativeElement)).toEqual([
-      ['Shakshuka', 'main', '3', '3'],
-      ['Lemon and Ricotta Cheesecake', 'dessert', '8', '8'],
-    ]);
+    await expect
+      .poll(() => rows())
+      .toEqual([
+        ['Shakshuka', 'main', '3', '3'],
+        ['Lemon and Ricotta Cheesecake', 'dessert', '8', '8'],
+      ]);
   });
 
   it('searches by keywords', async () => {
-    const { fixture } = mountAdminRecipeList();
-    await fixture.whenStable();
+    mountAdminRecipeList();
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'lemon');
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('recipe-row').first()).toBeVisible();
+    await page.getByLabelText('Keywords').fill('lemon');
 
-    expect(rows(fixture.nativeElement)).toEqual([
-      ['Lemon and Ricotta Cheesecake', 'dessert', '8', '8'],
-    ]);
+    await expect
+      .poll(() => rows())
+      .toEqual([['Lemon and Ricotta Cheesecake', 'dessert', '8', '8']]);
   });
 
   it('searches by course', async () => {
-    const { fixture } = mountAdminRecipeList();
-    await fixture.whenStable();
+    mountAdminRecipeList();
 
-    selectCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('recipe-row').first()).toBeVisible();
+    await page.getByLabelText('Course').selectOptions('dessert');
 
-    expect(rows(fixture.nativeElement)).toEqual([
-      ['Lemon and Ricotta Cheesecake', 'dessert', '8', '8'],
-    ]);
+    await expect
+      .poll(() => rows())
+      .toEqual([['Lemon and Ricotta Cheesecake', 'dessert', '8', '8']]);
   });
 
   it('stops filtering by course when "All courses" is selected', async () => {
-    const { fixture } = mountAdminRecipeList();
-    await fixture.whenStable();
+    mountAdminRecipeList();
 
-    selectCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
-    selectCourse(fixture.nativeElement, '');
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('recipe-row').first()).toBeVisible();
+    await page.getByLabelText('Course').selectOptions('dessert');
+    await expect
+      .poll(() => rows())
+      .toEqual([['Lemon and Ricotta Cheesecake', 'dessert', '8', '8']]);
+    await page.getByLabelText('Course').selectOptions('');
 
-    expect(rows(fixture.nativeElement)).toEqual([
-      ['Shakshuka', 'main', '3', '3'],
-      ['Lemon and Ricotta Cheesecake', 'dessert', '8', '8'],
-    ]);
+    await expect
+      .poll(() => rows())
+      .toEqual([
+        ['Shakshuka', 'main', '3', '3'],
+        ['Lemon and Ricotta Cheesecake', 'dessert', '8', '8'],
+      ]);
   });
 
   it('links to the edit and delete pages of each recipe', async () => {
-    const { fixture } = mountAdminRecipeList({ recipes: [shakshuka] });
-    await fixture.whenStable();
+    mountAdminRecipeList({ recipes: [shakshuka] });
 
-    expect(linkByText(fixture.nativeElement, 'Edit').getAttribute('href')).toBe(
-      '/admin/recipes/shakshuka/edit',
-    );
-    expect(
-      linkByText(fixture.nativeElement, 'Delete').getAttribute('href'),
-    ).toBe('/admin/recipes/shakshuka/delete');
-    expect(
-      linkByText(fixture.nativeElement, 'New recipe').getAttribute('href'),
-    ).toBe('/admin/recipes/new');
+    await expect
+      .element(page.getByRole('link', { name: 'Edit' }))
+      .toBeVisible();
+    expect(href('Edit')).toBe('/admin/recipes/shakshuka/edit');
+    expect(href('Delete')).toBe('/admin/recipes/shakshuka/delete');
+    expect(href('New recipe')).toBe('/admin/recipes/new');
   });
 
   it('shows "No recipes found" when nothing matches', async () => {
-    const { fixture } = mountAdminRecipeList();
-    await fixture.whenStable();
+    mountAdminRecipeList();
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'xyz');
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('recipe-row').first()).toBeVisible();
+    await page.getByLabelText('Keywords').fill('xyz');
 
-    expect(fixture.nativeElement.textContent).toContain('No recipes found');
+    await expect
+      .element(page.getByText('No recipes found', { exact: true }))
+      .toBeVisible();
   });
 
   it('shows the number of recipes found', async () => {
-    const { fixture } = mountAdminRecipeList();
-    await fixture.whenStable();
+    mountAdminRecipeList();
 
-    expect(
-      fixture.nativeElement.querySelector('.count')?.textContent?.trim(),
-    ).toBe('2 recipe(s)');
+    await expect
+      .element(page.getByText('2 recipe(s)', { exact: true }))
+      .toBeVisible();
   });
 
   it('renders the recipes matching the keywords', async () => {
-    const { fixture } = mountAdminRecipeList();
-    await fixture.whenStable();
+    mountAdminRecipeList();
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'ricotta');
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('recipe-row').first()).toBeVisible();
+    await page.getByLabelText('Keywords').fill('ricotta');
 
-    expect(rows(fixture.nativeElement)).toEqual([
-      ['Lemon and Ricotta Cheesecake', 'dessert', '8', '8'],
-    ]);
+    await expect
+      .poll(() => rows())
+      .toEqual([['Lemon and Ricotta Cheesecake', 'dessert', '8', '8']]);
   });
 
   it('combines keywords and course', async () => {
-    const { fixture } = mountAdminRecipeList();
-    await fixture.whenStable();
+    mountAdminRecipeList();
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'shak');
-    await fixture.whenStable();
-    selectCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('recipe-row').first()).toBeVisible();
+    await page.getByLabelText('Keywords').fill('shak');
+    await expect.poll(() => rows()).toEqual([['Shakshuka', 'main', '3', '3']]);
+    await page.getByLabelText('Course').selectOptions('main');
 
-    expect(rows(fixture.nativeElement)).toEqual([
-      ['Shakshuka', 'main', '3', '3'],
-    ]);
+    await expect.poll(() => rows()).toEqual([['Shakshuka', 'main', '3', '3']]);
   });
 
   it('keeps keywords when "All courses" is selected again', async () => {
-    const { fixture } = mountAdminRecipeList({
+    mountAdminRecipeList({
       recipes: [shakshuka, cheesecake, hummus],
     });
-    await fixture.whenStable();
 
-    selectCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'hummus');
-    await fixture.whenStable();
-    expect(rows(fixture.nativeElement)).toEqual([]);
+    await expect.element(page.getByTestId('recipe-row').first()).toBeVisible();
+    await page.getByLabelText('Course').selectOptions('dessert');
+    await expect
+      .poll(() => rows())
+      .toEqual([['Lemon and Ricotta Cheesecake', 'dessert', '8', '8']]);
+    await page.getByLabelText('Keywords').fill('hummus');
+    await expect
+      .element(page.getByText('No recipes found', { exact: true }))
+      .toBeVisible();
+    await expect.poll(() => rows()).toEqual([]);
 
-    selectCourse(fixture.nativeElement, '');
-    await fixture.whenStable();
+    await page.getByLabelText('Course').selectOptions('');
 
-    expect(rows(fixture.nativeElement)).toEqual([
-      ['Hummus with Ful', 'starter', '3', '3'],
-    ]);
+    await expect
+      .poll(() => rows())
+      .toEqual([['Hummus with Ful', 'starter', '3', '3']]);
   });
 });
 
@@ -165,49 +163,21 @@ function mountAdminRecipeList({
     providers: [provideRouter([]), provideRecipeRepositoryFake()],
   });
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
-  const fixture = TestBed.createComponent(AdminRecipeList);
-  return { fixture };
+
+  TestBed.createComponent(AdminRecipeList);
 }
 
-function rows(root: HTMLElement): string[][] {
-  return [...root.querySelectorAll('[data-testid="recipe-row"]')].map((row) =>
-    [...row.querySelectorAll('td')]
-      .slice(0, 4)
-      .map((cell) => cell.textContent?.trim() ?? ''),
-  );
+function rows() {
+  return page
+    .getByTestId('recipe-row')
+    .elements()
+    .map((row) =>
+      [...row.children]
+        .slice(0, 4)
+        .map((cell) => cell.textContent?.trim() ?? ''),
+    );
 }
 
-function inputByLabel(root: HTMLElement, label: string): HTMLInputElement {
-  const field = [...root.querySelectorAll('mat-form-field')].find(
-    (el) => el.querySelector('mat-label')?.textContent?.trim() === label,
-  );
-  const input = field?.querySelector('input');
-  if (input == null) {
-    throw new Error(`Input "${label}" not found.`);
-  }
-  return input;
-}
-
-function typeInto(input: HTMLInputElement, value: string): void {
-  input.value = value;
-  input.dispatchEvent(new Event('input'));
-}
-
-function selectCourse(root: HTMLElement, course: string): void {
-  const select = root.querySelector('select');
-  if (select == null) {
-    throw new Error('Course select not found.');
-  }
-  select.value = course;
-  select.dispatchEvent(new Event('change'));
-}
-
-function linkByText(root: HTMLElement, text: string): HTMLAnchorElement {
-  const link = [...root.querySelectorAll('a')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (link == null) {
-    throw new Error(`Link "${text}" not found.`);
-  }
-  return link;
+function href(name: string) {
+  return page.getByRole('link', { name }).element().getAttribute('href');
 }

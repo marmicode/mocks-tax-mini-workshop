@@ -1,5 +1,7 @@
+import { inputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -39,26 +41,23 @@ const emptyAssignments: WeekdayAssignments = {
   sunday: null,
 };
 
-describe(MealPlanSwap.name, () => {
+describe(MealPlanSwap, () => {
   it('shows the planned recipe and the other recipes of its course', async () => {
-    const { fixture } = mountMealPlanSwap({
+    mountMealPlanSwap({
       weekday: 'monday',
       assignments: { ...emptyAssignments, monday: shakshuka.id },
     });
-    await fixture.whenStable();
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="current-recipe"]')
-        ?.textContent,
-    ).toBe('Shakshuka');
-    expect(alternativeNames(fixture.nativeElement)).toEqual([
-      'Lamb Kofte with Yogurt and Sumac',
-      'Harissa-Roasted Chicken',
-    ]);
+    await expect
+      .element(page.getByTestId('current-recipe'))
+      .toHaveTextContent('Shakshuka');
+    await expect
+      .poll(() => alternativeNames())
+      .toEqual(['Lamb Kofte with Yogurt and Sumac', 'Harissa-Roasted Chicken']);
   });
 
   it('lists alternatives that are not planned yet', async () => {
-    const { fixture } = mountMealPlanSwap({
+    mountMealPlanSwap({
       weekday: 'monday',
       assignments: {
         ...emptyAssignments,
@@ -66,53 +65,45 @@ describe(MealPlanSwap.name, () => {
         tuesday: harissaChicken.id,
       },
     });
-    await fixture.whenStable();
 
-    expect(alternativeNames(fixture.nativeElement)).toEqual([
-      'Lamb Kofte with Yogurt and Sumac',
-    ]);
+    await expect
+      .poll(() => alternativeNames())
+      .toEqual(['Lamb Kofte with Yogurt and Sumac']);
   });
 
   it('assigns the picked recipe and goes back to the meal plan', async () => {
-    const { fixture, mealPlanStore, router } = mountMealPlanSwap({
+    const { mealPlanStore, router } = mountMealPlanSwap({
       weekday: 'friday',
       assignments: { ...emptyAssignments, friday: shakshuka.id },
     });
-    await fixture.whenStable();
 
-    buttonByText(
-      fixture.nativeElement,
-      'Pick Lamb Kofte with Yogurt and Sumac',
-    ).click();
-    await fixture.whenStable();
+    await page
+      .getByRole('button', { name: 'Pick Lamb Kofte with Yogurt and Sumac' })
+      .click();
 
-    expect(mealPlanStore.assignments().friday).toBe(lambKofte.id);
-    expect(router.url).toBe('/meal-plan');
+    await expect
+      .poll(() => mealPlanStore.assignments().friday)
+      .toBe(lambKofte.id);
+    await expect.poll(() => router.url).toBe('/meal-plan');
   });
 
   it('says there is no alternative when every recipe of the course is planned', async () => {
-    const { fixture } = mountMealPlanSwap({
+    mountMealPlanSwap({
       weekday: 'monday',
       assignments: { ...emptyAssignments, monday: shakshuka.id },
       recipes: [hummus, shakshuka],
     });
-    await fixture.whenStable();
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-alternatives"]'),
-    ).not.toBeNull();
+    await expect.element(page.getByTestId('no-alternatives')).toBeVisible();
   });
 
   it('says nothing is planned that day', async () => {
-    const { fixture } = mountMealPlanSwap({
+    mountMealPlanSwap({
       weekday: 'monday',
       assignments: emptyAssignments,
     });
-    await fixture.whenStable();
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="nothing-planned"]'),
-    ).not.toBeNull();
+    await expect.element(page.getByTestId('nothing-planned')).toBeVisible();
   });
 });
 
@@ -138,10 +129,11 @@ function mountMealPlanSwap({
   planWeek(mealPlanStore, assignments);
   const router = TestBed.inject(Router);
 
-  const fixture = TestBed.createComponent(MealPlanSwap);
-  fixture.componentRef.setInput('weekday', weekday);
+  TestBed.createComponent(MealPlanSwap, {
+    bindings: [inputBinding('weekday', () => weekday)],
+  });
 
-  return { fixture, mealPlanStore, router };
+  return { mealPlanStore, router };
 }
 
 function planWeek(
@@ -156,18 +148,9 @@ function planWeek(
   }
 }
 
-function alternativeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="alternative-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function alternativeNames() {
+  return page
+    .getByTestId('alternative-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

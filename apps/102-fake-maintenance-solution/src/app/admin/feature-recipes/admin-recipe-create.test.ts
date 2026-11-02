@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -25,82 +26,69 @@ const falafel = recipeMother
   .withSteps(['Blend the chickpeas.', 'Shape and fry.'])
   .build();
 
-describe(AdminRecipeCreate.name, () => {
+describe(AdminRecipeCreate, () => {
   it('derives the id from the name and checks it is available', async () => {
-    const { fixture } = mountAdminRecipeCreate();
-    await fixture.whenStable();
+    mountAdminRecipeCreate();
 
-    typeInto(fieldByLabel(fixture.nativeElement, 'Name'), 'Falafel Bowl');
-    await fixture.whenStable();
+    await page.getByLabelText('Name').fill('Falafel Bowl');
 
-    expect(fieldByLabel(fixture.nativeElement, 'Id').value).toBe(
-      'falafel-bowl',
-    );
-    expect(fixture.nativeElement.textContent).not.toContain(
-      'This id is already taken',
-    );
+    await expect.element(page.getByLabelText('Id')).toHaveValue('falafel-bowl');
+    await expect
+      .element(page.getByText('This id is already taken', { exact: true }))
+      .not.toBeInTheDocument();
   });
 
   it('warns when the id is already taken and prevents creation', async () => {
-    const { fixture, recipeRepositoryFake } = mountAdminRecipeCreate();
-    await fixture.whenStable();
+    const { recipeRepositoryFake } = mountAdminRecipeCreate();
 
-    typeInto(fieldByLabel(fixture.nativeElement, 'Name'), 'Shakshuka');
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'Create').click();
-    await fixture.whenStable();
+    await page.getByLabelText('Name').fill('Shakshuka');
 
-    expect(fixture.nativeElement.textContent).toContain(
-      'This id is already taken',
-    );
-    expect(buttonByText(fixture.nativeElement, 'Create').disabled).toBe(true);
+    await expect
+      .element(page.getByText('This id is already taken', { exact: true }))
+      .toBeVisible();
+    await expect
+      .element(page.getByRole('button', { name: 'Create' }))
+      .toBeDisabled();
     expect(recipeRepositoryFake.getRecipesSync()).toEqual([shakshuka]);
   });
 
   it('keeps a hand-edited id when the name changes', async () => {
-    const { fixture } = mountAdminRecipeCreate();
-    await fixture.whenStable();
+    mountAdminRecipeCreate();
 
-    typeInto(fieldByLabel(fixture.nativeElement, 'Id'), 'my-falafel');
-    await fixture.whenStable();
-    typeInto(fieldByLabel(fixture.nativeElement, 'Name'), 'Falafel Bowl');
-    await fixture.whenStable();
+    await page.getByLabelText('Id').fill('my-falafel');
+    await page.getByLabelText('Name').fill('Falafel Bowl');
 
-    expect(fieldByLabel(fixture.nativeElement, 'Id').value).toBe('my-falafel');
+    await expect.element(page.getByLabelText('Id')).toHaveValue('my-falafel');
   });
 
   it('checks that a hand-edited id is available', async () => {
-    const { fixture } = mountAdminRecipeCreate();
-    await fixture.whenStable();
+    mountAdminRecipeCreate();
 
-    typeInto(fieldByLabel(fixture.nativeElement, 'Id'), shakshuka.id);
-    await fixture.whenStable();
+    await page.getByLabelText('Id').fill(shakshuka.id);
 
-    expect(fixture.nativeElement.textContent).toContain(
-      'This id is already taken',
-    );
+    await expect
+      .element(page.getByText('This id is already taken', { exact: true }))
+      .toBeVisible();
   });
 
   it('creates the recipe and goes back to the list', async () => {
-    const { fixture, recipeRepositoryFake, router } = mountAdminRecipeCreate();
-    await fixture.whenStable();
+    const { recipeRepositoryFake, router } = mountAdminRecipeCreate();
 
-    fillRecipeForm(fixture.nativeElement);
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'Create').click();
-    await fixture.whenStable();
+    await fillRecipeForm();
+    await page.getByRole('button', { name: 'Create' }).click();
 
-    expect(recipeRepositoryFake.getRecipesSync()).toEqual([shakshuka, falafel]);
-    expect(router.url).toBe('/admin/recipes');
+    await expect
+      .poll(() => recipeRepositoryFake.getRecipesSync())
+      .toEqual([shakshuka, falafel]);
+    await expect.poll(() => router.url).toBe('/admin/recipes');
   });
 
   it('does not create a recipe without a name', async () => {
-    const { fixture, recipeRepositoryFake } = mountAdminRecipeCreate();
-    await fixture.whenStable();
+    const { recipeRepositoryFake } = mountAdminRecipeCreate();
 
-    buttonByText(fixture.nativeElement, 'Create').click();
-    await fixture.whenStable();
-
+    await expect
+      .element(page.getByRole('button', { name: 'Create' }))
+      .toBeDisabled();
     expect(recipeRepositoryFake.getRecipesSync()).toEqual([shakshuka]);
   });
 });
@@ -116,63 +104,22 @@ function mountAdminRecipeCreate() {
   recipeRepositoryFake.setRecipes([shakshuka]);
   const router = TestBed.inject(Router);
 
-  const fixture = TestBed.createComponent(AdminRecipeCreate);
+  TestBed.createComponent(AdminRecipeCreate);
 
-  return { fixture, recipeRepositoryFake, router };
+  return { recipeRepositoryFake, router };
 }
 
-function fillRecipeForm(root: HTMLElement): void {
-  typeInto(fieldByLabel(root, 'Name'), 'Falafel Bowl');
-  selectValue(fieldByLabel(root, 'Course'), 'starter');
-  typeInto(fieldByLabel(root, 'Description'), 'Crispy falafel with tahini.');
-  typeInto(
-    fieldByLabel(root, 'Picture URI'),
-    'https://example.com/falafel.jpg',
-  );
-  typeInto(
-    fieldByLabel(root, 'Ingredients (one per line)'),
-    '400 g chickpeas\n2 tbsp tahini\nfresh parsley',
-  );
-  typeInto(
-    fieldByLabel(root, 'Steps (one per line)'),
-    'Blend the chickpeas.\n\nShape and fry.',
-  );
-}
-
-type FormControlElement =
-  | HTMLInputElement
-  | HTMLTextAreaElement
-  | HTMLSelectElement;
-
-function fieldByLabel(root: HTMLElement, label: string): FormControlElement {
-  const field = [...root.querySelectorAll('mat-form-field')].find(
-    (el) => el.querySelector('mat-label')?.textContent?.trim() === label,
-  );
-  const control = field?.querySelector<FormControlElement>(
-    'input, textarea, select',
-  );
-  if (control == null) {
-    throw new Error(`Field "${label}" not found.`);
-  }
-  return control;
-}
-
-function typeInto(control: FormControlElement, value: string): void {
-  control.value = value;
-  control.dispatchEvent(new Event('input'));
-}
-
-function selectValue(control: FormControlElement, value: string): void {
-  control.value = value;
-  control.dispatchEvent(new Event('change'));
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+async function fillRecipeForm() {
+  await page.getByLabelText('Name').fill('Falafel Bowl');
+  await page.getByLabelText('Course').selectOptions('starter');
+  await page.getByLabelText('Description').fill('Crispy falafel with tahini.');
+  await page
+    .getByLabelText('Picture URI')
+    .fill('https://example.com/falafel.jpg');
+  await page
+    .getByLabelText('Ingredients (one per line)')
+    .fill('400 g chickpeas\n2 tbsp tahini\nfresh parsley');
+  await page
+    .getByLabelText('Steps (one per line)')
+    .fill('Blend the chickpeas.\n\nShape and fry.');
 }

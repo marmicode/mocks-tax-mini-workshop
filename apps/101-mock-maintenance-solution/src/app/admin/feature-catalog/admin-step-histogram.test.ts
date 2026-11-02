@@ -1,16 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import { AdminStepHistogram } from './admin-step-histogram.ng';
 
-describe(AdminStepHistogram.name, () => {
+describe(AdminStepHistogram, () => {
   it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminStepHistogram();
-    await fixture.whenStable();
+    const { search } = mountAdminStepHistogram();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -19,7 +19,7 @@ describe(AdminStepHistogram.name, () => {
   });
 
   it('shows an empty state when there are no recipes', async () => {
-    const { fixture, search } = mountAdminStepHistogram();
+    const { search } = mountAdminStepHistogram();
     search.mockImplementation((params) => {
       if (params.courses.length > 0) {
         throw new Error(
@@ -28,14 +28,15 @@ describe(AdminStepHistogram.name, () => {
       }
       return of([]);
     });
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('empty-state'))
+      .toHaveTextContent('No recipes yet.');
     expect(search.mock.calls).toMatchSnapshot();
-    expect(emptyState(fixture.nativeElement)).toBe('No recipes yet.');
   });
 
   it('counts a single recipe', async () => {
-    const { fixture, search } = mountAdminStepHistogram();
+    const { search } = mountAdminStepHistogram();
     search.mockImplementation((params) =>
       params.courses.length > 0
         ? of([])
@@ -51,15 +52,14 @@ describe(AdminStepHistogram.name, () => {
             },
           ]),
     );
-    await fixture.whenStable();
 
-    expect(histogram(fixture.nativeElement)).toEqual([
+    await expect.poll(() => histogram()).toEqual([
       { stepCount: '3', recipeCount: '1' },
     ]);
   });
 
   it('groups recipes with the same step count', async () => {
-    const { fixture, search } = mountAdminStepHistogram();
+    const { search } = mountAdminStepHistogram();
     search.mockReturnValue(
       of([
         {
@@ -82,21 +82,20 @@ describe(AdminStepHistogram.name, () => {
         },
       ]),
     );
-    await fixture.whenStable();
 
+    await expect.poll(() => histogram()).toEqual([
+      { stepCount: '2', recipeCount: '2' },
+    ]);
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: [],
     });
-    expect(histogram(fixture.nativeElement)).toEqual([
-      { stepCount: '2', recipeCount: '2' },
-    ]);
   });
 
   it('sorts buckets by step count, including recipes without steps', async () => {
-    const { fixture, search } = mountAdminStepHistogram();
+    const { search } = mountAdminStepHistogram();
     search.mockImplementation((params) =>
       !Object.values(params).every(isBlankFilter)
         ? of([])
@@ -130,14 +129,13 @@ describe(AdminStepHistogram.name, () => {
             },
           ]),
     );
-    await fixture.whenStable();
 
-    expect(search.mock.calls).toMatchSnapshot();
-    expect(histogram(fixture.nativeElement)).toEqual([
+    await expect.poll(() => histogram()).toEqual([
       { stepCount: '0', recipeCount: '1' },
       { stepCount: '1', recipeCount: '1' },
       { stepCount: '4', recipeCount: '1' },
     ]);
+    expect(search.mock.calls).toMatchSnapshot();
   });
 });
 
@@ -148,24 +146,22 @@ function mountAdminStepHistogram() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockReturnValue(of([]));
 
-  const fixture = TestBed.createComponent(AdminStepHistogram);
+  TestBed.createComponent(AdminStepHistogram);
 
-  return { fixture, search };
+  return { search };
 }
 
-function histogram(root: HTMLElement) {
-  return [...root.querySelectorAll('[data-testid="histogram-row"]')].map(
-    (row) => {
-      const [stepCount, recipeCount] = [...row.querySelectorAll('td')].map(
-        (cell) => cell.textContent?.trim(),
-      );
+function histogram() {
+  return page
+    .getByTestId('histogram-row')
+    .all()
+    .map((row) => {
+      const [stepCount, recipeCount] = row
+        .getByRole('cell')
+        .elements()
+        .map((cell) => cell.textContent?.trim());
       return { stepCount, recipeCount };
-    },
-  );
-}
-
-function emptyState(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+    });
 }
 
 function isBlankFilter(value: unknown): boolean {

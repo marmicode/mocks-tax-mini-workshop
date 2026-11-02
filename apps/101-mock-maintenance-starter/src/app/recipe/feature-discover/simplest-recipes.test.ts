@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, type MockInstance, vi } from 'vitest';
 import {
   RecipeRepository,
@@ -29,29 +30,30 @@ const salad: Recipe = {
   steps: [],
 };
 
-describe(SimplestRecipes.name, () => {
+describe(SimplestRecipes, () => {
   it('searches all recipes', async () => {
-    const { fixture, search } = mountSimplestRecipes();
-    await fixture.whenStable();
+    const { search } = mountSimplestRecipes();
 
+    await expect.poll(() => search.mock.calls).toHaveLength(1);
     await expect(
       JSON.stringify(search.mock.calls, null, 2),
     ).toMatchFileSnapshot('./__snapshots__/simplest-recipes.calls.json');
   });
 
   it('shows recipes with the fewest ingredients first', async () => {
-    const { fixture, search } = mountSimplestRecipes();
+    const { search } = mountSimplestRecipes();
     givenCatalog(search, [hummus, salad]);
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Burnt Aubergine with Tahini and Pomegranate',
-      'Hummus with Ful',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Burnt Aubergine with Tahini and Pomegranate',
+        'Hummus with Ful',
+      ]);
   });
 
   it('sorts recipes with as many ingredients by name', async () => {
-    const { fixture, search } = mountSimplestRecipes();
+    const { search } = mountSimplestRecipes();
     givenCatalog(search, [
       {
         id: 'shakshuka',
@@ -64,41 +66,34 @@ describe(SimplestRecipes.name, () => {
       },
       salad,
     ]);
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Burnt Aubergine with Tahini and Pomegranate',
-      'Shakshuka',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Burnt Aubergine with Tahini and Pomegranate', 'Shakshuka']);
   });
 
   it('shows the ingredient count of each recipe', async () => {
-    const { fixture, search } = mountSimplestRecipes();
+    const { search } = mountSimplestRecipes();
     givenCatalog(search, [hummus]);
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('ingredient-count'))
+      .toHaveTextContent('3 ingredients');
     expect(search).toHaveBeenCalledOnce();
-    expect(
-      fixture.nativeElement
-        .querySelector('[data-testid="ingredient-count"]')
-        ?.textContent?.trim(),
-    ).toBe('3 ingredients');
   });
 
   it('shows a message when there are no recipes', async () => {
-    const { fixture, search } = mountSimplestRecipes();
+    const { search } = mountSimplestRecipes();
     search.mockReturnValue(of([]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No recipes found');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No recipes found');
   });
 });
 
@@ -110,15 +105,16 @@ function mountSimplestRecipes() {
   const search = vi.spyOn(TestBed.inject(RecipeRepository), 'search');
   givenCatalog(search, [hummus, salad]);
 
-  const fixture = TestBed.createComponent(SimplestRecipes);
+  TestBed.createComponent(SimplestRecipes);
 
-  return { fixture, search };
+  return { search };
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
 /* Simplest recipes are sorted client-side, so the backend must be asked

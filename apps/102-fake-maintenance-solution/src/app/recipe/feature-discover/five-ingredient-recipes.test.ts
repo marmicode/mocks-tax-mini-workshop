@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -21,62 +22,77 @@ const tagine = recipeMother
   .withManyIngredients()
   .build();
 
-describe(FiveIngredientRecipes.name, () => {
+describe(FiveIngredientRecipes, () => {
   it('searches recipes with at most five ingredients', async () => {
-    const { fixture } = mountFiveIngredientRecipes();
-    await fixture.whenStable();
+    mountFiveIngredientRecipes();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
   });
 
   it('shows the five-ingredient recipes', async () => {
-    const { fixture } = mountFiveIngredientRecipes({
+    mountFiveIngredientRecipes({
       recipes: [hummus, salad],
     });
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
   });
 
   it('narrows the search with keywords', async () => {
-    const { fixture } = mountFiveIngredientRecipes();
-    await fixture.whenStable();
+    mountFiveIngredientRecipes();
 
-    typeKeywords(fixture.nativeElement, 'hummus');
-    await fixture.whenStable();
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
+    await page.getByLabelText('Keywords').fill('hummus');
+
+    await expect.poll(recipeNames).toEqual(['Hummus with Ful']);
   });
 
   it('searches again once keywords are cleared', async () => {
-    const { fixture } = mountFiveIngredientRecipes();
-    await fixture.whenStable();
+    mountFiveIngredientRecipes();
 
-    typeKeywords(fixture.nativeElement, 'salad');
-    await fixture.whenStable();
-    typeKeywords(fixture.nativeElement, '');
-    await fixture.whenStable();
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await page.getByLabelText('Keywords').fill('salad');
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No five-ingredient recipes found');
+
+    await page.getByLabelText('Keywords').fill('');
+
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
   });
 
   it('shows a message when there are no five-ingredient recipes', async () => {
-    const { fixture } = mountFiveIngredientRecipes({ recipes: [tagine] });
-    await fixture.whenStable();
+    mountFiveIngredientRecipes({ recipes: [tagine] });
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No five-ingredient recipes found');
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No five-ingredient recipes found');
   });
 });
 
@@ -93,24 +109,12 @@ function mountFiveIngredientRecipes({
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(FiveIngredientRecipes);
-
-  return { fixture };
+  TestBed.createComponent(FiveIngredientRecipes);
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function typeKeywords(root: HTMLElement, keywords: string): void {
-  const input = root.querySelector<HTMLInputElement>(
-    '[data-testid="keywords-input"]',
-  );
-  if (input == null) {
-    throw new Error('Keywords input not found.');
-  }
-  input.value = keywords;
-  input.dispatchEvent(new Event('input'));
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

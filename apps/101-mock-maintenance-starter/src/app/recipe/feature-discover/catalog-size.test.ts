@@ -1,6 +1,7 @@
 import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { type Observable, of, throwError } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import type { RecipeSearchParams } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -26,20 +27,21 @@ const salad: Recipe = {
   steps: [],
 };
 
-describe(CatalogSize.name, () => {
+describe(CatalogSize, () => {
   it('searches all recipes', async () => {
-    const { fixture, post } = mountCatalogSize();
-    await fixture.whenStable();
+    const { post } = mountCatalogSize();
 
-    expect(post).toHaveBeenCalledExactlyOnceWith('/api/recipes/search', {
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    await expect
+      .poll(() => post)
+      .toHaveBeenCalledExactlyOnceWith('/api/recipes/search', {
+        keywords: '',
+        maxIngredientCount: null,
+        maxStepCount: null,
+      });
   });
 
   it('shows the number of recipes', async () => {
-    const { fixture, post } = mountCatalogSize();
+    const { post } = mountCatalogSize();
     post.mockImplementation(
       searchHandler((params) =>
         params.courses
@@ -49,39 +51,42 @@ describe(CatalogSize.name, () => {
           : [hummus, salad],
       ),
     );
-    await fixture.whenStable();
 
-    expect(textOf(fixture.nativeElement, 'catalog-size')).toBe('2 recipes');
+    await expect
+      .element(page.getByTestId('catalog-size'))
+      .toHaveTextContent('2 recipes');
   });
 
   it('uses the singular for a single recipe', async () => {
-    const { fixture, post } = mountCatalogSize();
+    const { post } = mountCatalogSize();
     post.mockImplementation(
       searchHandler((params) => (isWholeCatalogSearch(params) ? [hummus] : [])),
     );
-    await fixture.whenStable();
 
-    expect(textOf(fixture.nativeElement, 'catalog-size')).toBe('1 recipe');
+    await expect
+      .element(page.getByTestId('catalog-size'))
+      .toHaveTextContent('1 recipe');
   });
 
   it('counts distinct ingredients', async () => {
-    const { fixture, post } = mountCatalogSize();
+    const { post } = mountCatalogSize();
     post.mockReturnValue(of([hummus, salad]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('ingredient-count'))
+      .toHaveTextContent('Using 3 distinct ingredients.');
     expect(searchKey(post.mock.calls[0])).toBe(
       '/api/recipes/search?keywords=&maxIngredientCount=&maxStepCount=',
-    );
-    expect(textOf(fixture.nativeElement, 'ingredient-count')).toBe(
-      'Using 3 distinct ingredients.',
     );
   });
 
   it('shows a message when the catalog is empty', async () => {
-    const { fixture, post } = mountCatalogSize();
+    const { post } = mountCatalogSize();
     post.mockReturnValue(of([]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toHaveTextContent('The catalog is empty.');
     expect(post).toHaveBeenCalledExactlyOnceWith('/api/recipes/search', {
       keywords: '',
       maxIngredientCount: null,
@@ -89,9 +94,6 @@ describe(CatalogSize.name, () => {
     });
     await expect(JSON.stringify(post.mock.calls, null, 2)).toMatchFileSnapshot(
       './__snapshots__/catalog-size-empty.calls.json',
-    );
-    expect(textOf(fixture.nativeElement, 'no-recipes-message')).toBe(
-      'The catalog is empty.',
     );
   });
 });
@@ -108,13 +110,9 @@ function mountCatalogSize() {
       return of([hummus, salad]);
     });
 
-  const fixture = TestBed.createComponent(CatalogSize);
+  TestBed.createComponent(CatalogSize);
 
-  return { fixture, post };
-}
-
-function textOf(root: HTMLElement, testId: string): string | undefined {
-  return root.querySelector(`[data-testid="${testId}"]`)?.textContent?.trim();
+  return { post };
 }
 
 function searchHandler(

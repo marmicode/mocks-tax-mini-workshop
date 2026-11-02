@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -23,63 +24,68 @@ const salad = recipeMother
   .withIngredients([{ name: '2 aubergines, burnt' }, { name: 'tahini' }])
   .build();
 
-describe(IngredientSpotlight.name, () => {
+describe(IngredientSpotlight, () => {
   it('picks a random ingredient among all distinct ingredients', async () => {
-    const { fixture, randomAdapterFake } = mountIngredientSpotlight();
-    /* Distinct ingredients are sorted: aubergines, chickpeas, tahini. */
-    randomAdapterFake.setPickIndex(-1);
-    await fixture.whenStable();
+    mountIngredientSpotlight({ pickIndex: -1 });
 
-    expect(spotlightIngredient(fixture.nativeElement)).toBe('tahini');
+    await expect
+      .element(page.getByTestId('spotlight-ingredient'))
+      .toHaveTextContent('tahini');
   });
 
   it('shows the recipes using the spotlighted ingredient', async () => {
-    const { fixture, randomAdapterFake } = mountIngredientSpotlight();
-    randomAdapterFake.setPickIndex(-1);
-    await fixture.whenStable();
+    mountIngredientSpotlight({ pickIndex: -1 });
 
-    expect(spotlightIngredient(fixture.nativeElement)).toBe('tahini');
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await expect
+      .element(page.getByTestId('spotlight-ingredient'))
+      .toHaveTextContent('tahini');
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
   });
 
   it('only shows recipes using the spotlighted ingredient', async () => {
-    const { fixture } = mountIngredientSpotlight();
-    await fixture.whenStable();
+    mountIngredientSpotlight();
 
-    expect(spotlightIngredient(fixture.nativeElement)).toBe('aubergines');
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await expect
+      .element(page.getByTestId('spotlight-ingredient'))
+      .toHaveTextContent('aubergines');
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Burnt Aubergine with Tahini and Pomegranate']);
   });
 
   it('spotlights another ingredient when asked', async () => {
-    const { fixture, randomAdapterFake } = mountIngredientSpotlight();
-    await fixture.whenStable();
+    const { randomAdapterFake } = mountIngredientSpotlight();
+
+    await expect
+      .element(page.getByTestId('spotlight-ingredient'))
+      .toHaveTextContent('aubergines');
 
     randomAdapterFake.setPickIndex(-1);
-    buttonByText(fixture.nativeElement, 'Another ingredient').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Another ingredient' }).click();
 
-    expect(spotlightIngredient(fixture.nativeElement)).toBe('tahini');
+    await expect
+      .element(page.getByTestId('spotlight-ingredient'))
+      .toHaveTextContent('tahini');
   });
 
   it('shows a message when there is no ingredient to spotlight', async () => {
-    const { fixture } = mountIngredientSpotlight({ recipes: [] });
-    await fixture.whenStable();
+    mountIngredientSpotlight({ recipes: [] });
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No ingredient to put in the spotlight');
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No ingredient to put in the spotlight');
   });
 });
 
 function mountIngredientSpotlight({
   recipes = [hummus, salad],
-}: { recipes?: Recipe[] } = {}) {
+  pickIndex,
+}: { recipes?: Recipe[]; pickIndex?: number } = {}) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
@@ -90,30 +96,18 @@ function mountIngredientSpotlight({
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
   const randomAdapterFake = TestBed.inject(RandomAdapterFake);
-
-  const fixture = TestBed.createComponent(IngredientSpotlight);
-
-  return { fixture, randomAdapterFake };
-}
-
-function spotlightIngredient(root: HTMLElement): string | undefined {
-  return root
-    .querySelector('[data-testid="spotlight-ingredient"]')
-    ?.textContent?.trim();
-}
-
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
+  if (pickIndex != null) {
+    randomAdapterFake.setPickIndex(pickIndex);
   }
-  return button;
+
+  TestBed.createComponent(IngredientSpotlight);
+
+  return { randomAdapterFake };
+}
+
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

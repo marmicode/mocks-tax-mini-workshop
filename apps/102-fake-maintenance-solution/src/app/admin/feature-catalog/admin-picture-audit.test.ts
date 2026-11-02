@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -9,9 +10,9 @@ import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminPictureAudit } from './admin-picture-audit.ng';
 
-describe(AdminPictureAudit.name, () => {
+describe(AdminPictureAudit, () => {
   it('searches all recipes', async () => {
-    const { fixture } = mountAdminPictureAudit({
+    mountAdminPictureAudit({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -32,17 +33,18 @@ describe(AdminPictureAudit.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Lemon and Ricotta Cheesecake http://example.com/cheesecake.jpg Not served over https',
-      'Shakshuka http://example.com/shakshuka.jpg Not served over https',
-      'Hummus with Ful http://example.com/hummus.jpg Not served over https',
-    ]);
+    await expect
+      .poll(() => rowTexts('picture-audit-row'))
+      .toEqual([
+        'Lemon and Ricotta Cheesecake http://example.com/cheesecake.jpg Not served over https',
+        'Shakshuka http://example.com/shakshuka.jpg Not served over https',
+        'Hummus with Ful http://example.com/hummus.jpg Not served over https',
+      ]);
   });
 
   it('accepts https and local pictures', async () => {
-    const { fixture } = mountAdminPictureAudit({
+    mountAdminPictureAudit({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -57,13 +59,12 @@ describe(AdminPictureAudit.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(emptyState(fixture.nativeElement)).toBe('All pictures are safe.');
+    await expect.element(page.getByTestId('empty-state')).toHaveTextContent('All pictures are safe.');
   });
 
   it('flags pictures served over plain http', async () => {
-    const { fixture } = mountAdminPictureAudit({
+    mountAdminPictureAudit({
       recipes: [
         recipeMother
           .withBasicInfo({ name: 'Courgette Fritters', course: 'starter' })
@@ -71,15 +72,16 @@ describe(AdminPictureAudit.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Courgette Fritters http://example.com/fritters.jpg Not served over https',
-    ]);
+    await expect
+      .poll(() => rowTexts('picture-audit-row'))
+      .toEqual([
+        'Courgette Fritters http://example.com/fritters.jpg Not served over https',
+      ]);
   });
 
   it('flags missing pictures', async () => {
-    const { fixture } = mountAdminPictureAudit({
+    mountAdminPictureAudit({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -89,15 +91,14 @@ describe(AdminPictureAudit.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Hummus with Ful Missing picture',
-    ]);
+    await expect
+      .poll(() => rowTexts('picture-audit-row'))
+      .toEqual(['Hummus with Ful Missing picture']);
   });
 
   it('flags pictures from unknown locations', async () => {
-    const { fixture } = mountAdminPictureAudit({
+    mountAdminPictureAudit({
       recipes: [
         recipeMother
           .withBasicInfo('Shakshuka')
@@ -105,11 +106,10 @@ describe(AdminPictureAudit.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Shakshuka ftp://example.com/shakshuka.jpg Unknown location',
-    ]);
+    await expect
+      .poll(() => rowTexts('picture-audit-row'))
+      .toEqual(['Shakshuka ftp://example.com/shakshuka.jpg Unknown location']);
   });
 });
 
@@ -119,21 +119,26 @@ function mountAdminPictureAudit({ recipes = [] }: { recipes?: Recipe[] } = {}) {
   });
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(AdminPictureAudit);
-
-  return { fixture };
+  TestBed.createComponent(AdminPictureAudit);
 }
 
-function rowTexts(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="picture-audit-row"]')].map(
-    (row) =>
-      [...row.querySelectorAll('td')]
-        .map((cell) => cell.textContent?.trim())
-        .filter(Boolean)
-        .join(' '),
-  );
+function rowTexts(testId: string) {
+  return page.getByTestId(testId).elements().map((row) => rowText(row));
 }
 
-function emptyState(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+function rowText(row: Element) {
+  return textOf(row);
+}
+
+function textOf(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+  }
+  if (!(node instanceof Element)) {
+    return '';
+  }
+  return [...node.childNodes]
+    .map((child) => textOf(child))
+    .filter((text) => text.length > 0)
+    .join(' ');
 }

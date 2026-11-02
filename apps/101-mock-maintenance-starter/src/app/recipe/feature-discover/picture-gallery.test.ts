@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -26,20 +27,21 @@ const salad: Recipe = {
   steps: [],
 };
 
-describe(PictureGallery.name, () => {
+describe(PictureGallery, () => {
   it('searches all recipes', async () => {
-    const { fixture, search } = mountPictureGallery();
-    await fixture.whenStable();
+    const { search } = mountPictureGallery();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    await expect
+      .poll(() => search)
+      .toHaveBeenCalledExactlyOnceWith({
+        keywords: '',
+        maxIngredientCount: null,
+        maxStepCount: null,
+      });
   });
 
   it('shows the picture of each recipe', async () => {
-    const { fixture, search } = mountPictureGallery();
+    const { search } = mountPictureGallery();
     search.mockImplementationOnce((params) => {
       expect(params).toStrictEqual({
         keywords: '',
@@ -48,16 +50,17 @@ describe(PictureGallery.name, () => {
       });
       return of([hummus, salad]);
     });
-    await fixture.whenStable();
 
-    expect(pictureSources(fixture.nativeElement)).toEqual([
-      'https://example.com/hummus.jpg',
-      'https://example.com/salad.jpg',
-    ]);
+    await expect
+      .poll(pictureSources)
+      .toEqual([
+        'https://example.com/hummus.jpg',
+        'https://example.com/salad.jpg',
+      ]);
   });
 
   it('describes each picture with the recipe name', async () => {
-    const { fixture, search } = mountPictureGallery();
+    const { search } = mountPictureGallery();
     search.mockImplementationOnce((params) =>
       of(
         Object.values(params).every((value) => value === '' || value === null)
@@ -65,42 +68,39 @@ describe(PictureGallery.name, () => {
           : [],
       ),
     );
-    await fixture.whenStable();
 
-    expect(
-      fixture.nativeElement.querySelector('img')?.getAttribute('alt'),
-    ).toBe('Burnt Aubergine with Tahini and Pomegranate');
+    await expect
+      .element(page.getByRole('img'))
+      .toHaveAttribute('alt', 'Burnt Aubergine with Tahini and Pomegranate');
   });
 
   it('links each picture to the recipe detail page', async () => {
-    const { fixture, search } = mountPictureGallery();
+    const { search } = mountPictureGallery();
     search.mockReturnValue(of([hummus]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByRole('img', { name: 'Hummus with Ful' }))
+      .toBeVisible();
+    await expect
+      .element(page.getByTestId('gallery-item'))
+      .toHaveAttribute('href', '/recipes/hummus-ful');
     await expect(
       JSON.stringify(search.mock.calls, null, 2),
     ).toMatchFileSnapshot('./__snapshots__/picture-gallery-links.calls.json');
-    expect(
-      fixture.nativeElement
-        .querySelector('[data-testid="gallery-item"]')
-        ?.getAttribute('href'),
-    ).toBe('/recipes/hummus-ful');
   });
 
   it('shows a message when there are no pictures', async () => {
-    const { fixture, search } = mountPictureGallery();
+    const { search } = mountPictureGallery();
     search.mockReturnValue(of([]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No pictures to show');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No pictures to show');
   });
 });
 
@@ -120,13 +120,14 @@ function mountPictureGallery() {
       );
     });
 
-  const fixture = TestBed.createComponent(PictureGallery);
+  TestBed.createComponent(PictureGallery);
 
-  return { fixture, search };
+  return { search };
 }
 
-function pictureSources(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('img')].map(
-    (img) => img.getAttribute('src') ?? '',
-  );
+function pictureSources() {
+  return page
+    .getByRole('img')
+    .elements()
+    .map((img) => img.getAttribute('src') ?? '');
 }

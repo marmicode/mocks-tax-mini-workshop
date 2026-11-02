@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -36,12 +37,11 @@ const shakshuka: Recipe = {
   steps: [],
 };
 
-describe(CourseCounts.name, () => {
+describe(CourseCounts, () => {
   it('searches each course', async () => {
-    const { fixture, search } = mountCourseCounts();
-    await fixture.whenStable();
+    const { search } = mountCourseCounts();
 
-    expect(search).toHaveBeenCalledTimes(3);
+    await expect.poll(() => search.mock.calls.length).toBe(3);
     expect(search).toHaveBeenNthCalledWith(1, {
       keywords: '',
       maxIngredientCount: null,
@@ -63,41 +63,39 @@ describe(CourseCounts.name, () => {
   });
 
   it('shows the recipe count of each course', async () => {
-    const { fixture, search } = mountCourseCounts();
+    const { search } = mountCourseCounts();
     search
       .mockReturnValueOnce(of([hummus, fritters]))
       .mockReturnValueOnce(of([shakshuka]))
       .mockReturnValueOnce(of([]));
-    await fixture.whenStable();
 
+    await expect
+      .poll(courseCountTexts)
+      .toEqual(['Starters (2)', 'Mains (1)', 'Desserts (0)']);
     expect(search).toHaveBeenCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['starter'],
     });
-    expect(courseCountTexts(fixture.nativeElement)).toEqual([
-      'Starters (2)',
-      'Mains (1)',
-      'Desserts (0)',
-    ]);
   });
 
   it('links each course to its page', async () => {
-    const { fixture, search } = mountCourseCounts();
-    await fixture.whenStable();
+    const { search } = mountCourseCounts();
 
+    await expect
+      .poll(courseCountLinks)
+      .toEqual([
+        '/discover/courses/starter',
+        '/discover/courses/main',
+        '/discover/courses/dessert',
+      ]);
     expect(search).toHaveBeenCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['dessert'],
     });
-    expect(courseCountLinks(fixture.nativeElement)).toEqual([
-      '/discover/courses/starter',
-      '/discover/courses/main',
-      '/discover/courses/dessert',
-    ]);
   });
 });
 
@@ -110,21 +108,23 @@ function mountCourseCounts() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockReturnValue(of([]));
 
-  const fixture = TestBed.createComponent(CourseCounts);
+  TestBed.createComponent(CourseCounts);
 
-  return { fixture, search };
+  return { search };
 }
 
-function courseCountElements(root: HTMLElement): HTMLAnchorElement[] {
-  return [
-    ...root.querySelectorAll<HTMLAnchorElement>('[data-testid="course-count"]'),
-  ];
+function courseCounts() {
+  return page.getByTestId('course-count');
 }
 
-function courseCountTexts(root: HTMLElement): string[] {
-  return courseCountElements(root).map((el) => el.textContent?.trim() ?? '');
+function courseCountTexts() {
+  return courseCounts()
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
-function courseCountLinks(root: HTMLElement): (string | null)[] {
-  return courseCountElements(root).map((el) => el.getAttribute('href'));
+function courseCountLinks() {
+  return courseCounts()
+    .elements()
+    .map((el) => el.getAttribute('href'));
 }

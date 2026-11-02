@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -29,34 +30,35 @@ const roastedAubergine: Recipe = {
 
 const SEARCH_PARAM_KEYS = ['keywords', 'maxIngredientCount', 'maxStepCount'];
 
-describe(RecipeQuickSearch.name, () => {
+describe(RecipeQuickSearch, () => {
   it('does not search with less than 2 characters', async () => {
-    const { fixture, search } = mountQuickSearch();
-    await fixture.whenStable();
+    const { search, suggestionNames } = mountQuickSearch();
 
-    typeInto(quickSearchInput(fixture.nativeElement), 'a');
-    await fixture.whenStable();
+    await page.getByRole('searchbox', { name: 'Quick search' }).fill('a');
 
+    await expect
+      .element(page.getByRole('searchbox', { name: 'Quick search' }))
+      .toHaveValue('a');
     expect(search).not.toHaveBeenCalled();
-    expect(suggestionNames(fixture.nativeElement)).toEqual([]);
+    await expect.poll(() => suggestionNames()).toEqual([]);
   });
 
   it('searches by keywords', async () => {
-    const { fixture, search } = mountQuickSearch();
-    await fixture.whenStable();
+    const { search, suggestionNames } = mountQuickSearch();
 
-    typeInto(quickSearchInput(fixture.nativeElement), 'aub');
-    await fixture.whenStable();
+    await page.getByRole('searchbox', { name: 'Quick search' }).fill('aub');
 
-    expect(suggestionNames(fixture.nativeElement)).toEqual([
-      'Burnt Aubergine with Tahini and Pomegranate',
-      'Roasted Aubergine with Tahini and Pine Nuts',
-    ]);
+    await expect
+      .poll(() => suggestionNames())
+      .toEqual([
+        'Burnt Aubergine with Tahini and Pomegranate',
+        'Roasted Aubergine with Tahini and Pine Nuts',
+      ]);
     expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('shows at most 5 suggestions', async () => {
-    const { fixture, search } = mountQuickSearch();
+    const { search, suggestionNames } = mountQuickSearch();
     search.mockImplementation((params) =>
       JSON.stringify(params) ===
       JSON.stringify({
@@ -73,37 +75,34 @@ describe(RecipeQuickSearch.name, () => {
           )
         : of([]),
     );
-    await fixture.whenStable();
 
-    typeInto(quickSearchInput(fixture.nativeElement), 'aub');
-    await fixture.whenStable();
+    await page.getByRole('searchbox', { name: 'Quick search' }).fill('aub');
 
-    expect(suggestionNames(fixture.nativeElement)).toHaveLength(5);
+    await expect.poll(() => suggestionNames()).toHaveLength(5);
   });
 
   it('links suggestions to the recipe detail page', async () => {
-    const { fixture } = mountQuickSearch();
-    await fixture.whenStable();
+    mountQuickSearch();
 
-    typeInto(quickSearchInput(fixture.nativeElement), 'aub');
-    await fixture.whenStable();
+    await page.getByRole('searchbox', { name: 'Quick search' }).fill('aub');
 
-    expect(
-      suggestionLinks(fixture.nativeElement)[0]?.getAttribute('href'),
-    ).toBe('/recipes/burnt-aubergine-salad');
+    await expect
+      .element(
+        page.getByRole('link', {
+          name: 'Burnt Aubergine with Tahini and Pomegranate',
+        }),
+      )
+      .toHaveAttribute('href', '/recipes/burnt-aubergine-salad');
   });
 
   it('says when nothing matches', async () => {
-    const { fixture, search } = mountQuickSearch();
-    await fixture.whenStable();
+    const { search } = mountQuickSearch();
 
-    typeInto(quickSearchInput(fixture.nativeElement), 'xyz');
-    await fixture.whenStable();
+    await page.getByRole('searchbox', { name: 'Quick search' }).fill('xyz');
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="quick-search-empty"]')
-        ?.textContent,
-    ).toContain('No recipes found');
+    await expect
+      .element(page.getByText('No recipes found'))
+      .toHaveTextContent('No recipes found');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: 'xyz',
       maxIngredientCount: null,
@@ -112,60 +111,66 @@ describe(RecipeQuickSearch.name, () => {
   });
 
   it('clears the search once a suggestion is picked', async () => {
-    const { fixture } = mountQuickSearch();
-    await fixture.whenStable();
+    const { suggestionNames } = mountQuickSearch();
 
-    typeInto(quickSearchInput(fixture.nativeElement), 'aub');
-    await fixture.whenStable();
-    suggestionLinks(fixture.nativeElement)[0]?.click();
-    await fixture.whenStable();
+    await page.getByRole('searchbox', { name: 'Quick search' }).fill('aub');
+    await page
+      .getByRole('link', {
+        name: 'Burnt Aubergine with Tahini and Pomegranate',
+      })
+      .click();
 
-    expect(quickSearchInput(fixture.nativeElement).value).toBe('');
-    expect(suggestionNames(fixture.nativeElement)).toEqual([]);
+    await expect
+      .element(page.getByRole('searchbox', { name: 'Quick search' }))
+      .toHaveValue('');
+    await expect.poll(() => suggestionNames()).toEqual([]);
   });
 
   it('trims keywords before searching', async () => {
-    const { fixture, search } = mountQuickSearch();
-    await fixture.whenStable();
+    const { search, suggestionNames } = mountQuickSearch();
 
-    typeInto(quickSearchInput(fixture.nativeElement), '  tahini  ');
-    await fixture.whenStable();
+    await page
+      .getByRole('searchbox', { name: 'Quick search' })
+      .fill('  tahini  ');
 
-    expect(suggestionNames(fixture.nativeElement)).toEqual([
-      'Burnt Aubergine with Tahini and Pomegranate',
-      'Roasted Aubergine with Tahini and Pine Nuts',
-    ]);
+    await expect
+      .poll(() => suggestionNames())
+      .toEqual([
+        'Burnt Aubergine with Tahini and Pomegranate',
+        'Roasted Aubergine with Tahini and Pine Nuts',
+      ]);
     expect(search).toHaveBeenCalledOnce();
   });
 
   it('waits for 2 non-blank characters before searching', async () => {
-    const { fixture, search } = mountQuickSearch();
-    await fixture.whenStable();
+    const { search } = mountQuickSearch();
 
-    typeInto(quickSearchInput(fixture.nativeElement), 'a ');
-    await fixture.whenStable();
-    typeInto(quickSearchInput(fixture.nativeElement), 'au');
-    await fixture.whenStable();
+    await page.getByRole('searchbox', { name: 'Quick search' }).fill('a ');
+    await expect
+      .element(page.getByRole('searchbox', { name: 'Quick search' }))
+      .toHaveValue('a ');
+    expect(search).not.toHaveBeenCalled();
+    await page.getByRole('searchbox', { name: 'Quick search' }).fill('au');
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: 'au',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    await expect
+      .poll(() => search)
+      .toHaveBeenCalledExactlyOnceWith({
+        keywords: 'au',
+        maxIngredientCount: null,
+        maxStepCount: null,
+      });
   });
 
   it('refines suggestions while typing', async () => {
-    const { fixture, search } = mountQuickSearch();
-    await fixture.whenStable();
+    const { search, suggestionNames } = mountQuickSearch();
 
-    typeInto(quickSearchInput(fixture.nativeElement), 'aub');
-    await fixture.whenStable();
-    typeInto(quickSearchInput(fixture.nativeElement), 'pine');
-    await fixture.whenStable();
+    await page.getByRole('searchbox', { name: 'Quick search' }).fill('aub');
+    await expect.poll(() => search.mock.calls).toHaveLength(1);
+    await page.getByRole('searchbox', { name: 'Quick search' }).fill('pine');
 
-    expect(suggestionNames(fixture.nativeElement)).toEqual([
-      'Roasted Aubergine with Tahini and Pine Nuts',
-    ]);
+    await expect
+      .poll(() => suggestionNames())
+      .toEqual(['Roasted Aubergine with Tahini and Pine Nuts']);
     expect(search.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -187,23 +192,30 @@ describe(RecipeQuickSearch.name, () => {
   });
 
   it('hides suggestions once keywords become too short again', async () => {
-    const { fixture, search } = mountQuickSearch();
-    await fixture.whenStable();
+    const { search, suggestionNames } = mountQuickSearch();
 
-    typeInto(quickSearchInput(fixture.nativeElement), 'aub');
-    await fixture.whenStable();
-    typeInto(quickSearchInput(fixture.nativeElement), 'a');
-    await fixture.whenStable();
+    await page.getByRole('searchbox', { name: 'Quick search' }).fill('aub');
+    await expect
+      .element(
+        page.getByRole('link', {
+          name: 'Burnt Aubergine with Tahini and Pomegranate',
+        }),
+      )
+      .toBeVisible();
+    await page.getByRole('searchbox', { name: 'Quick search' }).fill('a');
 
+    await expect
+      .element(page.getByRole('searchbox', { name: 'Quick search' }))
+      .toHaveValue('a');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: 'aub',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(suggestionNames(fixture.nativeElement)).toEqual([]);
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="quick-search-empty"]'),
-    ).toBeNull();
+    await expect.poll(() => suggestionNames()).toEqual([]);
+    await expect
+      .element(page.getByText('No recipes found'))
+      .not.toBeInTheDocument();
   });
 });
 
@@ -237,34 +249,14 @@ function mountQuickSearch() {
       );
     });
 
-  const fixture = TestBed.createComponent(RecipeQuickSearch);
+  TestBed.createComponent(RecipeQuickSearch);
 
-  return { fixture, search };
-}
-
-function quickSearchInput(root: HTMLElement): HTMLInputElement {
-  const input = root.querySelector<HTMLInputElement>(
-    'input[aria-label="Quick search"]',
-  );
-  if (input == null) {
-    throw new Error('Quick search input not found.');
-  }
-  return input;
-}
-
-function typeInto(input: HTMLInputElement, value: string): void {
-  input.value = value;
-  input.dispatchEvent(new Event('input'));
-}
-
-function suggestionLinks(root: HTMLElement): HTMLAnchorElement[] {
-  return [
-    ...root.querySelectorAll<HTMLAnchorElement>(
-      '[data-testid="quick-search-suggestion"]',
-    ),
-  ];
-}
-
-function suggestionNames(root: HTMLElement): string[] {
-  return suggestionLinks(root).map((link) => link.textContent?.trim() ?? '');
+  return {
+    search,
+    suggestionNames: () =>
+      page
+        .getByRole('link')
+        .elements()
+        .map((el) => el.textContent?.trim() ?? ''),
+  };
 }

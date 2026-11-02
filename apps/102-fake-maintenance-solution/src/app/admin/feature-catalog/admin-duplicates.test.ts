@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -37,9 +38,9 @@ const roastedAubergine = recipeMother
 
 const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-describe(AdminDuplicates.name, () => {
+describe(AdminDuplicates, () => {
   it('searches all recipes', async () => {
-    const { fixture } = mountAdminDuplicates({
+    mountAdminDuplicates({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -57,75 +58,67 @@ describe(AdminDuplicates.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(pairTexts(fixture.nativeElement)).toEqual([
-      'Lemon and Ricotta Cheesecake ↔ Ricotta & Lemon Cheesecake (same name)',
-      'Lemon and Ricotta Cheesecake ↔ Cheesecake with Lemon and Ricotta (same name)',
-      'Ricotta & Lemon Cheesecake ↔ Cheesecake with Lemon and Ricotta (same name)',
-    ]);
+    await expect
+      .poll(() => pairTexts())
+      .toEqual([
+        'Lemon and Ricotta Cheesecake ↔ Ricotta & Lemon Cheesecake (same name)',
+        'Lemon and Ricotta Cheesecake ↔ Cheesecake with Lemon and Ricotta (same name)',
+        'Ricotta & Lemon Cheesecake ↔ Cheesecake with Lemon and Ricotta (same name)',
+      ]);
   });
 
   it('shows "no duplicates" when every recipe is distinct', async () => {
-    const { fixture } = mountAdminDuplicates({ recipes: [hummus, shakshuka] });
-    await fixture.whenStable();
+    mountAdminDuplicates({ recipes: [hummus, shakshuka] });
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-duplicates"]')
-        ?.textContent,
-    ).toContain('No duplicates found');
+    await expect
+      .element(page.getByTestId('no-duplicates'))
+      .toMatchTextContent('No duplicates found');
   });
 
   it('pairs recipes with the same normalized name', async () => {
-    const { fixture } = mountAdminDuplicates({
+    mountAdminDuplicates({
       recipes: [hummus, shakshuka, fulHummus],
     });
-    await fixture.whenStable();
 
-    expect(pairTexts(fixture.nativeElement)).toEqual([
-      'Hummus with Ful ↔ Ful & Hummus (same name)',
-    ]);
+    await expect
+      .poll(() => pairTexts())
+      .toEqual(['Hummus with Ful ↔ Ful & Hummus (same name)']);
   });
 
   it('pairs recipes sharing most of their ingredients', async () => {
-    const { fixture } = mountAdminDuplicates({
+    mountAdminDuplicates({
       recipes: [aubergine, roastedAubergine, shakshuka],
     });
-    await fixture.whenStable();
 
-    expect(pairTexts(fixture.nativeElement)).toEqual([
-      'Burnt Aubergine Salad ↔ Roasted Aubergine with Tahini (same ingredients)',
-    ]);
+    await expect
+      .poll(() => pairTexts())
+      .toEqual([
+        'Burnt Aubergine Salad ↔ Roasted Aubergine with Tahini (same ingredients)',
+      ]);
   });
 
   it('links each duplicate to its edit page', async () => {
-    const { fixture } = mountAdminDuplicates({ recipes: [hummus, fulHummus] });
-    await fixture.whenStable();
+    mountAdminDuplicates({ recipes: [hummus, fulHummus] });
 
-    const links = [
-      ...fixture.nativeElement.querySelectorAll(
-        '[data-testid="duplicate-pair"] a',
-      ),
-    ].map((link) => (link as HTMLAnchorElement).getAttribute('href'));
-    expect(links).toEqual([
+    await expect.element(page.getByTestId('duplicate-pair')).toBeVisible();
+    expect(editLinks()).toEqual([
       `/admin/recipes/${hummus.id}/edit`,
       `/admin/recipes/${fulHummus.id}/edit`,
     ]);
   });
 
   it('shows "no duplicates" when the catalog is empty', async () => {
-    const { fixture } = mountAdminDuplicates({ recipes: [] });
-    await fixture.whenStable();
+    mountAdminDuplicates({ recipes: [] });
 
-    expect(pairTexts(fixture.nativeElement)).toEqual([]);
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-duplicates"]')
-        ?.textContent,
-    ).toContain('No duplicates found');
+    await expect
+      .element(page.getByTestId('no-duplicates'))
+      .toMatchTextContent('No duplicates found');
+    await expect.poll(() => pairTexts()).toEqual([]);
   });
 
   it('does not pair recipes sharing only some of their ingredients', async () => {
-    const { fixture } = mountAdminDuplicates({
+    mountAdminDuplicates({
       recipes: [
         aubergine,
         recipeMother
@@ -140,15 +133,12 @@ describe(AdminDuplicates.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-duplicates"]'),
-    ).not.toBeNull();
+    await expect.element(page.getByTestId('no-duplicates')).toBeVisible();
   });
 
   it('reports same-name recipes as name duplicates even if ingredients match too', async () => {
-    const { fixture } = mountAdminDuplicates({
+    mountAdminDuplicates({
       recipes: [
         recipeMother
           .withBasicInfo('Hummus with Ful')
@@ -161,28 +151,28 @@ describe(AdminDuplicates.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(pairTexts(fixture.nativeElement)).toEqual([
-      'Hummus with Ful ↔ hummus with ful! (same name)',
-    ]);
+    await expect
+      .poll(() => pairTexts())
+      .toEqual(['Hummus with Ful ↔ hummus with ful! (same name)']);
   });
 
   it('pairs every combination of duplicates', async () => {
-    const { fixture } = mountAdminDuplicates({
+    mountAdminDuplicates({
       recipes: [
         hummus,
         fulHummus,
         recipeMother.withBasicInfo('Ful with Hummus').build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(pairTexts(fixture.nativeElement)).toEqual([
-      'Hummus with Ful ↔ Ful & Hummus (same name)',
-      'Hummus with Ful ↔ Ful with Hummus (same name)',
-      'Ful & Hummus ↔ Ful with Hummus (same name)',
-    ]);
+    await expect
+      .poll(() => pairTexts())
+      .toEqual([
+        'Hummus with Ful ↔ Ful & Hummus (same name)',
+        'Hummus with Ful ↔ Ful with Hummus (same name)',
+        'Ful & Hummus ↔ Ful with Hummus (same name)',
+      ]);
   });
 });
 
@@ -192,13 +182,20 @@ function mountAdminDuplicates({ recipes = [] }: { recipes?: Recipe[] } = {}) {
   });
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(AdminDuplicates);
-
-  return { fixture };
+  TestBed.createComponent(AdminDuplicates);
 }
 
-function pairTexts(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="duplicate-pair"]')].map(
-    (el) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '',
-  );
+function pairTexts() {
+  return page
+    .getByTestId('duplicate-pair')
+    .elements()
+    .map((el) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '');
+}
+
+function editLinks() {
+  return page
+    .getByTestId('duplicate-pair')
+    .getByRole('link')
+    .elements()
+    .map((link) => link.getAttribute('href'));
 }

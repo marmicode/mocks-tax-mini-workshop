@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -28,78 +29,70 @@ const cheesecake = recipeMother
   .withManyIngredients()
   .build();
 
-describe(RecipeByIngredientCount.name, () => {
+describe(RecipeByIngredientCount, () => {
   it('searches recipes with at most 5 ingredients by default', async () => {
-    const { fixture } = mountRecipeByIngredientCount();
-    await fixture.whenStable();
+    mountRecipeByIngredientCount();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Shakshuka',
-    ]);
+    await expect.poll(recipeNames).toEqual(['Hummus with Ful', 'Shakshuka']);
   });
 
   it('shows the matching recipes', async () => {
-    const { fixture } = mountRecipeByIngredientCount({
+    mountRecipeByIngredientCount({
       recipes: [hummus, shakshuka],
     });
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Shakshuka',
-    ]);
+    await expect.poll(recipeNames).toEqual(['Hummus with Ful', 'Shakshuka']);
   });
 
   it('counts the matching recipes', async () => {
-    const { fixture } = mountRecipeByIngredientCount();
-    await fixture.whenStable();
+    mountRecipeByIngredientCount();
 
-    expect(recipeCount(fixture.nativeElement)).toBe(
-      '2 recipes with at most 5 ingredients',
-    );
+    await expect
+      .element(page.getByTestId('recipe-count'))
+      .toHaveTextContent('2 recipes with at most 5 ingredients');
   });
 
   it('searches with fewer ingredients when asked', async () => {
-    const { fixture } = mountRecipeByIngredientCount();
-    await fixture.whenStable();
+    mountRecipeByIngredientCount();
 
-    buttonByText(fixture.nativeElement, 'At most 3 ingredients').click();
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('recipe-count'))
+      .toHaveTextContent('2 recipes with at most 5 ingredients');
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
-    expect(recipeCount(fixture.nativeElement)).toBe(
-      '1 recipes with at most 3 ingredients',
-    );
+    await page.getByRole('button', { name: 'At most 3 ingredients' }).click();
+
+    await expect.poll(recipeNames).toEqual(['Hummus with Ful']);
+    await expect
+      .element(page.getByTestId('recipe-count'))
+      .toHaveTextContent('1 recipes with at most 3 ingredients');
   });
 
   it('searches with more ingredients when asked', async () => {
-    const { fixture } = mountRecipeByIngredientCount();
-    await fixture.whenStable();
+    mountRecipeByIngredientCount();
 
-    buttonByText(fixture.nativeElement, 'At most 8 ingredients').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'At most 8 ingredients' }).click();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-    ]);
-    expect(recipeCount(fixture.nativeElement)).toBe(
-      '3 recipes with at most 8 ingredients',
-    );
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Shakshuka',
+        'Lemon and Ricotta Cheesecake',
+      ]);
+    await expect
+      .element(page.getByTestId('recipe-count'))
+      .toHaveTextContent('3 recipes with at most 8 ingredients');
   });
 
   it('counts zero recipes when none matches', async () => {
-    const { fixture } = mountRecipeByIngredientCount({
+    mountRecipeByIngredientCount({
       recipes: [cheesecake],
     });
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([]);
-    expect(recipeCount(fixture.nativeElement)).toBe(
-      '0 recipes with at most 5 ingredients',
-    );
+    await expect
+      .element(page.getByTestId('recipe-count'))
+      .toHaveTextContent('0 recipes with at most 5 ingredients');
+    await expect.poll(recipeNames).toEqual([]);
   });
 });
 
@@ -116,30 +109,12 @@ function mountRecipeByIngredientCount({
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(RecipeByIngredientCount);
-
-  return { fixture };
+  TestBed.createComponent(RecipeByIngredientCount);
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function recipeCount(root: HTMLElement): string | undefined {
-  return root
-    .querySelector('[data-testid="recipe-count"]')
-    ?.textContent?.replace(/\s+/g, ' ')
-    .trim();
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import {
   createRecipeSearchParams,
@@ -8,12 +9,11 @@ import {
 } from '@whiskmate/recipe/infra';
 import { AdminIdAudit } from './admin-id-audit.ng';
 
-describe(AdminIdAudit.name, () => {
+describe(AdminIdAudit, () => {
   it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminIdAudit();
-    await fixture.whenStable();
+    const { search } = mountAdminIdAudit();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -22,7 +22,7 @@ describe(AdminIdAudit.name, () => {
   });
 
   it('accepts a kebab-case id matching the name', async () => {
-    const { fixture, search } = mountAdminIdAudit();
+    const { search } = mountAdminIdAudit();
     search.mockImplementationOnce((params) => {
       expect(params).toStrictEqual(createRecipeSearchParams());
       return of([
@@ -37,13 +37,12 @@ describe(AdminIdAudit.name, () => {
         },
       ]);
     });
-    await fixture.whenStable();
 
-    expect(emptyState(fixture.nativeElement)).toBe('All ids look good.');
+    await expect.element(page.getByTestId('empty-state')).toHaveTextContent('All ids look good.');
   });
 
   it('flags ids that are not kebab-case', async () => {
-    const { fixture, search } = mountAdminIdAudit();
+    const { search } = mountAdminIdAudit();
     search.mockImplementation((params) =>
       params.courses.length > 0
         ? of([])
@@ -59,15 +58,12 @@ describe(AdminIdAudit.name, () => {
             },
           ]),
     );
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Shakshuka_v2 Not kebab-case shakshuka',
-    ]);
+    await expect.poll(() => rowTexts('id-audit-row')).toEqual(['Shakshuka_v2 Not kebab-case shakshuka']);
   });
 
   it('flags kebab-case ids that do not match the name', async () => {
-    const { fixture, search } = mountAdminIdAudit();
+    const { search } = mountAdminIdAudit();
     search.mockReturnValue(
       of([
         {
@@ -81,21 +77,18 @@ describe(AdminIdAudit.name, () => {
         },
       ]),
     );
-    await fixture.whenStable();
 
+    await expect.poll(() => rowTexts('id-audit-row')).toEqual(['hummus-ful Does not match name hummus-with-ful']);
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: [],
     });
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'hummus-ful Does not match name hummus-with-ful',
-    ]);
   });
 
   it('suggests ids without accents or punctuation', async () => {
-    const { fixture, search } = mountAdminIdAudit();
+    const { search } = mountAdminIdAudit();
     search.mockReturnValue(
       of([
         {
@@ -109,12 +102,9 @@ describe(AdminIdAudit.name, () => {
         },
       ]),
     );
-    await fixture.whenStable();
 
+    await expect.poll(() => rowTexts('id-audit-row')).toEqual(['creme-brulee Does not match name creme-brulee-classic']);
     expect(search.mock.calls).toMatchSnapshot();
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'creme-brulee Does not match name creme-brulee-classic',
-    ]);
   });
 });
 
@@ -125,19 +115,28 @@ function mountAdminIdAudit() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockReturnValue(of([]));
 
-  const fixture = TestBed.createComponent(AdminIdAudit);
+  TestBed.createComponent(AdminIdAudit);
 
-  return { fixture, search };
+  return { search };
 }
 
-function rowTexts(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="id-audit-row"]')].map((row) =>
-    [...row.querySelectorAll('td')]
-      .map((cell) => cell.textContent?.trim())
-      .join(' '),
-  );
+function rowTexts(testId: string) {
+  return page.getByTestId(testId).elements().map((row) => rowText(row));
 }
 
-function emptyState(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+function rowText(row: Element) {
+  return textOf(row);
+}
+
+function textOf(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+  }
+  if (!(node instanceof Element)) {
+    return '';
+  }
+  return [...node.childNodes]
+    .map((child) => textOf(child))
+    .filter((text) => text.length > 0)
+    .join(' ');
 }

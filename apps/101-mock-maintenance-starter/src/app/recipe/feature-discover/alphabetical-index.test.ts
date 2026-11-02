@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { type Observable, of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, type MockInstance, vi } from 'vitest';
 import {
   RecipeRepository,
@@ -48,36 +49,35 @@ const allRecipes = JSON.stringify({
   maxStepCount: null,
 });
 
-describe(AlphabeticalIndex.name, () => {
+describe(AlphabeticalIndex, () => {
   it('searches all recipes', async () => {
-    const { fixture, search } = mountAlphabeticalIndex();
-    await fixture.whenStable();
+    const { search } = mountAlphabeticalIndex();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-    });
+    await expect
+      .poll(() => search)
+      .toHaveBeenCalledExactlyOnceWith({
+        keywords: '',
+        maxIngredientCount: null,
+        maxStepCount: null,
+      });
   });
 
   it('groups recipes by first letter in alphabetical order', async () => {
-    const { fixture, search } = mountAlphabeticalIndex();
+    const { search } = mountAlphabeticalIndex();
     respondTo(search, { [allRecipes]: [shakshuka, salad, sabich] });
-    await fixture.whenStable();
 
-    expect(letters(fixture.nativeElement)).toEqual(['B', 'S']);
+    await expect.poll(letters).toEqual(['B', 'S']);
   });
 
   it('sorts recipes by name within a letter', async () => {
-    const { fixture, search } = mountAlphabeticalIndex();
+    const { search } = mountAlphabeticalIndex();
     respondTo(search, { [allRecipes]: [shakshuka, sabich] });
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Sabich', 'Shakshuka']);
+    await expect.poll(recipeNames).toEqual(['Sabich', 'Shakshuka']);
   });
 
   it('puts recipes not starting with a letter at the end', async () => {
-    const { fixture, search } = mountAlphabeticalIndex();
+    const { search } = mountAlphabeticalIndex();
     search.mockReturnValue(
       of([
         {
@@ -92,8 +92,8 @@ describe(AlphabeticalIndex.name, () => {
         shakshuka,
       ]),
     );
-    await fixture.whenStable();
 
+    await expect.poll(letters).toEqual(['S', '#']);
     expect(search.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -105,35 +105,32 @@ describe(AlphabeticalIndex.name, () => {
         ],
       ]
     `);
-    expect(letters(fixture.nativeElement)).toEqual(['S', '#']);
   });
 
   it('links each recipe to its detail page', async () => {
-    const { fixture, search } = mountAlphabeticalIndex();
+    const { search } = mountAlphabeticalIndex();
     respondTo(search, { [allRecipes]: [sabich] });
-    await fixture.whenStable();
 
-    expect(
-      fixture.nativeElement
-        .querySelector('[data-testid="recipe-name"]')
-        ?.getAttribute('href'),
-    ).toBe('/recipes/sabich');
+    await expect
+      .element(page.getByRole('link', { name: 'Sabich' }))
+      .toHaveTextContent('Sabich');
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveAttribute('href', '/recipes/sabich');
   });
 
   it('shows a message when there are no recipes', async () => {
-    const { fixture, search } = mountAlphabeticalIndex();
+    const { search } = mountAlphabeticalIndex();
     search.mockReturnValue(of([]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No recipes to index');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No recipes to index');
   });
 });
 
@@ -146,21 +143,23 @@ function mountAlphabeticalIndex() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockReturnValue(of([shakshuka, salad]));
 
-  const fixture = TestBed.createComponent(AlphabeticalIndex);
+  TestBed.createComponent(AlphabeticalIndex);
 
-  return { fixture, search };
+  return { search };
 }
 
-function letters(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="letter"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function letters() {
+  return page
+    .getByTestId('letter')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
 /**

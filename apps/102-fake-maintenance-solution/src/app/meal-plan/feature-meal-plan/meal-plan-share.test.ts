@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { describe, it, vi } from 'vitest';
+import { page } from 'vitest/browser';
+import { describe, it, onTestFinished, vi } from 'vitest';
 import {
   provideRecipeRepositoryFake,
   RecipeRepositoryFake,
@@ -26,61 +27,65 @@ const emptyAssignments: WeekdayAssignments = {
   sunday: null,
 };
 
-describe(MealPlanShare.name, () => {
+const emptyWeek = [
+  'Monday: —',
+  'Tuesday: —',
+  'Wednesday: —',
+  'Thursday: —',
+  'Friday: —',
+  'Saturday: —',
+  'Sunday: —',
+].join('\n');
+
+describe(MealPlanShare, () => {
   it('shows the week as text', async () => {
-    const { fixture } = mountMealPlanShare({
+    mountMealPlanShare({
       ...emptyAssignments,
       wednesday: shakshuka.id,
     });
-    await fixture.whenStable();
 
-    expect(mealPlanText(fixture.nativeElement)).toBe(
-      [
-        'Monday: —',
-        'Tuesday: —',
-        'Wednesday: Shakshuka',
-        'Thursday: —',
-        'Friday: —',
-        'Saturday: —',
-        'Sunday: —',
-      ].join('\n'),
-    );
+    await expect
+      .poll(() => mealPlanText())
+      .toBe(
+        [
+          'Monday: —',
+          'Tuesday: —',
+          'Wednesday: Shakshuka',
+          'Thursday: —',
+          'Friday: —',
+          'Saturday: —',
+          'Sunday: —',
+        ].join('\n'),
+      );
   });
 
   it('shows an empty week when nothing is planned', async () => {
-    const { fixture } = mountMealPlanShare(emptyAssignments);
-    await fixture.whenStable();
+    mountMealPlanShare(emptyAssignments);
 
-    expect(mealPlanText(fixture.nativeElement)).toBe(
-      [
-        'Monday: —',
-        'Tuesday: —',
-        'Wednesday: —',
-        'Thursday: —',
-        'Friday: —',
-        'Saturday: —',
-        'Sunday: —',
-      ].join('\n'),
-    );
+    await expect.poll(() => mealPlanText()).toBe(emptyWeek);
   });
 
   it('copies the text to the clipboard', async () => {
-    const { fixture } = mountMealPlanShare({
+    mountMealPlanShare({
       ...emptyAssignments,
       monday: shakshuka.id,
     });
     const writeText = vi
       .spyOn(navigator.clipboard, 'writeText')
       .mockResolvedValue(undefined);
-    await fixture.whenStable();
+    onTestFinished(() => {
+      vi.restoreAllMocks();
+    });
 
-    buttonByText(fixture.nativeElement, 'Copy').click();
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('meal-plan-text')).toBeVisible();
+    await page.getByRole('button', { name: 'Copy' }).click();
 
+    await expect
+      .element(page.getByRole('button', { name: 'Copied!' }))
+      .toBeVisible();
     expect(writeText).toHaveBeenCalledExactlyOnceWith(
       expect.stringContaining('Monday: Shakshuka'),
     );
-    expect(buttonByText(fixture.nativeElement, 'Copied!')).toBeDefined();
   });
 });
 
@@ -97,9 +102,7 @@ function mountMealPlanShare(assignments: WeekdayAssignments) {
   const mealPlanStore = TestBed.inject(MealPlanStore);
   planWeek(mealPlanStore, assignments);
 
-  const fixture = TestBed.createComponent(MealPlanShare);
-
-  return { fixture, mealPlanStore };
+  TestBed.createComponent(MealPlanShare);
 }
 
 function planWeek(
@@ -114,19 +117,6 @@ function planWeek(
   }
 }
 
-function mealPlanText(root: HTMLElement): string | undefined {
-  return (
-    root.querySelector('[data-testid="meal-plan-text"]')?.textContent ??
-    undefined
-  );
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function mealPlanText() {
+  return page.getByTestId('meal-plan-text').element().textContent ?? undefined;
 }

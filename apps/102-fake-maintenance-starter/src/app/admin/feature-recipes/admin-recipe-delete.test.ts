@@ -1,5 +1,7 @@
+import { inputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -10,48 +12,44 @@ import { AdminRecipeDelete } from './admin-recipe-delete.ng';
 
 const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-describe(AdminRecipeDelete.name, () => {
+describe(AdminRecipeDelete, () => {
   it('shows the recipe and asks for confirmation', async () => {
-    const { fixture } = mountAdminRecipeDelete(shakshuka.id);
-    await fixture.whenStable();
+    mountAdminRecipeDelete(shakshuka.id);
 
-    expect(fixture.nativeElement.querySelector('h2')?.textContent).toContain(
-      'Delete Shakshuka?',
-    );
+    await expect
+      .element(page.getByRole('heading', { name: 'Delete Shakshuka?' }))
+      .toBeVisible();
   });
 
   it('removes the recipe and goes back to the list', async () => {
-    const { fixture, recipeRepositoryFake, router } = mountAdminRecipeDelete(
+    const { recipeRepositoryFake, router } = mountAdminRecipeDelete(
       shakshuka.id,
     );
-    await fixture.whenStable();
 
-    buttonByText(fixture.nativeElement, 'Delete').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Delete' }).click();
 
-    expect(recipeRepositoryFake.getRecipesSync()).toEqual([]);
-    expect(router.url).toBe('/admin/recipes');
+    await expect.poll(() => recipeRepositoryFake.getRecipesSync()).toEqual([]);
+    await expect.poll(() => router.url).toBe('/admin/recipes');
   });
 
   it('links back to the list without removing anything', async () => {
-    const { fixture, recipeRepositoryFake } = mountAdminRecipeDelete(
-      shakshuka.id,
-    );
-    await fixture.whenStable();
+    const { recipeRepositoryFake } = mountAdminRecipeDelete(shakshuka.id);
 
-    const cancel = [...fixture.nativeElement.querySelectorAll('a')].find(
-      (el: HTMLAnchorElement) => el.textContent?.trim() === 'Cancel',
-    );
-
-    expect(cancel?.getAttribute('href')).toBe('/admin/recipes');
+    await expect
+      .element(page.getByRole('link', { name: 'Cancel' }))
+      .toBeVisible();
+    expect(
+      page.getByRole('link', { name: 'Cancel' }).element().getAttribute('href'),
+    ).toBe('/admin/recipes');
     expect(recipeRepositoryFake.getRecipesSync()).toEqual([shakshuka]);
   });
 
   it('shows "Recipe not found" for an unknown recipe', async () => {
-    const { fixture, recipeRepositoryFake } = mountAdminRecipeDelete('missing');
-    await fixture.whenStable();
+    const { recipeRepositoryFake } = mountAdminRecipeDelete('missing');
 
-    expect(fixture.nativeElement.textContent).toContain('Recipe not found');
+    await expect
+      .element(page.getByRole('heading', { name: 'Recipe not found' }))
+      .toBeVisible();
     expect(recipeRepositoryFake.getRecipesSync()).toEqual([shakshuka]);
   });
 });
@@ -67,18 +65,9 @@ function mountAdminRecipeDelete(recipeId: string) {
   recipeRepositoryFake.setRecipes([shakshuka]);
   const router = TestBed.inject(Router);
 
-  const fixture = TestBed.createComponent(AdminRecipeDelete);
-  fixture.componentRef.setInput('recipeId', recipeId);
+  TestBed.createComponent(AdminRecipeDelete, {
+    bindings: [inputBinding('recipeId', () => recipeId)],
+  });
 
-  return { fixture, recipeRepositoryFake, router };
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+  return { recipeRepositoryFake, router };
 }

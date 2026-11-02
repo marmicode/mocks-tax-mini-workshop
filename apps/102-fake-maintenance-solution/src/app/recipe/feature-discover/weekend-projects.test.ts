@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -16,9 +17,9 @@ const lamb = recipeMother
   .withManySteps()
   .build();
 
-describe(WeekendProjects.name, () => {
+describe(WeekendProjects, () => {
   it('searches all recipes', async () => {
-    const { fixture } = mountWeekendProjects({
+    mountWeekendProjects({
       recipes: [
         recipeMother
           .withBasicInfo({ name: 'Baklava', course: 'dessert' })
@@ -31,38 +32,30 @@ describe(WeekendProjects.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Slow-cooked Lamb Stew',
-      'Baklava',
-      'Cassoulet',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Slow-cooked Lamb Stew', 'Baklava', 'Cassoulet']);
   });
 
   it('shows the most involved recipes first', async () => {
-    const { fixture } = mountWeekendProjects({ recipes: [hummus, lamb] });
-    await fixture.whenStable();
+    mountWeekendProjects({ recipes: [hummus, lamb] });
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Slow-roasted Lamb',
-      'Hummus with Ful',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Slow-roasted Lamb', 'Hummus with Ful']);
   });
 
   it('shows the step count of each project', async () => {
-    const { fixture } = mountWeekendProjects({ recipes: [lamb] });
-    await fixture.whenStable();
+    mountWeekendProjects({ recipes: [lamb] });
 
-    expect(
-      fixture.nativeElement
-        .querySelector('[data-testid="step-count"]')
-        ?.textContent?.trim(),
-    ).toBe('8 steps');
+    await expect
+      .element(page.getByTestId('step-count'))
+      .toHaveTextContent('8 steps');
   });
 
   it('keeps only the top five projects', async () => {
-    const { fixture } = mountWeekendProjects({
+    mountWeekendProjects({
       recipes: [1, 2, 3, 4, 5, 6].map((stepCount) =>
         recipeMother
           .withBasicInfo(`Recipe ${stepCount}`)
@@ -70,25 +63,18 @@ describe(WeekendProjects.name, () => {
           .build(),
       ),
     });
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Recipe 6',
-      'Recipe 5',
-      'Recipe 4',
-      'Recipe 3',
-      'Recipe 2',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Recipe 6', 'Recipe 5', 'Recipe 4', 'Recipe 3', 'Recipe 2']);
   });
 
   it('shows a message when there are no projects', async () => {
-    const { fixture } = mountWeekendProjects({ recipes: [] });
-    await fixture.whenStable();
+    mountWeekendProjects({ recipes: [] });
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No weekend projects found');
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No weekend projects found');
   });
 });
 
@@ -101,13 +87,12 @@ function mountWeekendProjects({
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(WeekendProjects);
-
-  return { fixture };
+  TestBed.createComponent(WeekendProjects);
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

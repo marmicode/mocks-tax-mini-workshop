@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -17,9 +18,9 @@ const salad = recipeMother
 
 const sabich = recipeMother.withBasicInfo('Sabich').build();
 
-describe(AlphabeticalIndex.name, () => {
+describe(AlphabeticalIndex, () => {
   it('searches all recipes', async () => {
-    const { fixture } = mountAlphabeticalIndex({
+    mountAlphabeticalIndex({
       recipes: [
         recipeMother
           .withBasicInfo({ name: 'Baklava', course: 'dessert' })
@@ -28,61 +29,53 @@ describe(AlphabeticalIndex.name, () => {
         recipeMother.withBasicInfo('Shakshuka').withManySteps().build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Baklava',
-      'Cassoulet',
-      'Shakshuka',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Baklava', 'Cassoulet', 'Shakshuka']);
   });
 
   it('groups recipes by first letter in alphabetical order', async () => {
-    const { fixture } = mountAlphabeticalIndex({
+    mountAlphabeticalIndex({
       recipes: [shakshuka, salad, sabich],
     });
-    await fixture.whenStable();
 
-    expect(letters(fixture.nativeElement)).toEqual(['B', 'S']);
+    await expect.poll(letters).toEqual(['B', 'S']);
   });
 
   it('sorts recipes by name within a letter', async () => {
-    const { fixture } = mountAlphabeticalIndex({
+    mountAlphabeticalIndex({
       recipes: [shakshuka, sabich],
     });
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Sabich', 'Shakshuka']);
+    await expect.poll(recipeNames).toEqual(['Sabich', 'Shakshuka']);
   });
 
   it('puts recipes not starting with a letter at the end', async () => {
-    const { fixture } = mountAlphabeticalIndex({
+    mountAlphabeticalIndex({
       recipes: [recipeMother.withBasicInfo('7-hour Lamb').build(), shakshuka],
     });
-    await fixture.whenStable();
 
-    expect(letters(fixture.nativeElement)).toEqual(['S', '#']);
+    await expect.poll(letters).toEqual(['S', '#']);
   });
 
   it('links each recipe to its detail page', async () => {
-    const { fixture } = mountAlphabeticalIndex({ recipes: [sabich] });
-    await fixture.whenStable();
+    mountAlphabeticalIndex({ recipes: [sabich] });
 
-    expect(
-      fixture.nativeElement
-        .querySelector('[data-testid="recipe-name"]')
-        ?.getAttribute('href'),
-    ).toBe('/recipes/sabich');
+    await expect
+      .element(page.getByRole('link', { name: 'Sabich' }))
+      .toHaveTextContent('Sabich');
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveAttribute('href', '/recipes/sabich');
   });
 
   it('shows a message when there are no recipes', async () => {
-    const { fixture } = mountAlphabeticalIndex({ recipes: [] });
-    await fixture.whenStable();
+    mountAlphabeticalIndex({ recipes: [] });
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No recipes to index');
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No recipes to index');
   });
 });
 
@@ -95,19 +88,19 @@ function mountAlphabeticalIndex({
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(AlphabeticalIndex);
-
-  return { fixture };
+  TestBed.createComponent(AlphabeticalIndex);
 }
 
-function letters(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="letter"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function letters() {
+  return page
+    .getByTestId('letter')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

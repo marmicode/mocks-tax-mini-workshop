@@ -1,5 +1,7 @@
+import { inputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -17,64 +19,57 @@ const cheesecake = recipeMother
   ])
   .build();
 
-describe(RecipeScaler.name, () => {
+describe(RecipeScaler, () => {
   it('shows quantities for 4 servings by default', async () => {
-    const { fixture } = mountRecipeScaler(cheesecake.id);
-    await fixture.whenStable();
+    mountRecipeScaler(cheesecake.id);
 
-    expect(scaledIngredients(fixture.nativeElement)).toEqual([
-      '250 g ricotta',
-      '3 eggs',
-      'zest of 2 lemons',
-    ]);
+    await expect
+      .poll(scaledIngredients)
+      .toEqual(['250 g ricotta', '3 eggs', 'zest of 2 lemons']);
   });
 
   it('doubles quantities for 8 servings', async () => {
-    const { fixture } = mountRecipeScaler(cheesecake.id);
-    await fixture.whenStable();
+    mountRecipeScaler(cheesecake.id);
 
-    typeInto(servingsInput(fixture.nativeElement), '8');
-    await fixture.whenStable();
+    await expect
+      .poll(scaledIngredients)
+      .toEqual(['250 g ricotta', '3 eggs', 'zest of 2 lemons']);
 
-    expect(scaledIngredients(fixture.nativeElement)).toEqual([
-      '500 g ricotta',
-      '6 eggs',
-      'zest of 2 lemons',
-    ]);
+    await page.getByLabelText('Servings').fill('8');
+
+    await expect
+      .poll(scaledIngredients)
+      .toEqual(['500 g ricotta', '6 eggs', 'zest of 2 lemons']);
   });
 
   it('rounds scaled quantities to one decimal', async () => {
-    const { fixture } = mountRecipeScaler(cheesecake.id);
-    await fixture.whenStable();
+    mountRecipeScaler(cheesecake.id);
 
-    typeInto(servingsInput(fixture.nativeElement), '3');
-    await fixture.whenStable();
+    await page.getByLabelText('Servings').fill('3');
 
-    expect(scaledIngredients(fixture.nativeElement)).toEqual([
-      '187.5 g ricotta',
-      '2.3 eggs',
-      'zest of 2 lemons',
-    ]);
+    await expect
+      .poll(scaledIngredients)
+      .toEqual(['187.5 g ricotta', '2.3 eggs', 'zest of 2 lemons']);
   });
 
   it('ignores invalid servings', async () => {
-    const { fixture } = mountRecipeScaler(cheesecake.id);
-    await fixture.whenStable();
+    mountRecipeScaler(cheesecake.id);
 
-    typeInto(servingsInput(fixture.nativeElement), '0');
-    await fixture.whenStable();
+    await expect
+      .poll(scaledIngredients)
+      .toEqual(['250 g ricotta', '3 eggs', 'zest of 2 lemons']);
 
-    expect(scaledIngredients(fixture.nativeElement)[0]).toBe('250 g ricotta');
+    await page.getByLabelText('Servings').fill('0');
+
+    await expect.poll(() => scaledIngredients()[0]).toBe('250 g ricotta');
   });
 
   it('shows a message when the recipe does not exist', async () => {
-    const { fixture } = mountRecipeScaler('missing');
-    await fixture.whenStable();
+    mountRecipeScaler('missing');
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="recipe-not-found"]')
-        ?.textContent,
-    ).toContain('This recipe does not exist.');
+    await expect
+      .element(page.getByTestId('recipe-not-found'))
+      .toMatchTextContent('This recipe does not exist.');
   });
 });
 
@@ -85,27 +80,14 @@ function mountRecipeScaler(recipeId: string) {
 
   TestBed.inject(RecipeRepositoryFake).setRecipes([cheesecake]);
 
-  const fixture = TestBed.createComponent(RecipeScaler);
-  fixture.componentRef.setInput('recipeId', recipeId);
-
-  return { fixture };
+  TestBed.createComponent(RecipeScaler, {
+    bindings: [inputBinding('recipeId', () => recipeId)],
+  });
 }
 
-function scaledIngredients(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="scaled-ingredient"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function servingsInput(root: HTMLElement): HTMLInputElement {
-  const input = root.querySelector<HTMLInputElement>('input[type="number"]');
-  if (input == null) {
-    throw new Error('Servings input not found.');
-  }
-  return input;
-}
-
-function typeInto(input: HTMLInputElement, value: string): void {
-  input.value = value;
-  input.dispatchEvent(new Event('input'));
+function scaledIngredients() {
+  return page
+    .getByTestId('scaled-ingredient')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

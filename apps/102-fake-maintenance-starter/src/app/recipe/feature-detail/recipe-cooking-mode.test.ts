@@ -1,5 +1,7 @@
+import { inputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -17,77 +19,85 @@ const hummus = recipeMother
   .withSteps(['Blitz the chickpeas.', 'Add the tahini.', 'Top with the beans.'])
   .build();
 
-describe(RecipeCookingMode.name, () => {
+describe(RecipeCookingMode, () => {
   it('starts at the first step of the recipe', async () => {
-    const { fixture } = mountCookingMode(hummus.id);
-    await fixture.whenStable();
+    mountCookingMode(hummus.id);
 
-    expect(textOf(fixture.nativeElement, 'step-counter')).toBe('Step 1 of 3');
-    expect(textOf(fixture.nativeElement, 'current-step')).toBe(
-      'Blitz the chickpeas.',
-    );
-    expect(buttonByText(fixture.nativeElement, 'Previous').disabled).toBe(true);
+    await expect
+      .element(page.getByTestId('step-counter'))
+      .toHaveTextContent('Step 1 of 3');
+    await expect
+      .element(page.getByTestId('current-step'))
+      .toHaveTextContent('Blitz the chickpeas.');
+    await expect
+      .element(page.getByRole('button', { name: /Previous/ }))
+      .toBeDisabled();
   });
 
   it('goes to the next step', async () => {
-    const { fixture } = mountCookingMode(hummus.id);
-    await fixture.whenStable();
+    mountCookingMode(hummus.id);
 
-    buttonByText(fixture.nativeElement, 'Next').click();
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('step-counter'))
+      .toHaveTextContent('Step 1 of 3');
 
-    expect(textOf(fixture.nativeElement, 'step-counter')).toBe('Step 2 of 3');
-    expect(textOf(fixture.nativeElement, 'current-step')).toBe(
-      'Add the tahini.',
-    );
+    await page.getByRole('button', { name: /Next/ }).click();
+
+    await expect
+      .element(page.getByTestId('step-counter'))
+      .toHaveTextContent('Step 2 of 3');
+    await expect
+      .element(page.getByTestId('current-step'))
+      .toHaveTextContent('Add the tahini.');
   });
 
   it('goes back to the previous step', async () => {
-    const { fixture } = mountCookingMode(hummus.id);
-    await fixture.whenStable();
+    mountCookingMode(hummus.id);
 
-    buttonByText(fixture.nativeElement, 'Next').click();
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'Previous').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: /Next/ }).click();
+    await expect
+      .element(page.getByTestId('step-counter'))
+      .toHaveTextContent('Step 2 of 3');
 
-    expect(textOf(fixture.nativeElement, 'step-counter')).toBe('Step 1 of 3');
+    await page.getByRole('button', { name: /Previous/ }).click();
+
+    await expect
+      .element(page.getByTestId('step-counter'))
+      .toHaveTextContent('Step 1 of 3');
   });
 
   it('wishes a nice meal on the last step', async () => {
-    const { fixture } = mountCookingMode(hummus.id);
-    await fixture.whenStable();
+    mountCookingMode(hummus.id);
 
-    buttonByText(fixture.nativeElement, 'Next').click();
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'Next').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: /Next/ }).click();
+    await expect
+      .element(page.getByTestId('step-counter'))
+      .toHaveTextContent('Step 2 of 3');
+    await page.getByRole('button', { name: /Next/ }).click();
 
-    expect(textOf(fixture.nativeElement, 'step-counter')).toBe('Step 3 of 3');
-    expect(buttonByText(fixture.nativeElement, 'Next').disabled).toBe(true);
-    expect(textOf(fixture.nativeElement, 'done-message')).toContain(
-      'Enjoy your meal!',
-    );
+    await expect
+      .element(page.getByTestId('step-counter'))
+      .toHaveTextContent('Step 3 of 3');
+    await expect
+      .element(page.getByRole('button', { name: /Next/ }))
+      .toBeDisabled();
+    await expect
+      .element(page.getByTestId('done-message'))
+      .toMatchTextContent('Enjoy your meal!');
   });
 
   it('lists ingredients as a checklist', async () => {
-    const { fixture } = mountCookingMode(hummus.id);
-    await fixture.whenStable();
+    mountCookingMode(hummus.id);
 
-    expect(
-      [...fixture.nativeElement.querySelectorAll('mat-checkbox')].map((el) =>
-        (el as HTMLElement).textContent?.trim(),
-      ),
-    ).toEqual(['tinned chickpeas', 'tahini']);
+    await expect.poll(checklist).toEqual(['tinned chickpeas', 'tahini']);
   });
 
   it('shows a message when the recipe does not exist', async () => {
-    const { fixture } = mountCookingMode('missing');
-    await fixture.whenStable();
+    mountCookingMode('missing');
 
-    expect(textOf(fixture.nativeElement, 'recipe-not-found')).toBe(
-      'This recipe does not exist.',
-    );
+    await expect
+      .element(page.getByTestId('recipe-not-found'))
+      .toHaveTextContent('This recipe does not exist.');
   });
 });
 
@@ -98,25 +108,19 @@ function mountCookingMode(recipeId: string) {
 
   TestBed.inject(RecipeRepositoryFake).setRecipes([hummus]);
 
-  const fixture = TestBed.createComponent(RecipeCookingMode);
-  fixture.componentRef.setInput('recipeId', recipeId);
-
-  return { fixture };
+  TestBed.createComponent(RecipeCookingMode, {
+    bindings: [inputBinding('recipeId', () => recipeId)],
+  });
 }
 
-function textOf(root: HTMLElement, testId: string): string | undefined {
-  return root
-    .querySelector(`[data-testid="${testId}"]`)
-    ?.textContent?.trim()
-    .replace(/\s+/g, ' ');
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function checklist() {
+  return page
+    .getByRole('checkbox')
+    .elements()
+    .map((el) => {
+      const input = el as HTMLInputElement;
+      return [...(input.labels ?? [])]
+        .map((label) => label.textContent?.trim() ?? '')
+        .join('');
+    });
 }

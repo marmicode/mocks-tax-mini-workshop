@@ -1,6 +1,8 @@
+import { provideLocationMocks } from '@angular/common/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import { MealPlanStore } from '@whiskmate/shared-meal-plan/domain';
@@ -19,28 +21,35 @@ const shakshuka: Recipe = {
   steps: [],
 };
 
-describe(App.name, () => {
+describe(App, () => {
   it('redirects to the search page and searches all recipes', async () => {
-    const { fixture, router, search } = await mountApp();
+    const { router, search } = mountApp();
 
     await router.navigateByUrl('/');
-    await fixture.whenStable();
 
-    expect(router.url).toBe('/search');
+    await expect
+      .element(page.getByRole('heading', { name: 'Shakshuka' }))
+      .toBeVisible();
+    expect.soft(router.url).toBe('/search');
     expect(search).toHaveBeenCalledOnce();
-    expect(fixture.nativeElement.textContent).toContain('Shakshuka');
   });
 
   it('searches all recipes again when coming back to the search page', async () => {
-    const { fixture, router, search } = await mountApp();
+    const { router, search } = mountApp();
 
     await router.navigateByUrl('/search');
-    await fixture.whenStable();
+    await expect
+      .element(page.getByRole('heading', { name: 'Shakshuka' }))
+      .toBeVisible();
     await router.navigateByUrl('/meal-plan');
-    await fixture.whenStable();
+    await expect
+      .element(page.getByRole('heading', { name: 'Meal plan' }))
+      .toBeVisible();
     await router.navigateByUrl('/search');
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByRole('heading', { name: 'Shakshuka' }))
+      .toBeVisible();
     expect(search).toHaveBeenCalledTimes(2);
     expect(search.mock.calls).toMatchInlineSnapshot(`
       [
@@ -63,8 +72,7 @@ describe(App.name, () => {
   });
 
   it('does not search recipes on the meal plan page', async () => {
-    const { fixture, router, search, findById, mealPlanStore } =
-      await mountApp();
+    const { router, search, findById, mealPlanStore } = mountApp();
     vi.spyOn(mealPlanStore, 'assignments').mockReturnValue({
       monday: 'shakshuka',
       tuesday: null,
@@ -76,22 +84,25 @@ describe(App.name, () => {
     });
 
     await router.navigateByUrl('/meal-plan');
-    await fixture.whenStable();
 
+    await expect.element(page.getByText('Shakshuka')).toBeVisible();
     expect(search).not.toHaveBeenCalled();
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-    expect(fixture.nativeElement.textContent).toContain('Shakshuka');
   });
 
   it('navigates from the meal plan to the search page through the navbar', async () => {
-    const { fixture, router, search } = await mountApp();
+    const { router, search } = mountApp();
 
     await router.navigateByUrl('/meal-plan');
-    await fixture.whenStable();
-    linkByText(fixture.nativeElement, 'Search').click();
-    await fixture.whenStable();
+    await expect
+      .element(page.getByRole('heading', { name: 'Meal plan' }))
+      .toBeVisible();
+    await page.getByRole('link', { name: /Search/ }).click();
 
-    expect(router.url).toBe('/search');
+    await expect
+      .element(page.getByRole('heading', { name: 'Shakshuka' }))
+      .toBeVisible();
+    expect.soft(router.url).toBe('/search');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
@@ -100,17 +111,22 @@ describe(App.name, () => {
   });
 
   it('shows the admin link once signed in', async () => {
-    const { fixture, router, search } = await mountApp();
+    const { router, search } = mountApp();
 
     await router.navigateByUrl('/search');
-    await fixture.whenStable();
-    expect(navLabels(fixture.nativeElement)).not.toContain('Admin');
+    await expect
+      .element(page.getByRole('link', { name: /Search/ }))
+      .toBeVisible();
+    expect(page.getByRole('button', { name: /Admin/ }).query()).toBeNull();
+    expect(page.getByRole('link', { name: /Admin/ }).query()).toBeNull();
 
-    buttonByText(fixture.nativeElement, 'Sign in').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: /Sign in/ }).click();
 
+    await expect
+      .element(page.getByRole('button', { name: /Admin/ }))
+      .toBeVisible();
     expect(search.mock.calls).toMatchSnapshot();
-    expect(navLabels(fixture.nativeElement)).toEqual([
+    expect(navLabels()).toEqual([
       'Search',
       'Discover',
       'Meal plan',
@@ -120,10 +136,11 @@ describe(App.name, () => {
   });
 });
 
-async function mountApp() {
+function mountApp() {
   TestBed.configureTestingModule({
     providers: [
       provideRouter(appRoutes),
+      provideLocationMocks(),
       {
         provide: LocalStorage,
         useValue: {
@@ -150,34 +167,13 @@ async function mountApp() {
   const mealPlanStore = TestBed.inject(MealPlanStore);
   const router = TestBed.inject(Router);
 
-  const fixture = TestBed.createComponent(App);
-  await fixture.whenStable();
+  TestBed.createComponent(App);
 
-  return { fixture, router, search, findById, mealPlanStore };
+  return { router, search, findById, mealPlanStore };
 }
 
-function linkByText(root: HTMLElement, text: string): HTMLAnchorElement {
-  const link = [...root.querySelectorAll('a')].find(
-    (el) => el.querySelector('.label')?.textContent?.trim() === text,
-  );
-  if (link == null) {
-    throw new Error(`Link "${text}" not found.`);
-  }
-  return link;
-}
-
-function navLabels(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('wm-navbar .nav-item .label')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.querySelector('.label')?.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function navLabels() {
+  return [
+    ...page.getByRole('navigation').element().querySelectorAll('.nav-item .label'),
+  ].map((label) => label.textContent?.trim() ?? '');
 }

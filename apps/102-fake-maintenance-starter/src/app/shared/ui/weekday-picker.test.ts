@@ -1,43 +1,34 @@
+import { outputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { describe, it } from 'vitest';
+import { page } from 'vitest/browser';
+import { describe, it, vi } from 'vitest';
 import type { Weekday } from '@whiskmate/shared/model';
 import { WeekdayPicker } from './weekday-picker.ng';
 
-function buttonByLabel(
-  root: ParentNode,
-  label: string,
-): HTMLButtonElement | undefined {
-  return [...root.querySelectorAll('button')].find(
-    (button) => button.textContent?.trim().toLowerCase() === label,
-  );
-}
-
-describe(WeekdayPicker.name, () => {
+describe(WeekdayPicker, () => {
   it('emits the confirmed weekday', async () => {
-    const fixture = TestBed.createComponent(WeekdayPicker);
-    let selected: Weekday | undefined;
-    fixture.componentInstance.select.subscribe((weekday) => {
-      selected = weekday;
-    });
-    await fixture.whenStable();
+    const { select } = mountWeekdayPicker();
 
-    buttonByLabel(fixture.nativeElement, 'friday')?.click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Friday' }).click();
 
-    expect(selected).toBe('friday');
+    expect(select).toHaveBeenCalledExactlyOnceWith('friday');
   });
 
   it('does not emit when dismissed', async () => {
-    const fixture = TestBed.createComponent(WeekdayPicker);
-    let emitted = 0;
-    fixture.componentInstance.select.subscribe(() => {
-      emitted += 1;
-    });
-    await fixture.whenStable();
+    const { select } = mountWeekdayPicker();
 
-    buttonByLabel(fixture.nativeElement, 'dismiss')?.click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Dismiss' }).click();
 
-    expect(emitted).toBe(0);
+    expect(select).not.toHaveBeenCalled();
   });
 });
+
+function mountWeekdayPicker() {
+  const select = vi.fn<(weekday: Weekday) => void>();
+
+  TestBed.createComponent(WeekdayPicker, {
+    bindings: [outputBinding('select', select)],
+  });
+
+  return { select };
+}

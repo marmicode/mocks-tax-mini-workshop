@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import {
   RecipeRepository,
@@ -15,12 +16,11 @@ const WHOLE_CATALOG_SEARCH_KEY = searchKey({
   maxStepCount: null,
 });
 
-describe(AdminPictureAudit.name, () => {
+describe(AdminPictureAudit, () => {
   it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminPictureAudit();
-    await fixture.whenStable();
+    const { search } = mountAdminPictureAudit();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -28,7 +28,7 @@ describe(AdminPictureAudit.name, () => {
   });
 
   it('accepts https and local pictures', async () => {
-    const { fixture, search } = mountAdminPictureAudit();
+    const { search } = mountAdminPictureAudit();
     search.mockImplementation(
       respondBySearchKey({
         [WHOLE_CATALOG_SEARCH_KEY]: [
@@ -53,13 +53,12 @@ describe(AdminPictureAudit.name, () => {
         ],
       }),
     );
-    await fixture.whenStable();
 
-    expect(emptyState(fixture.nativeElement)).toBe('All pictures are safe.');
+    await expect.element(page.getByTestId('empty-state')).toHaveTextContent('All pictures are safe.');
   });
 
   it('flags pictures served over plain http', async () => {
-    const { fixture, search } = mountAdminPictureAudit();
+    const { search } = mountAdminPictureAudit();
     search.mockImplementation(
       respondBySearchKey({
         [WHOLE_CATALOG_SEARCH_KEY]: [
@@ -75,15 +74,12 @@ describe(AdminPictureAudit.name, () => {
         ],
       }),
     );
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Courgette Fritters http://example.com/fritters.jpg Not served over https',
-    ]);
+    await expect.poll(() => rowTexts('picture-audit-row')).toEqual(['Courgette Fritters http://example.com/fritters.jpg Not served over https']);
   });
 
   it('flags missing pictures', async () => {
-    const { fixture, search } = mountAdminPictureAudit();
+    const { search } = mountAdminPictureAudit();
     search.mockReturnValue(
       of([
         {
@@ -97,21 +93,18 @@ describe(AdminPictureAudit.name, () => {
         },
       ]),
     );
-    await fixture.whenStable();
 
+    await expect.poll(() => rowTexts('picture-audit-row')).toEqual(['Hummus with Ful Missing picture']);
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
     expect(search.mock.calls).toMatchSnapshot();
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Hummus with Ful Missing picture',
-    ]);
   });
 
   it('flags pictures from unknown locations', async () => {
-    const { fixture, search } = mountAdminPictureAudit();
+    const { search } = mountAdminPictureAudit();
     search.mockImplementation(
       respondBySearchKey({
         [WHOLE_CATALOG_SEARCH_KEY]: [
@@ -127,12 +120,9 @@ describe(AdminPictureAudit.name, () => {
         ],
       }),
     );
-    await fixture.whenStable();
 
+    await expect.poll(() => rowTexts('picture-audit-row')).toEqual(['Shakshuka ftp://example.com/shakshuka.jpg Unknown location']);
     expect(search).toHaveBeenCalledOnce();
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Shakshuka ftp://example.com/shakshuka.jpg Unknown location',
-    ]);
   });
 });
 
@@ -143,23 +133,9 @@ function mountAdminPictureAudit() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockReturnValue(of([]));
 
-  const fixture = TestBed.createComponent(AdminPictureAudit);
+  TestBed.createComponent(AdminPictureAudit);
 
-  return { fixture, search };
-}
-
-function rowTexts(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="picture-audit-row"]')].map(
-    (row) =>
-      [...row.querySelectorAll('td')]
-        .map((cell) => cell.textContent?.trim())
-        .filter(Boolean)
-        .join(' '),
-  );
-}
-
-function emptyState(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+  return { search };
 }
 
 function respondBySearchKey(responses: Record<string, Recipe[]>) {
@@ -173,4 +149,25 @@ function respondBySearchKey(responses: Record<string, Recipe[]>) {
 
 function searchKey(params: RecipeSearchParams): string {
   return JSON.stringify(params);
+}
+
+function rowTexts(testId: string) {
+  return page.getByTestId(testId).elements().map((row) => rowText(row));
+}
+
+function rowText(row: Element) {
+  return textOf(row);
+}
+
+function textOf(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+  }
+  if (!(node instanceof Element)) {
+    return '';
+  }
+  return [...node.childNodes]
+    .map((child) => textOf(child))
+    .filter((text) => text.length > 0)
+    .join(' ');
 }

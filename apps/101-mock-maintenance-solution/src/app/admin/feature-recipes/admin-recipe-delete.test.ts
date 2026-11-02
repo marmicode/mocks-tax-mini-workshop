@@ -1,6 +1,8 @@
+import { inputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -16,50 +18,53 @@ const shakshuka: Recipe = {
   steps: [],
 };
 
-describe(AdminRecipeDelete.name, () => {
+describe(AdminRecipeDelete, () => {
   it('fetches the recipe and asks for confirmation', async () => {
-    const { fixture, findById } = mountAdminRecipeDelete('shakshuka');
-    await fixture.whenStable();
+    const { findById } = mountAdminRecipeDelete('shakshuka');
 
+    await expect
+      .element(page.getByRole('heading', { name: 'Delete Shakshuka?' }))
+      .toBeVisible();
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-    expect(fixture.nativeElement.querySelector('h2')?.textContent).toContain(
-      'Delete Shakshuka?',
-    );
   });
 
   it('removes the recipe and goes back to the list', async () => {
-    const { fixture, findById, remove, navigate } =
-      mountAdminRecipeDelete('shakshuka');
-    await fixture.whenStable();
+    const { findById, remove, navigate } = mountAdminRecipeDelete('shakshuka');
 
-    buttonByText(fixture.nativeElement, 'Delete').click();
-    await fixture.whenStable();
+    await expect
+      .element(page.getByRole('heading', { name: 'Delete Shakshuka?' }))
+      .toBeVisible();
+    await page.getByRole('button', { name: 'Delete' }).click();
 
+    await expect
+      .poll(() => remove)
+      .toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-    expect(remove).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(navigate).toHaveBeenCalledExactlyOnceWith(['/', 'admin', 'recipes']);
   });
 
   it('links back to the list without removing anything', async () => {
-    const { fixture, findById, remove } = mountAdminRecipeDelete('shakshuka');
-    await fixture.whenStable();
+    const { findById, remove } = mountAdminRecipeDelete('shakshuka');
 
-    const cancel = [...fixture.nativeElement.querySelectorAll('a')].find(
-      (el: HTMLAnchorElement) => el.textContent?.trim() === 'Cancel',
-    );
-
+    await expect
+      .element(page.getByRole('heading', { name: 'Delete Shakshuka?' }))
+      .toBeVisible();
+    expect(
+      page.getByRole('link', { name: 'Cancel' }).element().getAttribute('href'),
+    ).toBe('/admin/recipes');
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-    expect(cancel?.getAttribute('href')).toBe('/admin/recipes');
     expect(remove).not.toHaveBeenCalled();
   });
 
   it('shows "Recipe not found" for an unknown recipe', async () => {
-    const { fixture, findById, remove } = mountAdminRecipeDelete('missing');
+    const { findById, remove } = mountAdminRecipeDelete('missing');
     findById.mockReturnValue(of(undefined));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByRole('heading', { name: 'Recipe not found' }))
+      .toBeVisible();
+    expect(page.getByRole('button', { name: 'Delete' }).query()).toBeNull();
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'missing' });
-    expect(fixture.nativeElement.textContent).toContain('Recipe not found');
     expect(remove).not.toHaveBeenCalled();
   });
 });
@@ -77,18 +82,9 @@ function mountAdminRecipeDelete(recipeId: string) {
     .spyOn(TestBed.inject(Router), 'navigate')
     .mockResolvedValue(true);
 
-  const fixture = TestBed.createComponent(AdminRecipeDelete);
-  fixture.componentRef.setInput('recipeId', recipeId);
+  TestBed.createComponent(AdminRecipeDelete, {
+    bindings: [inputBinding('recipeId', () => recipeId)],
+  });
 
-  return { fixture, findById, remove, navigate };
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+  return { findById, remove, navigate };
 }

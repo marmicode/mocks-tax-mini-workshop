@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import {
   RecipeRepository,
@@ -39,12 +40,11 @@ const recipesByCourse: Record<string, Recipe[]> = {
   dessert: [cheesecake],
 };
 
-describe(AdminExport.name, () => {
+describe(AdminExport, () => {
   it('searches all recipes without a course filter', async () => {
-    const { fixture, search } = mountAdminExport();
-    await fixture.whenStable();
+    const { search } = mountAdminExport();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -54,15 +54,12 @@ describe(AdminExport.name, () => {
   });
 
   it('previews the exported recipes as JSON', async () => {
-    const { fixture, search } = mountAdminExport();
-    await fixture.whenStable();
+    const { search } = mountAdminExport();
 
-    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
-      '2 recipe(s) to export',
-    );
-    expect(
-      JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
-    ).toEqual([shakshuka, cheesecake]);
+    await expect.poll(() => exportPreview()).toEqual([shakshuka, cheesecake]);
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('2 recipe(s) to export');
     expect(search.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -78,7 +75,7 @@ describe(AdminExport.name, () => {
   });
 
   it('exports a single course', async () => {
-    const { fixture, search } = mountAdminExport();
+    const { search } = mountAdminExport();
     const responses: Record<string, Recipe[]> = {
       [searchKey({
         keywords: '',
@@ -100,35 +97,37 @@ describe(AdminExport.name, () => {
       }
       return of(recipes);
     });
-    await fixture.whenStable();
 
-    selectCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('2 recipe(s) to export');
+    await page.getByLabelText('Course').selectOptions('dessert');
 
-    expect(
-      JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
-    ).toEqual([cheesecake]);
+    await expect.poll(() => exportPreview()).toEqual([cheesecake]);
     expect(search).toHaveBeenCalledTimes(2);
   });
 
   it('goes back to all courses', async () => {
-    const { fixture, search } = mountAdminExport();
-    await fixture.whenStable();
+    const { search } = mountAdminExport();
 
-    selectCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    selectCourse(fixture.nativeElement, '');
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('2 recipe(s) to export');
+    await page.getByLabelText('Course').selectOptions('main');
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('1 recipe(s) to export');
+    await page.getByLabelText('Course').selectOptions('');
 
-    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
-      '2 recipe(s) to export',
-    );
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('2 recipe(s) to export');
     expect(search).toHaveBeenCalledTimes(3);
     expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('downloads the recipes as recipes.json', async () => {
-    const { fixture, search } = mountAdminExport();
+    const { search } = mountAdminExport();
     const createObjectURL = vi
       .spyOn(URL, 'createObjectURL')
       .mockReturnValue('blob:recipes');
@@ -136,9 +135,11 @@ describe(AdminExport.name, () => {
     const click = vi
       .spyOn(HTMLAnchorElement.prototype, 'click')
       .mockImplementation(() => undefined);
-    await fixture.whenStable();
 
-    buttonByText(fixture.nativeElement, 'Download recipes.json').click();
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('2 recipe(s) to export');
+    await page.getByRole('button', { name: 'Download recipes.json' }).click();
 
     const blob = createObjectURL.mock.lastCall?.[0] as Blob;
     expect(JSON.parse(await blob.text())).toEqual([shakshuka, cheesecake]);
@@ -154,34 +155,34 @@ describe(AdminExport.name, () => {
   });
 
   it('previews an empty export when the catalog is empty', async () => {
-    const { fixture, search } = mountAdminExport();
+    const { search } = mountAdminExport();
     search.mockImplementation((params) =>
       Object.keys(params).length === 4
         ? of([])
         : throwError(() => new Error(`unexpected search ${searchKey(params)}`)),
     );
-    await fixture.whenStable();
 
-    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
-      '0 recipe(s) to export',
-    );
-    expect(
-      JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
-    ).toEqual([]);
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('0 recipe(s) to export');
+    await expect.poll(() => exportPreview()).toEqual([]);
   });
 
   it('switches from one course to another', async () => {
-    const { fixture, search } = mountAdminExport();
-    await fixture.whenStable();
+    const { search } = mountAdminExport();
 
-    selectCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    selectCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('2 recipe(s) to export');
+    await page.getByLabelText('Course').selectOptions('main');
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('1 recipe(s) to export');
+    await page.getByLabelText('Course').selectOptions('dessert');
 
-    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
-      '1 recipe(s) to export',
-    );
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('1 recipe(s) to export');
     expect(search).toHaveBeenCalledTimes(3);
     expect(search).toHaveBeenLastCalledWith({
       keywords: '',
@@ -192,28 +193,28 @@ describe(AdminExport.name, () => {
   });
 
   it('counts the recipes to export again after going back to all courses', async () => {
-    const { fixture, search } = mountAdminExport();
-    await fixture.whenStable();
+    const { search } = mountAdminExport();
 
-    selectCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
-      '1 recipe(s) to export',
-    );
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('2 recipe(s) to export');
+    await page.getByLabelText('Course').selectOptions('main');
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('1 recipe(s) to export');
 
-    selectCourse(fixture.nativeElement, '');
-    await fixture.whenStable();
+    await page.getByLabelText('Course').selectOptions('');
 
-    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
-      '2 recipe(s) to export',
-    );
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('2 recipe(s) to export');
     await expect(
       JSON.stringify(search.mock.calls, null, 2),
     ).toMatchFileSnapshot('./__snapshots__/admin-export.calls.json');
   });
 
   it('downloads only the recipes of the selected course', async () => {
-    const { fixture, search } = mountAdminExport();
+    const { search } = mountAdminExport();
     search.mockImplementation(({ courses }) =>
       of(
         courses?.length
@@ -230,11 +231,15 @@ describe(AdminExport.name, () => {
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(
       () => undefined,
     );
-    await fixture.whenStable();
 
-    selectCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'Download recipes.json').click();
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('2 recipe(s) to export');
+    await page.getByLabelText('Course').selectOptions('main');
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('1 recipe(s) to export');
+    await page.getByRole('button', { name: 'Download recipes.json' }).click();
 
     const blob = createObjectURL.mock.lastCall?.[0] as Blob;
     expect(JSON.parse(await blob.text())).toEqual([shakshuka]);
@@ -254,36 +259,15 @@ function mountAdminExport() {
       ),
     );
 
-  const fixture = TestBed.createComponent(AdminExport);
+  TestBed.createComponent(AdminExport);
 
-  return { fixture, search };
+  return { search };
 }
 
-function textByTestId(root: HTMLElement, testId: string): string {
-  return (
-    root.querySelector(`[data-testid="${testId}"]`)?.textContent?.trim() ?? ''
+function exportPreview() {
+  return JSON.parse(
+    page.getByTestId('export-preview').element().textContent?.trim() ?? '',
   );
-}
-
-function selectCourse(root: HTMLElement, course: string): void {
-  const select = root.querySelector<HTMLSelectElement>(
-    'select[aria-label="Course"]',
-  );
-  if (select == null) {
-    throw new Error('Course select not found.');
-  }
-  select.value = course;
-  select.dispatchEvent(new Event('change'));
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
 }
 
 function searchKey(params: RecipeSearchParams) {

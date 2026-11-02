@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import {
   RecipeRepository,
@@ -40,11 +41,11 @@ const cheesecake: Recipe = {
   steps: [],
 };
 
-describe(RecipeOfTheDay.name, () => {
+describe(RecipeOfTheDay, () => {
   it('searches all recipes', async () => {
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 1));
-    await fixture.whenStable();
+    const { search } = mountRecipeOfTheDay(new Date(2026, 0, 1));
 
+    await expect.poll(() => search.mock.calls).toHaveLength(1);
     expect(search.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -61,100 +62,96 @@ describe(RecipeOfTheDay.name, () => {
 
   it('picks the recipe matching the day of the year', async () => {
     /* January 2nd is the 2nd day of the year: 2 % 3 = 2. */
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 2));
-    await fixture.whenStable();
+    const { search } = mountRecipeOfTheDay(new Date(2026, 0, 2));
 
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Lemon and Ricotta Cheesecake');
     expect(search).toHaveBeenCalledOnce();
-    expect(recipeName(fixture.nativeElement)).toBe(
-      'Lemon and Ricotta Cheesecake',
-    );
   });
 
   it('picks another recipe the next day', async () => {
     /* January 3rd is the 3rd day of the year: 3 % 3 = 0. */
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 3));
-    await fixture.whenStable();
+    mountRecipeOfTheDay(new Date(2026, 0, 3));
 
-    expect(recipeName(fixture.nativeElement)).toBe('Shakshuka');
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Shakshuka');
   });
 
   it('shows the description, picture and a link to the recipe', async () => {
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 3));
-    await fixture.whenStable();
+    const { search } = mountRecipeOfTheDay(new Date(2026, 0, 3));
 
-    const root: HTMLElement = fixture.nativeElement;
+    await expect
+      .element(page.getByTestId('recipe-description'))
+      .toMatchTextContent('Eggs poached in a spiced tomato sauce.');
+    await expect
+      .element(page.getByRole('img', { name: 'Shakshuka' }))
+      .toHaveAttribute('src', 'https://example.com/shakshuka.jpg');
+    await expect
+      .element(page.getByRole('link', { name: 'See the recipe' }))
+      .toHaveAttribute('href', '/recipes/shakshuka');
     expect(search.mock.calls).toMatchSnapshot();
-    expect(
-      root.querySelector('[data-testid="recipe-description"]')?.textContent,
-    ).toContain('Eggs poached in a spiced tomato sauce.');
-    expect(root.querySelector('img')?.getAttribute('src')).toBe(
-      'https://example.com/shakshuka.jpg',
-    );
-    expect(root.querySelector('a')?.getAttribute('href')).toBe(
-      '/recipes/shakshuka',
-    );
   });
 
   it('shows a message when there are no recipes', async () => {
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 3));
+    const { search } = mountRecipeOfTheDay(new Date(2026, 0, 3));
     search.mockReturnValue(of([]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No recipe today');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: [],
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No recipe today');
   });
 
   it('hides the description when the recipe has none', async () => {
     /* January 1st is the 1st day of the year: 1 % 3 = 1. */
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 1));
-    await fixture.whenStable();
+    mountRecipeOfTheDay(new Date(2026, 0, 1));
 
-    expect(recipeName(fixture.nativeElement)).toBe('Hummus with Ful');
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="recipe-description"]'),
-    ).toBeNull();
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Hummus with Ful');
+    await expect
+      .element(page.getByTestId('recipe-description'))
+      .not.toBeInTheDocument();
   });
 
   it("shows the course of today's pick", async () => {
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 0, 1));
-    await fixture.whenStable();
+    const { search } = mountRecipeOfTheDay(new Date(2026, 0, 1));
 
+    await expect
+      .element(page.getByText("Today's pick · starter"))
+      .toHaveTextContent("Today's pick · starter");
     expect(search).toHaveBeenCalledOnce();
-    expect(
-      fixture.nativeElement.querySelector('.eyebrow')?.textContent?.trim(),
-    ).toBe("Today's pick · starter");
   });
 
   it('counts days across months', async () => {
     /* February 1st is the 32nd day of the year: 32 % 3 = 2. */
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 1, 1));
-    await fixture.whenStable();
+    mountRecipeOfTheDay(new Date(2026, 1, 1));
 
-    expect(recipeName(fixture.nativeElement)).toBe(
-      'Lemon and Ricotta Cheesecake',
-    );
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Lemon and Ricotta Cheesecake');
   });
 
   it('always picks the only recipe of the catalog', async () => {
-    const { fixture, search } = mountRecipeOfTheDay(new Date(2026, 11, 31));
+    const { search } = mountRecipeOfTheDay(new Date(2026, 11, 31));
     search.mockReturnValue(of([hummus]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Hummus with Ful');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: [],
     });
-    expect(recipeName(fixture.nativeElement)).toBe('Hummus with Ful');
   });
 });
 
@@ -173,13 +170,9 @@ function mountRecipeOfTheDay(now: Date) {
     );
   vi.spyOn(TestBed.inject(ClockAdapter), 'now').mockReturnValue(now);
 
-  const fixture = TestBed.createComponent(RecipeOfTheDay);
+  TestBed.createComponent(RecipeOfTheDay);
 
-  return { fixture, search };
-}
-
-function recipeName(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="recipe-name"]')?.textContent?.trim();
+  return { search };
 }
 
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {

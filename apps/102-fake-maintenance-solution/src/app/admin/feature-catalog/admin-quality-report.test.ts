@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -40,9 +41,9 @@ const sketchyFritters = recipeMother
   .withSteps(['Fry.'])
   .build();
 
-describe(AdminQualityReport.name, () => {
+describe(AdminQualityReport, () => {
   it('searches all recipes', async () => {
-    const { fixture } = mountAdminQualityReport({
+    mountAdminQualityReport({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -54,74 +55,75 @@ describe(AdminQualityReport.name, () => {
         recipeMother.withBasicInfo('Hummus with Ful').withManySteps().build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowNames(fixture.nativeElement)).toEqual([
-      'Lemon and Ricotta Cheesecake',
-      'Shakshuka',
-      'Hummus with Ful',
-    ]);
+    await expect
+      .poll(() => rowNames())
+      .toEqual([
+        'Lemon and Ricotta Cheesecake',
+        'Shakshuka',
+        'Hummus with Ful',
+      ]);
   });
 
   it('gives a perfect score to a complete recipe', async () => {
-    const { fixture } = mountAdminQualityReport({ recipes: [shakshuka] });
-    await fixture.whenStable();
+    mountAdminQualityReport({ recipes: [shakshuka] });
 
-    expect(rowTexts(fixture.nativeElement)).toEqual(['Shakshuka 100% ✅']);
+    await expect.poll(() => rowTexts()).toEqual(['Shakshuka 100% ✅']);
   });
 
   it('reports a missing description', async () => {
-    const { fixture } = mountAdminQualityReport({ recipes: [brownies] });
-    await fixture.whenStable();
+    mountAdminQualityReport({ recipes: [brownies] });
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Tahini and Halva Brownies 75% Missing description',
-    ]);
+    await expect
+      .poll(() => rowTexts())
+      .toEqual(['Tahini and Halva Brownies 75% Missing description']);
   });
 
   it('reports every issue of a sketchy recipe', async () => {
-    const { fixture } = mountAdminQualityReport({ recipes: [sketchyFritters] });
-    await fixture.whenStable();
+    mountAdminQualityReport({ recipes: [sketchyFritters] });
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Courgette Fritters 0% Missing description Fewer than 3 steps Most ingredients have no quantity Picture is not served over https',
-    ]);
+    await expect
+      .poll(() => rowTexts())
+      .toEqual([
+        'Courgette Fritters 0% Missing description Fewer than 3 steps Most ingredients have no quantity Picture is not served over https',
+      ]);
   });
 
   it('shows only recipes with issues when filtered', async () => {
-    const { fixture } = mountAdminQualityReport({
+    mountAdminQualityReport({
       recipes: [shakshuka, brownies, sketchyFritters],
     });
-    await fixture.whenStable();
 
-    checkboxByLabel(fixture.nativeElement, 'Only recipes with issues').click();
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('quality-row').first()).toBeVisible();
+    await page
+      .getByRole('checkbox', { name: 'Only recipes with issues' })
+      .click();
 
-    expect(rowNames(fixture.nativeElement)).toEqual([
-      'Tahini and Halva Brownies',
-      'Courgette Fritters',
-    ]);
+    await expect
+      .poll(() => rowNames())
+      .toEqual(['Tahini and Halva Brownies', 'Courgette Fritters']);
   });
 
   it('shows every recipe again once the filter is unchecked', async () => {
-    const { fixture } = mountAdminQualityReport({
+    mountAdminQualityReport({
       recipes: [shakshuka, brownies],
     });
-    await fixture.whenStable();
 
-    checkboxByLabel(fixture.nativeElement, 'Only recipes with issues').click();
-    await fixture.whenStable();
-    checkboxByLabel(fixture.nativeElement, 'Only recipes with issues').click();
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('quality-row').first()).toBeVisible();
+    await page
+      .getByRole('checkbox', { name: 'Only recipes with issues' })
+      .click();
+    await page
+      .getByRole('checkbox', { name: 'Only recipes with issues' })
+      .click();
 
-    expect(rowNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Tahini and Halva Brownies',
-    ]);
+    await expect
+      .poll(() => rowNames())
+      .toEqual(['Shakshuka', 'Tahini and Halva Brownies']);
   });
 
   it('tolerates up to half of the ingredients without quantity', async () => {
-    const { fixture } = mountAdminQualityReport({
+    mountAdminQualityReport({
       recipes: [
         {
           ...shakshuka,
@@ -132,38 +134,33 @@ describe(AdminQualityReport.name, () => {
         },
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual(['Shakshuka 100% ✅']);
+    await expect.poll(() => rowTexts()).toEqual(['Shakshuka 100% ✅']);
   });
 
   it('reports a blank description and too few steps', async () => {
-    const { fixture } = mountAdminQualityReport({
+    mountAdminQualityReport({
       recipes: [
         { ...shakshuka, description: '   ', steps: ['Cook.', 'Serve.'] },
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Shakshuka 50% Missing description Fewer than 3 steps',
-    ]);
+    await expect
+      .poll(() => rowTexts())
+      .toEqual(['Shakshuka 50% Missing description Fewer than 3 steps']);
   });
 
   it('links each recipe to its edit page', async () => {
-    const { fixture } = mountAdminQualityReport({
+    mountAdminQualityReport({
       recipes: [shakshuka, brownies],
     });
-    await fixture.whenStable();
 
-    expect(
-      rows(fixture.nativeElement).map((row) =>
-        row.querySelector('a')?.getAttribute('href'),
-      ),
-    ).toEqual([
-      `/admin/recipes/${shakshuka.id}/edit`,
-      `/admin/recipes/${brownies.id}/edit`,
-    ]);
+    await expect
+      .poll(() => editLinks())
+      .toEqual([
+        `/admin/recipes/${shakshuka.id}/edit`,
+        `/admin/recipes/${brownies.id}/edit`,
+      ]);
   });
 });
 
@@ -175,36 +172,42 @@ function mountAdminQualityReport({
   });
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(AdminQualityReport);
-
-  return { fixture };
+  TestBed.createComponent(AdminQualityReport);
 }
 
-function rows(root: HTMLElement): HTMLElement[] {
-  return [...root.querySelectorAll<HTMLElement>('[data-testid="quality-row"]')];
+function rowTexts() {
+  return page.getByTestId('quality-row').elements().map((row) => rowText(row));
 }
 
-function rowTexts(root: HTMLElement): string[] {
-  return rows(root).map((row) =>
-    [...row.querySelectorAll('td, li')]
-      .filter((el) => el.querySelector('li') == null)
-      .map((el) => el.textContent?.replace(/\s+/g, ' ').trim())
-      .join(' '),
-  );
+function rowNames() {
+  return page
+    .getByTestId('quality-row')
+    .getByRole('link')
+    .elements()
+    .map((link) => link.textContent?.trim() ?? '');
 }
 
-function rowNames(root: HTMLElement): string[] {
-  return rows(root).map(
-    (row) => row.querySelector('a')?.textContent?.trim() ?? '',
-  );
+function editLinks() {
+  return page
+    .getByTestId('quality-row')
+    .getByRole('link')
+    .elements()
+    .map((link) => link.getAttribute('href'));
 }
 
-function checkboxByLabel(root: HTMLElement, label: string): HTMLInputElement {
-  const input = [...root.querySelectorAll('label')]
-    .find((el) => el.textContent?.trim() === label)
-    ?.querySelector('input');
-  if (input == null) {
-    throw new Error(`Checkbox "${label}" not found.`);
+function rowText(row: Element) {
+  return textOf(row);
+}
+
+function textOf(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent?.replace(/\s+/g, ' ').trim() ?? '';
   }
-  return input;
+  if (!(node instanceof Element)) {
+    return '';
+  }
+  return [...node.childNodes]
+    .map((child) => textOf(child))
+    .filter((text) => text.length > 0)
+    .join(' ');
 }

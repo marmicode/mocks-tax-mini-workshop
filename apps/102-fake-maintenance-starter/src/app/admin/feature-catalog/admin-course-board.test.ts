@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -19,9 +20,9 @@ const cheesecake = recipeMother
   .withBasicInfo({ name: 'Lemon and Ricotta Cheesecake', course: 'dessert' })
   .build();
 
-describe(AdminCourseBoard.name, () => {
+describe(AdminCourseBoard, () => {
   it('searches recipes for each course', async () => {
-    const { fixture } = mountAdminCourseBoard({
+    mountAdminCourseBoard({
       recipes: [
         recipeMother
           .withBasicInfo({ name: 'Hummus with Ful', course: 'starter' })
@@ -38,74 +39,66 @@ describe(AdminCourseBoard.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(columnRecipeNames(fixture.nativeElement, 'starter')).toEqual([
-      'Hummus with Ful',
-    ]);
-    expect(columnRecipeNames(fixture.nativeElement, 'main')).toEqual([
-      'Shakshuka',
-    ]);
-    expect(columnRecipeNames(fixture.nativeElement, 'dessert')).toEqual([
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(() => columnRecipeNames('starter'))
+      .toEqual(['Hummus with Ful']);
+    await expect.poll(() => columnRecipeNames('main')).toEqual(['Shakshuka']);
+    await expect
+      .poll(() => columnRecipeNames('dessert'))
+      .toEqual(['Lemon and Ricotta Cheesecake']);
   });
 
   it('shows each recipe in its course column', async () => {
-    const { fixture } = mountAdminCourseBoard();
-    await fixture.whenStable();
+    mountAdminCourseBoard();
 
-    expect(columnRecipeNames(fixture.nativeElement, 'starter')).toEqual([
-      'Hummus with Ful',
-    ]);
-    expect(columnRecipeNames(fixture.nativeElement, 'main')).toEqual([
-      'Shakshuka',
-    ]);
-    expect(columnRecipeNames(fixture.nativeElement, 'dessert')).toEqual([
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(() => columnRecipeNames('starter'))
+      .toEqual(['Hummus with Ful']);
+    await expect.poll(() => columnRecipeNames('main')).toEqual(['Shakshuka']);
+    await expect
+      .poll(() => columnRecipeNames('dessert'))
+      .toEqual(['Lemon and Ricotta Cheesecake']);
   });
 
   it('only offers to move a recipe to other courses', async () => {
-    const { fixture } = mountAdminCourseBoard();
-    await fixture.whenStable();
+    mountAdminCourseBoard();
 
-    const options = [
-      ...moveSelect(fixture.nativeElement, 'Shakshuka').querySelectorAll(
-        'option',
-      ),
-    ].map((option) => option.textContent?.trim());
-    expect(options).toEqual(['Move to…', 'starter', 'dessert']);
+    await expect
+      .element(page.getByLabelText('Move Shakshuka to'))
+      .toBeVisible();
+    expect(moveOptions('Shakshuka')).toEqual([
+      'Move to…',
+      'starter',
+      'dessert',
+    ]);
   });
 
   it('moves a recipe to another course', async () => {
-    const { fixture, recipeRepositoryFake } = mountAdminCourseBoard();
-    await fixture.whenStable();
+    const { recipeRepositoryFake } = mountAdminCourseBoard();
 
-    selectOption(moveSelect(fixture.nativeElement, 'Shakshuka'), 'starter');
-    await fixture.whenStable();
+    await page.getByLabelText('Move Shakshuka to').selectOptions('starter');
 
-    expect(recipeRepositoryFake.getRecipesSync()).toEqual([
-      hummus,
-      recipeMother
-        .withBasicInfo({ name: 'Shakshuka', course: 'starter' })
-        .build(),
-      cheesecake,
-    ]);
+    await expect
+      .poll(() => recipeRepositoryFake.getRecipesSync())
+      .toEqual([
+        hummus,
+        recipeMother
+          .withBasicInfo({ name: 'Shakshuka', course: 'starter' })
+          .build(),
+        cheesecake,
+      ]);
   });
 
   it('refreshes the source and target columns after a move', async () => {
-    const { fixture } = mountAdminCourseBoard();
-    await fixture.whenStable();
+    mountAdminCourseBoard();
 
-    selectOption(moveSelect(fixture.nativeElement, 'Shakshuka'), 'dessert');
-    await fixture.whenStable();
+    await page.getByLabelText('Move Shakshuka to').selectOptions('dessert');
 
-    expect(columnRecipeNames(fixture.nativeElement, 'main')).toEqual([]);
-    expect(columnRecipeNames(fixture.nativeElement, 'dessert')).toEqual([
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect.poll(() => columnRecipeNames('main')).toEqual([]);
+    await expect
+      .poll(() => columnRecipeNames('dessert'))
+      .toEqual(['Shakshuka', 'Lemon and Ricotta Cheesecake']);
   });
 });
 
@@ -118,30 +111,22 @@ function mountAdminCourseBoard({
   const recipeRepositoryFake = TestBed.inject(RecipeRepositoryFake);
   recipeRepositoryFake.setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(AdminCourseBoard);
+  TestBed.createComponent(AdminCourseBoard);
 
-  return { fixture, recipeRepositoryFake };
+  return { recipeRepositoryFake };
 }
 
-function columnRecipeNames(root: HTMLElement, course: string): string[] {
-  return [
-    ...root.querySelectorAll(
-      `[data-testid="column-${course}"] [data-testid="board-recipe-name"]`,
-    ),
-  ].map((el) => el.textContent?.trim() ?? '');
+function columnRecipeNames(course: string) {
+  return page
+    .getByTestId(`column-${course}`)
+    .getByTestId('board-recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
-function moveSelect(root: HTMLElement, recipeName: string): HTMLSelectElement {
-  const select = root.querySelector<HTMLSelectElement>(
-    `select[aria-label="Move ${recipeName} to"]`,
-  );
-  if (select == null) {
-    throw new Error(`Move select for "${recipeName}" not found.`);
-  }
-  return select;
-}
-
-function selectOption(select: HTMLSelectElement, value: string): void {
-  select.value = value;
-  select.dispatchEvent(new Event('change'));
+function moveOptions(recipeName: string) {
+  const select = page
+    .getByLabelText(`Move ${recipeName} to`)
+    .element() as HTMLSelectElement;
+  return [...select.options].map((option) => option.textContent?.trim());
 }

@@ -1,14 +1,15 @@
+import { outputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
+import type { RecipeFilterCriteria } from '@whiskmate/recipe/model';
 import { RecipeFilter } from './recipe-filter.ng';
 
-describe(RecipeFilter.name, () => {
+describe(RecipeFilter, () => {
   it('emits the selected course', async () => {
-    const { fixture, filterChange } = mountRecipeFilter();
-    await fixture.whenStable();
+    const { filterChange } = mountRecipeFilter();
 
-    clickCourse(fixture.nativeElement, 'starter');
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'starter' }).click();
 
     expect(filterChange).toHaveBeenLastCalledWith({
       keywords: '',
@@ -20,13 +21,10 @@ describe(RecipeFilter.name, () => {
   });
 
   it('emits every selected course', async () => {
-    const { fixture, filterChange } = mountRecipeFilter();
-    await fixture.whenStable();
+    const { filterChange } = mountRecipeFilter();
 
-    clickCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    clickCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'main' }).click();
+    await page.getByRole('button', { name: 'dessert' }).click();
 
     expect(filterChange).toHaveBeenLastCalledWith({
       keywords: '',
@@ -38,13 +36,10 @@ describe(RecipeFilter.name, () => {
   });
 
   it('emits `null` when all courses are unselected', async () => {
-    const { fixture, filterChange } = mountRecipeFilter();
-    await fixture.whenStable();
+    const { filterChange } = mountRecipeFilter();
 
-    clickCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    clickCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'main' }).click();
+    await page.getByRole('button', { name: 'main' }).click();
 
     expect(filterChange).toHaveBeenCalledTimes(2);
     expect(filterChange).toHaveBeenLastCalledWith({
@@ -58,19 +53,11 @@ describe(RecipeFilter.name, () => {
 });
 
 function mountRecipeFilter() {
-  const fixture = TestBed.createComponent(RecipeFilter);
-  const filterChange = vi.fn();
-  fixture.componentInstance.filter.subscribe(filterChange);
-  return { fixture, filterChange };
-}
+  const filterChange = vi.fn<(filter: RecipeFilterCriteria) => void>();
 
-function clickCourse(root: HTMLElement, course: string): void {
-  const toggle = [...root.querySelectorAll('mat-button-toggle')].find(
-    (el) => el.textContent?.trim() === course,
-  );
-  const button = toggle?.querySelector('button');
-  if (button == null) {
-    throw new Error(`Course "${course}" not found.`);
-  }
-  button.click();
+  TestBed.createComponent(RecipeFilter, {
+    bindings: [outputBinding('filterChange', filterChange)],
+  });
+
+  return { filterChange };
 }

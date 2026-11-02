@@ -1,6 +1,8 @@
+import { inputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import {
   RecipeRepository,
@@ -55,15 +57,14 @@ const emptyAssignments: WeekdayAssignments = {
   sunday: null,
 };
 
-describe(MealPlanDayPicker.name, () => {
+describe(MealPlanDayPicker, () => {
   it('searches the catalog', async () => {
-    const { fixture, search } = mountMealPlanDayPicker({
+    const { search } = mountMealPlanDayPicker({
       weekday: 'monday',
       assignments: emptyAssignments,
     });
-    await fixture.whenStable();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -72,7 +73,7 @@ describe(MealPlanDayPicker.name, () => {
   });
 
   it('only lists mains', async () => {
-    const { fixture, search } = mountMealPlanDayPicker({
+    const { search } = mountMealPlanDayPicker({
       weekday: 'monday',
       assignments: emptyAssignments,
     });
@@ -81,25 +82,22 @@ describe(MealPlanDayPicker.name, () => {
         ? of([hummus, shakshuka, lambKofte])
         : of([]),
     );
-    await fixture.whenStable();
 
-    expect(candidateNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Lamb Kofte with Yogurt and Sumac',
-    ]);
+    await expect
+      .poll(() => candidateNames())
+      .toEqual(['Shakshuka', 'Lamb Kofte with Yogurt and Sumac']);
   });
 
   it('does not list mains that are already planned', async () => {
-    const { fixture, search } = mountMealPlanDayPicker({
+    const { search } = mountMealPlanDayPicker({
       weekday: 'monday',
       assignments: { ...emptyAssignments, tuesday: 'shakshuka' },
       catalog: [shakshuka, lambKofte],
     });
-    await fixture.whenStable();
 
-    expect(candidateNames(fixture.nativeElement)).toEqual([
-      'Lamb Kofte with Yogurt and Sumac',
-    ]);
+    await expect
+      .poll(() => candidateNames())
+      .toEqual(['Lamb Kofte with Yogurt and Sumac']);
     expect(search.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -115,7 +113,7 @@ describe(MealPlanDayPicker.name, () => {
   });
 
   it('assigns the picked main and goes back to the meal plan', async () => {
-    const { fixture, search, mealPlanStore, router } = mountMealPlanDayPicker({
+    const { search, mealPlanStore, router } = mountMealPlanDayPicker({
       weekday: 'thursday',
       assignments: emptyAssignments,
       catalog: [shakshuka, lambKofte],
@@ -124,12 +122,10 @@ describe(MealPlanDayPicker.name, () => {
       .spyOn(mealPlanStore, 'assign')
       .mockImplementation(() => undefined);
     const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
-    await fixture.whenStable();
 
-    buttonByText(fixture.nativeElement, 'Pick Shakshuka').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Pick Shakshuka' }).click();
 
-    expect(assign).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => assign).toHaveBeenCalledExactlyOnceWith({
       weekday: 'thursday',
       recipeId: 'shakshuka',
     });
@@ -138,16 +134,13 @@ describe(MealPlanDayPicker.name, () => {
   });
 
   it('says there is nothing left to pick when every main is planned', async () => {
-    const { fixture, search } = mountMealPlanDayPicker({
+    const { search } = mountMealPlanDayPicker({
       weekday: 'monday',
       assignments: { ...emptyAssignments, tuesday: 'shakshuka' },
       catalog: [hummus, shakshuka],
     });
-    await fixture.whenStable();
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-candidates"]'),
-    ).not.toBeNull();
+    await expect.element(page.getByTestId('no-candidates')).toBeVisible();
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
@@ -192,10 +185,11 @@ function mountMealPlanDayPicker({
   vi.spyOn(mealPlanStore, 'assignments').mockReturnValue(assignments);
   const router = TestBed.inject(Router);
 
-  const fixture = TestBed.createComponent(MealPlanDayPicker);
-  fixture.componentRef.setInput('weekday', weekday);
+  TestBed.createComponent(MealPlanDayPicker, {
+    bindings: [inputBinding('weekday', () => weekday)],
+  });
 
-  return { fixture, search, mealPlanStore, router };
+  return { search, mealPlanStore, router };
 }
 
 /**
@@ -209,20 +203,11 @@ function toQueryString(params: RecipeSearchParams): string {
   ).toString();
 }
 
-function candidateNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="candidate-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function candidateNames() {
+  return page
+    .getByTestId('candidate-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
 function isEmptyArray(value: unknown): boolean {

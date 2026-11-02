@@ -1,5 +1,7 @@
+import { inputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -22,60 +24,57 @@ const cheesecake = recipeMother
   .withBasicInfo({ name: 'Lemon and Ricotta Cheesecake', course: 'dessert' })
   .build();
 
-describe(SimilarRecipes.name, () => {
+describe(SimilarRecipes, () => {
   it('searches recipes of the same course', async () => {
-    const { fixture } = mountSimilarRecipes(shakshuka, {
+    mountSimilarRecipes(shakshuka, {
       recipes: [shakshuka, harissaChicken, cheesecake],
     });
-    await fixture.whenStable();
 
-    expect(similarNames(fixture.nativeElement)).toEqual([
-      'Harissa-Roasted Chicken',
-    ]);
+    await expect.poll(similarNames).toEqual(['Harissa-Roasted Chicken']);
   });
 
   it('excludes the current recipe', async () => {
-    const { fixture } = mountSimilarRecipes(shakshuka, {
+    mountSimilarRecipes(shakshuka, {
       recipes: [shakshuka, harissaChicken],
     });
-    await fixture.whenStable();
 
-    expect(similarNames(fixture.nativeElement)).toEqual([
-      'Harissa-Roasted Chicken',
-    ]);
+    await expect.poll(similarNames).toEqual(['Harissa-Roasted Chicken']);
   });
 
   it('shows at most three similar recipes', async () => {
-    const { fixture } = mountSimilarRecipes(shakshuka, {
+    mountSimilarRecipes(shakshuka, {
       recipes: [shakshuka, harissaChicken, lambKofte, cauliflowerCake, filoPie],
     });
-    await fixture.whenStable();
 
-    expect(similarNames(fixture.nativeElement)).toEqual([
-      'Harissa-Roasted Chicken',
-      'Lamb Kofte',
-      'Cauliflower Cake',
-    ]);
+    await expect
+      .poll(similarNames)
+      .toEqual(['Harissa-Roasted Chicken', 'Lamb Kofte', 'Cauliflower Cake']);
   });
 
   it('links to the similar recipe', async () => {
-    const { fixture } = mountSimilarRecipes(shakshuka, {
+    mountSimilarRecipes(shakshuka, {
       recipes: [shakshuka, harissaChicken],
     });
-    await fixture.whenStable();
 
-    expect(similarLinks(fixture.nativeElement)[0]?.getAttribute('href')).toBe(
-      `/recipes/${harissaChicken.id}`,
-    );
+    await expect
+      .element(page.getByRole('link', { name: 'Harissa-Roasted Chicken' }))
+      .toHaveTextContent('Harissa-Roasted Chicken');
+    await expect
+      .element(page.getByTestId('similar-recipe'))
+      .toHaveAttribute('href', `/recipes/${harissaChicken.id}`);
   });
 
   it('renders nothing when the recipe is the only one of its course', async () => {
-    const { fixture } = mountSimilarRecipes(cheesecake, {
+    mountSimilarRecipes(cheesecake, {
       recipes: [shakshuka, cheesecake],
     });
-    await fixture.whenStable();
 
-    expect(fixture.nativeElement.textContent.trim()).toBe('');
+    await expect.poll(similarNames).toEqual([]);
+    await expect
+      .element(
+        page.getByRole('heading', { name: 'More desserts you might like' }),
+      )
+      .not.toBeInTheDocument();
   });
 });
 
@@ -89,20 +88,14 @@ function mountSimilarRecipes(
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(SimilarRecipes);
-  fixture.componentRef.setInput('recipe', recipe);
-
-  return { fixture };
+  TestBed.createComponent(SimilarRecipes, {
+    bindings: [inputBinding('recipe', () => recipe)],
+  });
 }
 
-function similarLinks(root: HTMLElement): HTMLAnchorElement[] {
-  return [
-    ...root.querySelectorAll<HTMLAnchorElement>(
-      '[data-testid="similar-recipe"]',
-    ),
-  ];
-}
-
-function similarNames(root: HTMLElement): string[] {
-  return similarLinks(root).map((link) => link.textContent?.trim() ?? '');
+function similarNames() {
+  return page
+    .getByTestId('similar-recipe')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

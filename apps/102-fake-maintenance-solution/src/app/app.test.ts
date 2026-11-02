@@ -1,5 +1,7 @@
+import { provideLocationMocks } from '@angular/common/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -28,81 +30,100 @@ const beefWellington = recipeMother
   .withManySteps()
   .build();
 
-describe(App.name, () => {
+describe(App, () => {
   it('redirects to the search page and searches all recipes', async () => {
-    const { fixture, router } = await mountApp({
+    const { router } = mountApp({
       recipes: [shakshuka, cheesecake, cassoulet, beefWellington],
     });
 
     await router.navigateByUrl('/');
-    await fixture.whenStable();
 
-    expect(router.url).toBe('/search');
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-      'Cassoulet',
-      'Beef Wellington',
-    ]);
+    await expect
+      .poll(() => recipeNames())
+      .toEqual([
+        'Shakshuka',
+        'Lemon and Ricotta Cheesecake',
+        'Cassoulet',
+        'Beef Wellington',
+      ]);
+    expect.soft(router.url).toBe('/search');
   });
 
   it('searches all recipes again when coming back to the search page', async () => {
-    const { fixture, router, recipeRepositoryFake } = await mountApp();
+    const { router, recipeRepositoryFake } = mountApp();
 
     await router.navigateByUrl('/search');
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('recipe-name')).toBeVisible();
     recipeRepositoryFake.setRecipes([shakshuka, cheesecake]);
     await router.navigateByUrl('/meal-plan');
-    await fixture.whenStable();
+    await expect
+      .element(page.getByRole('heading', { name: 'Meal plan' }))
+      .toBeVisible();
     await router.navigateByUrl('/search');
-    await fixture.whenStable();
 
-    expect(fixture.nativeElement.textContent).toContain('Shakshuka');
-    expect(fixture.nativeElement.textContent).toContain(
-      'Lemon and Ricotta Cheesecake',
-    );
+    await expect
+      .element(page.getByRole('heading', { name: 'Shakshuka' }))
+      .toBeVisible();
+    await expect
+      .element(
+        page.getByRole('heading', { name: 'Lemon and Ricotta Cheesecake' }),
+      )
+      .toBeVisible();
   });
 
   it('shows the planned recipes on the meal plan page', async () => {
-    const { fixture, router, mealPlanStore } = await mountApp();
+    const { router, mealPlanStore } = mountApp();
     mealPlanStore.assign({ weekday: 'monday', recipeId: shakshuka.id });
 
     await router.navigateByUrl('/meal-plan');
-    await fixture.whenStable();
 
-    expect(fixture.nativeElement.textContent).toContain('Shakshuka');
+    await expect
+      .element(page.getByText('Shakshuka', { exact: true }))
+      .toBeVisible();
   });
 
   it('navigates from the meal plan to the search page through the navbar', async () => {
-    const { fixture, router } = await mountApp({
+    const { router } = mountApp({
       recipes: [shakshuka, cheesecake, cassoulet, beefWellington],
     });
 
     await router.navigateByUrl('/meal-plan');
-    await fixture.whenStable();
-    linkByText(fixture.nativeElement, 'Search').click();
-    await fixture.whenStable();
+    await expect
+      .element(page.getByRole('heading', { name: 'Meal plan' }))
+      .toBeVisible();
+    await page.getByRole('link', { name: /Search/ }).click();
 
-    expect(router.url).toBe('/search');
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-      'Cassoulet',
-      'Beef Wellington',
-    ]);
+    await expect
+      .poll(() => recipeNames())
+      .toEqual([
+        'Shakshuka',
+        'Lemon and Ricotta Cheesecake',
+        'Cassoulet',
+        'Beef Wellington',
+      ]);
+    expect.soft(router.url).toBe('/search');
   });
 
   it('shows the admin link once signed in', async () => {
-    const { fixture, router } = await mountApp();
+    const { router } = mountApp();
 
     await router.navigateByUrl('/search');
-    await fixture.whenStable();
-    expect(navLabels(fixture.nativeElement)).not.toContain('Admin');
+    await expect
+      .element(page.getByRole('link', { name: /Search/ }))
+      .toBeVisible();
+    await expect
+      .element(page.getByRole('link', { name: /Admin/ }))
+      .not.toBeInTheDocument();
+    await expect
+      .element(page.getByRole('button', { name: /Admin/ }))
+      .not.toBeInTheDocument();
 
-    buttonByText(fixture.nativeElement, 'Sign in').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: /Sign in/ }).click();
 
-    expect(navLabels(fixture.nativeElement)).toEqual([
+    await expect
+      .element(page.getByRole('button', { name: /Admin/ }))
+      .toBeVisible();
+    expect(navLabels()).toEqual([
       'Search',
       'Discover',
       'Meal plan',
@@ -112,12 +133,11 @@ describe(App.name, () => {
   });
 });
 
-async function mountApp({
-  recipes = [shakshuka],
-}: { recipes?: Recipe[] } = {}) {
+function mountApp({ recipes = [shakshuka] }: { recipes?: Recipe[] } = {}) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter(appRoutes),
+      provideLocationMocks(),
       provideLocalStorageFake(),
       provideRecipeRepositoryFake(),
     ],
@@ -128,40 +148,20 @@ async function mountApp({
   const mealPlanStore = TestBed.inject(MealPlanStore);
   const router = TestBed.inject(Router);
 
-  const fixture = TestBed.createComponent(App);
-  await fixture.whenStable();
+  TestBed.createComponent(App);
 
-  return { fixture, router, recipeRepositoryFake, mealPlanStore };
+  return { router, recipeRepositoryFake, mealPlanStore };
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
-function linkByText(root: HTMLElement, text: string): HTMLAnchorElement {
-  const link = [...root.querySelectorAll('a')].find(
-    (el) => el.querySelector('.label')?.textContent?.trim() === text,
-  );
-  if (link == null) {
-    throw new Error(`Link "${text}" not found.`);
-  }
-  return link;
-}
-
-function navLabels(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('wm-navbar .nav-item .label')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.querySelector('.label')?.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function navLabels() {
+  return [
+    ...page.getByRole('navigation').element().querySelectorAll('.nav-item .label'),
+  ].map((label) => label.textContent?.trim() ?? '');
 }

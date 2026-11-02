@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -36,12 +37,11 @@ const cheesecake: Recipe = {
   steps: [],
 };
 
-describe(AdminCourseBoard.name, () => {
+describe(AdminCourseBoard, () => {
   it('searches recipes for each course', async () => {
-    const { fixture, search } = mountAdminCourseBoard();
-    await fixture.whenStable();
+    const { search } = mountAdminCourseBoard();
 
-    expect(search).toHaveBeenCalledTimes(3);
+    await expect.poll(() => search).toHaveBeenCalledTimes(3);
     expect(search).toHaveBeenNthCalledWith(1, {
       keywords: '',
       maxIngredientCount: null,
@@ -63,40 +63,37 @@ describe(AdminCourseBoard.name, () => {
   });
 
   it('shows each recipe in its course column', async () => {
-    const { fixture } = mountAdminCourseBoard();
-    await fixture.whenStable();
+    mountAdminCourseBoard();
 
-    expect(columnRecipeNames(fixture.nativeElement, 'starter')).toEqual([
-      'Hummus with Ful',
-    ]);
-    expect(columnRecipeNames(fixture.nativeElement, 'main')).toEqual([
-      'Shakshuka',
-    ]);
-    expect(columnRecipeNames(fixture.nativeElement, 'dessert')).toEqual([
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(() => columnRecipeNames('starter'))
+      .toEqual(['Hummus with Ful']);
+    await expect
+      .poll(() => columnRecipeNames('main'))
+      .toEqual(['Shakshuka']);
+    await expect
+      .poll(() => columnRecipeNames('dessert'))
+      .toEqual(['Lemon and Ricotta Cheesecake']);
   });
 
   it('only offers to move a recipe to other courses', async () => {
-    const { fixture } = mountAdminCourseBoard();
-    await fixture.whenStable();
+    mountAdminCourseBoard();
 
-    const options = [
-      ...moveSelect(fixture.nativeElement, 'Shakshuka').querySelectorAll(
-        'option',
-      ),
-    ].map((option) => option.textContent?.trim());
-    expect(options).toEqual(['Move to…', 'starter', 'dessert']);
+    await expect.poll(() => moveOptions('Shakshuka')).toEqual([
+      'Move to…',
+      'starter',
+      'dessert',
+    ]);
   });
 
   it('moves a recipe to another course', async () => {
-    const { fixture, update } = mountAdminCourseBoard();
-    await fixture.whenStable();
+    const { update } = mountAdminCourseBoard();
 
-    selectOption(moveSelect(fixture.nativeElement, 'Shakshuka'), 'starter');
-    await fixture.whenStable();
+    await page
+      .getByRole('combobox', { name: 'Move Shakshuka to' })
+      .selectOptions('starter');
 
-    expect(update).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => update).toHaveBeenCalledExactlyOnceWith({
       id: 'shakshuka',
       course: 'starter',
       name: 'Shakshuka',
@@ -108,14 +105,16 @@ describe(AdminCourseBoard.name, () => {
   });
 
   it('refreshes the source and target columns after a move', async () => {
-    const { fixture, search } = mountAdminCourseBoard();
-    await fixture.whenStable();
+    const { search } = mountAdminCourseBoard();
+
+    await expect.poll(() => search).toHaveBeenCalledTimes(3);
     search.mockClear();
 
-    selectOption(moveSelect(fixture.nativeElement, 'Shakshuka'), 'dessert');
-    await fixture.whenStable();
+    await page
+      .getByRole('combobox', { name: 'Move Shakshuka to' })
+      .selectOptions('dessert');
 
-    expect(search).toHaveBeenCalledTimes(2);
+    await expect.poll(() => search).toHaveBeenCalledTimes(2);
     expect(search).toHaveBeenCalledWith({
       keywords: '',
       maxIngredientCount: null,
@@ -147,30 +146,23 @@ function mountAdminCourseBoard() {
     .spyOn(recipeRepository, 'update')
     .mockImplementation((recipe) => of(recipe));
 
-  const fixture = TestBed.createComponent(AdminCourseBoard);
+  TestBed.createComponent(AdminCourseBoard);
 
-  return { fixture, search, update };
+  return { search, update };
 }
 
-function columnRecipeNames(root: HTMLElement, course: string): string[] {
-  return [
-    ...root.querySelectorAll(
-      `[data-testid="column-${course}"] [data-testid="board-recipe-name"]`,
-    ),
-  ].map((el) => el.textContent?.trim() ?? '');
+function columnRecipeNames(course: string) {
+  return page
+    .getByTestId(`column-${course}`)
+    .getByTestId('board-recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
-function moveSelect(root: HTMLElement, recipeName: string): HTMLSelectElement {
-  const select = root.querySelector<HTMLSelectElement>(
-    `select[aria-label="Move ${recipeName} to"]`,
-  );
-  if (select == null) {
-    throw new Error(`Move select for "${recipeName}" not found.`);
-  }
-  return select;
-}
-
-function selectOption(select: HTMLSelectElement, value: string): void {
-  select.value = value;
-  select.dispatchEvent(new Event('change'));
+function moveOptions(recipeName: string) {
+  return page
+    .getByRole('combobox', { name: `Move ${recipeName} to` })
+    .getByRole('option')
+    .elements()
+    .map((option) => option.textContent?.trim());
 }

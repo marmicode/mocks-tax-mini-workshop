@@ -1,6 +1,7 @@
-import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import {
   RecipeRepository,
@@ -32,12 +33,11 @@ const hummus: Recipe = {
   steps: [],
 };
 
-describe(AdminIngredients.name, () => {
+describe(AdminIngredients, () => {
   it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminIngredients();
-    await fixture.whenStable();
+    const { search } = mountAdminIngredients();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -45,7 +45,7 @@ describe(AdminIngredients.name, () => {
   });
 
   it('counts how many recipes use each ingredient', async () => {
-    const { fixture, search } = mountAdminIngredients();
+    const { search } = mountAdminIngredients();
     search.mockImplementation(({ courses }) =>
       of(
         courses
@@ -55,23 +55,22 @@ describe(AdminIngredients.name, () => {
           : [shakshuka, hummus],
       ),
     );
-    await fixture.whenStable();
 
-    expect(ingredientRows(fixture.nativeElement)).toEqual([
-      ['olive oil', '2'],
-      ['eggs', '1'],
-      ['tahini', '1'],
-    ]);
+    await expect
+      .poll(() => ingredientRows())
+      .toEqual([
+        ['olive oil', '2'],
+        ['eggs', '1'],
+        ['tahini', '1'],
+      ]);
   });
 
   it('renames an ingredient in every recipe using it', async () => {
-    const { fixture, update } = mountAdminIngredients();
-    await fixture.whenStable();
+    const { update } = mountAdminIngredients();
 
-    await renameIngredient(fixture, 'olive oil', 'extra virgin olive oil');
-    await fixture.whenStable();
+    await renameIngredient('olive oil', 'extra virgin olive oil');
 
-    expect(update).toHaveBeenCalledTimes(2);
+    await expect.poll(() => update).toHaveBeenCalledTimes(2);
     expect(update).toHaveBeenNthCalledWith(1, {
       id: 'shakshuka',
       course: 'main',
@@ -99,28 +98,27 @@ describe(AdminIngredients.name, () => {
   });
 
   it('searches recipes again after renaming', async () => {
-    const { fixture, search } = mountAdminIngredients();
-    await fixture.whenStable();
+    const { search } = mountAdminIngredients();
 
-    await renameIngredient(fixture, 'tahini', 'light tahini');
-    await fixture.whenStable();
+    await renameIngredient('tahini', 'light tahini');
 
-    expect(search).toHaveBeenCalledTimes(2);
+    await expect.poll(() => search).toHaveBeenCalledTimes(2);
     expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('does not update anything when the name is unchanged', async () => {
-    const { fixture, update } = mountAdminIngredients();
-    await fixture.whenStable();
+    const { update } = mountAdminIngredients();
 
-    await renameIngredient(fixture, 'eggs', 'eggs');
-    await fixture.whenStable();
+    await renameIngredient('eggs', 'eggs');
 
+    await expect
+      .element(ingredientRow('eggs').getByRole('button', { name: 'Rename' }))
+      .toBeVisible();
     expect(update).not.toHaveBeenCalled();
   });
 
   it('counts an ingredient once per recipe', async () => {
-    const { fixture, search } = mountAdminIngredients();
+    const { search } = mountAdminIngredients();
     const recipesBySearch = new Map<string, Recipe[]>([
       [
         JSON.stringify({
@@ -143,18 +141,18 @@ describe(AdminIngredients.name, () => {
       }
       return of(recipes);
     });
-    await fixture.whenStable();
 
-    expect(ingredientRows(fixture.nativeElement)).toEqual([['eggs', '1']]);
+    await expect.poll(() => ingredientRows()).toEqual([['eggs', '1']]);
   });
 
   it('does not update anything when the new name is blank', async () => {
-    const { fixture, search, update } = mountAdminIngredients();
-    await fixture.whenStable();
+    const { search, update } = mountAdminIngredients();
 
-    await renameIngredient(fixture, 'tahini', '   ');
-    await fixture.whenStable();
+    await renameIngredient('tahini', '   ');
 
+    await expect
+      .element(ingredientRow('tahini').getByRole('button', { name: 'Rename' }))
+      .toBeVisible();
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
@@ -164,14 +162,16 @@ describe(AdminIngredients.name, () => {
   });
 
   it('cancels renaming', async () => {
-    const { fixture, search, update } = mountAdminIngredients();
-    await fixture.whenStable();
+    const { search, update } = mountAdminIngredients();
+    const row = ingredientRow('olive oil');
 
-    buttonByText(fixture.nativeElement, 'Rename').click();
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'Cancel').click();
-    await fixture.whenStable();
+    await row.getByRole('button', { name: 'Rename' }).click();
+    await row.getByRole('button', { name: 'Cancel' }).click();
 
+    await expect
+      .element(row.getByRole('button', { name: 'Rename' }))
+      .toBeVisible();
+    expect(page.getByRole('textbox').query()).toBeNull();
     expect(search.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -184,13 +184,12 @@ describe(AdminIngredients.name, () => {
       ]
     `);
     expect(update).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('input')).toBeNull();
   });
 
   it('shows the renamed ingredient once recipes are searched again', async () => {
-    const { fixture, search } = mountAdminIngredients();
-    await fixture.whenStable();
+    const { search } = mountAdminIngredients();
 
+    await expect.poll(() => search).toHaveBeenCalledOnce();
     search.mockImplementationOnce((params) =>
       isWholeCatalogSearch(params)
         ? of([
@@ -202,15 +201,16 @@ describe(AdminIngredients.name, () => {
           ])
         : of([]),
     );
-    await renameIngredient(fixture, 'tahini', 'tahina');
-    await fixture.whenStable();
+    await renameIngredient('tahini', 'tahina');
 
-    expect(ingredientRows(fixture.nativeElement)).toEqual([
-      ['olive oil', '2'],
-      ['eggs', '1'],
-      ['tahina', '1'],
-    ]);
-    expect(fixture.nativeElement.querySelector('input')).toBeNull();
+    await expect
+      .poll(() => ingredientRows())
+      .toEqual([
+        ['olive oil', '2'],
+        ['eggs', '1'],
+        ['tahina', '1'],
+      ]);
+    expect(page.getByRole('textbox').query()).toBeNull();
   });
 });
 
@@ -224,58 +224,30 @@ function mountAdminIngredients() {
     .spyOn(recipeRepository, 'update')
     .mockImplementation((recipe) => of(recipe));
 
-  const fixture = TestBed.createComponent(AdminIngredients);
+  TestBed.createComponent(AdminIngredients);
 
-  return { fixture, search, update };
+  return { search, update };
 }
 
-function ingredientRows(root: HTMLElement): string[][] {
-  return [...root.querySelectorAll('[data-testid="ingredient-row"]')].map(
-    (row) => [
-      row
-        .querySelector('[data-testid="ingredient-name"]')
-        ?.textContent?.trim() ?? '',
-      row
-        .querySelector('[data-testid="ingredient-count"]')
-        ?.textContent?.trim() ?? '',
-    ],
-  );
+function ingredientRows() {
+  return page
+    .getByTestId('ingredient-row')
+    .all()
+    .map((row) => [
+      row.getByTestId('ingredient-name').element().textContent?.trim() ?? '',
+      row.getByTestId('ingredient-count').element().textContent?.trim() ?? '',
+    ]);
 }
 
-async function renameIngredient(
-  fixture: ComponentFixture<AdminIngredients>,
-  name: string,
-  newName: string,
-) {
-  const row = [
-    ...fixture.nativeElement.querySelectorAll('[data-testid="ingredient-row"]'),
-  ].find(
-    (el) =>
-      el
-        .querySelector('[data-testid="ingredient-name"]')
-        ?.textContent?.trim() === name,
-  );
-  buttonByText(row, 'Rename').click();
-  await fixture.whenStable();
-  const input = row?.querySelector('input');
-  if (input == null) {
-    throw new Error(`Rename input for "${name}" not found.`);
-  }
-  input.value = newName;
-  buttonByText(row, 'Save').click();
+function ingredientRow(name: string) {
+  return page.getByTestId('ingredient-row').filter({ hasText: name });
 }
 
-function buttonByText(
-  root: Element | undefined,
-  text: string,
-): HTMLButtonElement {
-  const button = [...(root?.querySelectorAll('button') ?? [])].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+async function renameIngredient(name: string, newName: string) {
+  const row = ingredientRow(name);
+  await row.getByRole('button', { name: 'Rename' }).click();
+  await row.getByLabelText(`New name for ${name}`).fill(newName);
+  await row.getByRole('button', { name: 'Save' }).click();
 }
 
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {

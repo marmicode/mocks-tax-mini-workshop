@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -9,9 +10,9 @@ import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminLongNames } from './admin-long-names.ng';
 
-describe(AdminLongNames.name, () => {
+describe(AdminLongNames, () => {
   it('searches all recipes', async () => {
-    const { fixture } = mountAdminLongNames({
+    mountAdminLongNames({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -29,28 +30,28 @@ describe(AdminLongNames.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Slow-Roasted Lamb Shoulder with Pomegranate (43)',
-      'Lemon and Ricotta Cheesecake with Honey (39)',
-      'Burnt Aubergine Salad with Pomegranate (38)',
-    ]);
+    await expect
+      .poll(() => rowTexts('long-name-row'))
+      .toEqual([
+        'Slow-Roasted Lamb Shoulder with Pomegranate (43)',
+        'Lemon and Ricotta Cheesecake with Honey (39)',
+        'Burnt Aubergine Salad with Pomegranate (38)',
+      ]);
   });
 
   it('shows an empty state when every name is short enough', async () => {
-    const { fixture } = mountAdminLongNames({
+    mountAdminLongNames({
       recipes: [recipeMother.withBasicInfo('Shakshuka').build()],
     });
-    await fixture.whenStable();
 
-    expect(emptyState(fixture.nativeElement)).toBe(
-      'Every name fits within 30 characters.',
-    );
+    await expect
+      .element(page.getByTestId('empty-state'))
+      .toHaveTextContent('Every name fits within 30 characters.');
   });
 
   it('lists names longer than 30 characters by default', async () => {
-    const { fixture } = mountAdminLongNames({
+    mountAdminLongNames({
       recipes: [
         recipeMother
           .withBasicInfo('Slow-Roasted Lamb Shoulder with Pomegranate')
@@ -58,15 +59,14 @@ describe(AdminLongNames.name, () => {
         recipeMother.withBasicInfo('Hummus with Ful').build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Slow-Roasted Lamb Shoulder with Pomegranate (43)',
-    ]);
+    await expect
+      .poll(() => rowTexts('long-name-row'))
+      .toEqual(['Slow-Roasted Lamb Shoulder with Pomegranate (43)']);
   });
 
   it('sorts the longest names first', async () => {
-    const { fixture } = mountAdminLongNames({
+    mountAdminLongNames({
       recipes: [
         recipeMother
           .withBasicInfo('Tahini and Halva Brownies with Sea Salt')
@@ -76,29 +76,28 @@ describe(AdminLongNames.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Slow-Roasted Lamb Shoulder with Pomegranate (43)',
-      'Tahini and Halva Brownies with Sea Salt (39)',
-    ]);
+    await expect
+      .poll(() => rowTexts('long-name-row'))
+      .toEqual([
+        'Slow-Roasted Lamb Shoulder with Pomegranate (43)',
+        'Tahini and Halva Brownies with Sea Salt (39)',
+      ]);
   });
 
   it('applies a custom max length', async () => {
-    const { fixture } = mountAdminLongNames({
+    mountAdminLongNames({
       recipes: [
         recipeMother.withBasicInfo('Hummus with Ful').build(),
         recipeMother.withBasicInfo('Shakshuka').build(),
       ],
     });
-    await fixture.whenStable();
 
-    const input = maxLengthInput(fixture.nativeElement);
-    input.value = '10';
-    input.dispatchEvent(new Event('input'));
-    await fixture.whenStable();
+    await page.getByLabelText('Max length').fill('10');
 
-    expect(rowTexts(fixture.nativeElement)).toEqual(['Hummus with Ful (15)']);
+    await expect
+      .poll(() => rowTexts('long-name-row'))
+      .toEqual(['Hummus with Ful (15)']);
   });
 });
 
@@ -108,27 +107,26 @@ function mountAdminLongNames({ recipes = [] }: { recipes?: Recipe[] } = {}) {
   });
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(AdminLongNames);
-
-  return { fixture };
+  TestBed.createComponent(AdminLongNames);
 }
 
-function rowTexts(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="long-name-row"]')].map(
-    (row) => row.textContent?.replace(/\s+/g, ' ').trim() ?? '',
-  );
+function rowTexts(testId: string) {
+  return page.getByTestId(testId).elements().map((row) => rowText(row));
 }
 
-function maxLengthInput(root: HTMLElement): HTMLInputElement {
-  const input = [...root.querySelectorAll('label')]
-    .find((el) => el.textContent?.trim() === 'Max length')
-    ?.querySelector('input');
-  if (input == null) {
-    throw new Error('Max length input not found.');
+function rowText(row: Element) {
+  return textOf(row);
+}
+
+function textOf(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent?.replace(/\s+/g, ' ').trim() ?? '';
   }
-  return input;
-}
-
-function emptyState(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+  if (!(node instanceof Element)) {
+    return '';
+  }
+  return [...node.childNodes]
+    .map((child) => textOf(child))
+    .filter((text) => text.length > 0)
+    .join(' ');
 }

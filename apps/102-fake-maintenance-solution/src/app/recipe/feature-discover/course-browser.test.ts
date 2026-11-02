@@ -1,5 +1,7 @@
+import { inputBinding, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import { UserFavorites } from '@whiskmate/recipe/domain';
 import {
@@ -26,86 +28,81 @@ const brownies = recipeMother
   .withBasicInfo({ name: 'Tahini and Halva Brownies', course: 'dessert' })
   .build();
 
-describe(CourseBrowser.name, () => {
+describe(CourseBrowser, () => {
   it('searches recipes of the course', async () => {
-    const { fixture } = mountCourseBrowser('dessert');
-    await fixture.whenStable();
+    mountCourseBrowser('dessert');
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Lemon and Ricotta Cheesecake',
-      'Tahini and Halva Brownies',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Lemon and Ricotta Cheesecake', 'Tahini and Halva Brownies']);
   });
 
   it('shows the course title and its recipes', async () => {
-    const { fixture } = mountCourseBrowser('dessert', {
+    mountCourseBrowser('dessert', {
       recipes: [cheesecake, brownies],
     });
-    await fixture.whenStable();
 
-    expect(fixture.nativeElement.querySelector('h2')?.textContent).toBe(
-      'Desserts',
-    );
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Lemon and Ricotta Cheesecake',
-      'Tahini and Halva Brownies',
-    ]);
+    await expect
+      .element(page.getByRole('heading', { name: 'Desserts' }))
+      .toHaveTextContent('Desserts');
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Lemon and Ricotta Cheesecake', 'Tahini and Halva Brownies']);
   });
 
   it('searches again when the course changes', async () => {
-    const { fixture } = mountCourseBrowser('dessert');
-    await fixture.whenStable();
+    const { course } = mountCourseBrowser('dessert');
 
-    fixture.componentRef.setInput('course', 'starter');
-    await fixture.whenStable();
+    await expect
+      .element(page.getByRole('heading', { name: 'Desserts' }))
+      .toHaveTextContent('Desserts');
 
-    expect(fixture.nativeElement.querySelector('h2')?.textContent).toBe(
-      'Starters',
-    );
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
+    course.set('starter');
+
+    await expect
+      .element(page.getByRole('heading', { name: 'Starters' }))
+      .toHaveTextContent('Starters');
+    await expect.poll(recipeNames).toEqual(['Hummus with Ful']);
   });
 
   it('shows a message when the course has no recipes', async () => {
-    const { fixture } = mountCourseBrowser('main', {
+    mountCourseBrowser('main', {
       recipes: [hummus, cheesecake],
     });
-    await fixture.whenStable();
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No recipes in this course yet');
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No recipes in this course yet');
   });
 
   it('adds a recipe to favorites', async () => {
-    const { fixture, userFavorites } = mountCourseBrowser('dessert', {
+    const { userFavorites } = mountCourseBrowser('dessert', {
       recipes: [cheesecake],
     });
-    await fixture.whenStable();
 
-    buttonByLabel(fixture.nativeElement, 'Add to favorites').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Add to favorites' }).click();
 
-    expect(userFavorites.favoriteIds()).toEqual(new Set([cheesecake.id]));
+    await expect
+      .poll(() => userFavorites.favoriteIds())
+      .toEqual(new Set([cheesecake.id]));
   });
 
   it('assigns a recipe to the picked weekday', async () => {
-    const { fixture, mealPlanStore } = mountCourseBrowser('dessert', {
+    const { mealPlanStore } = mountCourseBrowser('dessert', {
       recipes: [cheesecake],
     });
-    await fixture.whenStable();
 
-    buttonByText(fixture.nativeElement, 'add to meal plan').click();
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'sunday').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Add to meal plan' }).click();
+    await page.getByRole('button', { name: 'Sunday' }).click();
 
-    expect(mealPlanStore.assignments().sunday).toBe(cheesecake.id);
+    await expect
+      .poll(() => mealPlanStore.assignments().sunday)
+      .toBe(cheesecake.id);
   });
 });
 
 function mountCourseBrowser(
-  course: Course,
+  initialCourse: Course,
   {
     recipes = [hummus, shakshuka, cheesecake, brownies],
   }: { recipes?: Recipe[] } = {},
@@ -121,35 +118,18 @@ function mountCourseBrowser(
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
   const userFavorites = TestBed.inject(UserFavorites);
   const mealPlanStore = TestBed.inject(MealPlanStore);
+  const course = signal(initialCourse);
 
-  const fixture = TestBed.createComponent(CourseBrowser);
-  fixture.componentRef.setInput('course', course);
+  TestBed.createComponent(CourseBrowser, {
+    bindings: [inputBinding('course', course)],
+  });
 
-  return { fixture, userFavorites, mealPlanStore };
+  return { course, userFavorites, mealPlanStore };
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function buttonByLabel(root: HTMLElement, label: string): HTMLButtonElement {
-  const button = root.querySelector<HTMLButtonElement>(
-    `button[aria-label="${label}"]`,
-  );
-  if (button == null) {
-    throw new Error(`Button "${label}" not found.`);
-  }
-  return button;
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim().toLowerCase() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

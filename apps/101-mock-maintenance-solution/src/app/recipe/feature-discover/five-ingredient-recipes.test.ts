@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import {
   RecipeRepository,
@@ -30,12 +31,11 @@ const salad: Recipe = {
   steps: [],
 };
 
-describe(FiveIngredientRecipes.name, () => {
+describe(FiveIngredientRecipes, () => {
   it('searches recipes with at most five ingredients', async () => {
-    const { fixture, search } = mountFiveIngredientRecipes();
-    await fixture.whenStable();
+    const { search } = mountFiveIngredientRecipes();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: 5,
       maxStepCount: null,
@@ -44,22 +44,29 @@ describe(FiveIngredientRecipes.name, () => {
   });
 
   it('shows the five-ingredient recipes', async () => {
-    const { fixture, search } = mountFiveIngredientRecipes();
-    await fixture.whenStable();
+    mountFiveIngredientRecipes();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
   });
 
   it('narrows the search with keywords', async () => {
-    const { fixture, search } = mountFiveIngredientRecipes();
-    await fixture.whenStable();
+    const { search } = mountFiveIngredientRecipes();
 
-    typeKeywords(fixture.nativeElement, 'hummus');
-    await fixture.whenStable();
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
 
+    await page.getByLabelText('Keywords').fill('hummus');
+
+    await expect.poll(recipeNames).toEqual(['Hummus with Ful']);
     expect(search).toHaveBeenCalledTimes(2);
     expect(search.mock.calls).toMatchInlineSnapshot(`
       [
@@ -81,17 +88,30 @@ describe(FiveIngredientRecipes.name, () => {
         ],
       ]
     `);
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
 
   it('searches again once keywords are cleared', async () => {
-    const { fixture, search } = mountFiveIngredientRecipes();
-    await fixture.whenStable();
+    const { search } = mountFiveIngredientRecipes();
 
-    typeKeywords(fixture.nativeElement, 'salad');
-    await fixture.whenStable();
-    typeKeywords(fixture.nativeElement, '');
-    await fixture.whenStable();
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
+
+    await page.getByLabelText('Keywords').fill('salad');
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Burnt Aubergine with Tahini and Pomegranate']);
+
+    await page.getByLabelText('Keywords').fill('');
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
 
     expect(searchKey(search.mock.lastCall?.[0])).toBe(
       'keywords=&maxIngredientCount=5&maxStepCount=&courses=',
@@ -99,20 +119,18 @@ describe(FiveIngredientRecipes.name, () => {
   });
 
   it('shows a message when there are no five-ingredient recipes', async () => {
-    const { fixture, search } = mountFiveIngredientRecipes();
+    const { search } = mountFiveIngredientRecipes();
     search.mockReturnValue(of([]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No five-ingredient recipes found');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: 5,
       maxStepCount: null,
       courses: [],
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No five-ingredient recipes found');
   });
 });
 
@@ -147,26 +165,16 @@ function mountFiveIngredientRecipes() {
       }
     });
 
-  const fixture = TestBed.createComponent(FiveIngredientRecipes);
+  TestBed.createComponent(FiveIngredientRecipes);
 
-  return { fixture, search };
+  return { search };
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function typeKeywords(root: HTMLElement, keywords: string): void {
-  const input = root.querySelector<HTMLInputElement>(
-    '[data-testid="keywords-input"]',
-  );
-  if (input == null) {
-    throw new Error('Keywords input not found.');
-  }
-  input.value = keywords;
-  input.dispatchEvent(new Event('input'));
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
 /**

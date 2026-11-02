@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -9,13 +10,13 @@ import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminMissingIngredients } from './admin-missing-ingredients.ng';
 
-describe(AdminMissingIngredients.name, () => {
+describe(AdminMissingIngredients, () => {
   it('searches all recipes', async () => {
     const lambShoulder = recipeMother
       .withBasicInfo('Slow-Roasted Lamb Shoulder')
       .withManyIngredients()
       .build();
-    const { fixture } = mountAdminMissingIngredients({
+    mountAdminMissingIngredients({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -31,17 +32,18 @@ describe(AdminMissingIngredients.name, () => {
         recipeMother.withBasicInfo('Hummus with Ful').withManySteps().build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Lemon and Ricotta Cheesecake — no ingredients',
-      'Slow-Roasted Lamb Shoulder — 1 unnamed ingredient(s)',
-      'Hummus with Ful — no ingredients',
-    ]);
+    await expect
+      .poll(() => rowTexts('missing-ingredients-row'))
+      .toEqual([
+        'Lemon and Ricotta Cheesecake — no ingredients',
+        'Slow-Roasted Lamb Shoulder — 1 unnamed ingredient(s)',
+        'Hummus with Ful — no ingredients',
+      ]);
   });
 
   it('shows an empty state when every recipe has ingredients', async () => {
-    const { fixture } = mountAdminMissingIngredients({
+    mountAdminMissingIngredients({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -51,30 +53,28 @@ describe(AdminMissingIngredients.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(emptyState(fixture.nativeElement)).toBe(
-      'Every recipe has ingredients.',
-    );
+    await expect
+      .element(page.getByTestId('empty-state'))
+      .toHaveTextContent('Every recipe has ingredients.');
   });
 
   it('lists recipes without any ingredient', async () => {
-    const { fixture } = mountAdminMissingIngredients({
+    mountAdminMissingIngredients({
       recipes: [
         recipeMother
           .withBasicInfo({ name: 'Courgette Fritters', course: 'starter' })
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Courgette Fritters — no ingredients',
-    ]);
+    await expect
+      .poll(() => rowTexts('missing-ingredients-row'))
+      .toEqual(['Courgette Fritters — no ingredients']);
   });
 
   it('lists recipes with unnamed ingredients', async () => {
-    const { fixture } = mountAdminMissingIngredients({
+    mountAdminMissingIngredients({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -84,15 +84,14 @@ describe(AdminMissingIngredients.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Tahini and Halva Brownies — 2 unnamed ingredient(s)',
-    ]);
+    await expect
+      .poll(() => rowTexts('missing-ingredients-row'))
+      .toEqual(['Tahini and Halva Brownies — 2 unnamed ingredient(s)']);
   });
 
   it('only lists incomplete recipes', async () => {
-    const { fixture } = mountAdminMissingIngredients({
+    mountAdminMissingIngredients({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -105,11 +104,10 @@ describe(AdminMissingIngredients.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Courgette Fritters — no ingredients',
-    ]);
+    await expect
+      .poll(() => rowTexts('missing-ingredients-row'))
+      .toEqual(['Courgette Fritters — no ingredients']);
   });
 });
 
@@ -121,17 +119,26 @@ function mountAdminMissingIngredients({
   });
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(AdminMissingIngredients);
-
-  return { fixture };
+  TestBed.createComponent(AdminMissingIngredients);
 }
 
-function rowTexts(root: HTMLElement): string[] {
-  return [
-    ...root.querySelectorAll('[data-testid="missing-ingredients-row"]'),
-  ].map((row) => row.textContent?.replace(/\s+/g, ' ').trim() ?? '');
+function rowTexts(testId: string) {
+  return page.getByTestId(testId).elements().map((row) => rowText(row));
 }
 
-function emptyState(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+function rowText(row: Element) {
+  return textOf(row);
+}
+
+function textOf(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+  }
+  if (!(node instanceof Element)) {
+    return '';
+  }
+  return [...node.childNodes]
+    .map((child) => textOf(child))
+    .filter((text) => text.length > 0)
+    .join(' ');
 }

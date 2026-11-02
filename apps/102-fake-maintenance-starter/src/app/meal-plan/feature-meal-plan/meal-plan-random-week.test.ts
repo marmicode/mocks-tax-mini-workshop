@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -44,71 +45,66 @@ const fullWeek: WeekdayAssignments = {
   sunday: 'harissa-chicken',
 };
 
-describe(MealPlanRandomWeek.name, () => {
+describe(MealPlanRandomWeek, () => {
   it('shows a random main for each empty day', async () => {
-    const { fixture } = mountMealPlanRandomWeek({
+    mountMealPlanRandomWeek({
       assignments: { ...fullWeek, saturday: null, sunday: null },
     });
-    await fixture.whenStable();
 
-    expect(randomPicks(fixture.nativeElement)).toEqual([
-      'Saturday: Shakshuka',
-      'Sunday: Lamb Kofte with Yogurt and Sumac',
-    ]);
+    await expect
+      .poll(() => randomPicks())
+      .toEqual([
+        'Saturday: Shakshuka',
+        'Sunday: Lamb Kofte with Yogurt and Sumac',
+      ]);
   });
 
   it('only picks quick recipes when asked', async () => {
-    const { fixture } = mountMealPlanRandomWeek({
+    mountMealPlanRandomWeek({
       assignments: { ...fullWeek, sunday: null },
     });
-    await fixture.whenStable();
-    expect(randomPicks(fixture.nativeElement)).toEqual(['Sunday: Shakshuka']);
 
-    checkboxByLabel(fixture.nativeElement, 'Quick recipes only').click();
-    await fixture.whenStable();
+    await expect.poll(() => randomPicks()).toEqual(['Sunday: Shakshuka']);
+    await page.getByRole('checkbox', { name: 'Quick recipes only' }).click();
 
-    expect(randomPicks(fixture.nativeElement)).toEqual([
-      'Sunday: Lamb Kofte with Yogurt and Sumac',
-    ]);
+    await expect
+      .poll(() => randomPicks())
+      .toEqual(['Sunday: Lamb Kofte with Yogurt and Sumac']);
   });
 
   it('shuffles the picks again', async () => {
-    const { fixture, randomAdapterFake } = mountMealPlanRandomWeek({
+    const { randomAdapterFake } = mountMealPlanRandomWeek({
       assignments: { ...fullWeek, sunday: null },
     });
-    await fixture.whenStable();
-    expect(randomPicks(fixture.nativeElement)).toEqual(['Sunday: Shakshuka']);
 
+    await expect.poll(() => randomPicks()).toEqual(['Sunday: Shakshuka']);
     randomAdapterFake.setPickIndex(-1);
-    buttonByText(fixture.nativeElement, 'Shuffle').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Shuffle' }).click();
 
-    expect(randomPicks(fixture.nativeElement)).toEqual([
-      'Sunday: Lamb Kofte with Yogurt and Sumac',
-    ]);
+    await expect
+      .poll(() => randomPicks())
+      .toEqual(['Sunday: Lamb Kofte with Yogurt and Sumac']);
   });
 
   it('applies the picks and goes back to the meal plan', async () => {
-    const { fixture, mealPlanStore, router } = mountMealPlanRandomWeek({
+    const { mealPlanStore, router } = mountMealPlanRandomWeek({
       assignments: { ...fullWeek, friday: null },
       recipes: [lambKofte],
     });
-    await fixture.whenStable();
 
-    buttonByText(fixture.nativeElement, 'Apply').click();
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('random-pick')).toBeVisible();
+    await page.getByRole('button', { name: 'Apply' }).click();
 
-    expect(mealPlanStore.assignments().friday).toBe(lambKofte.id);
-    expect(router.url).toBe('/meal-plan');
+    await expect
+      .poll(() => mealPlanStore.assignments().friday)
+      .toBe(lambKofte.id);
+    await expect.poll(() => router.url).toBe('/meal-plan');
   });
 
   it('says there is nothing to pick when the week is full', async () => {
-    const { fixture } = mountMealPlanRandomWeek({ assignments: fullWeek });
-    await fixture.whenStable();
+    mountMealPlanRandomWeek({ assignments: fullWeek });
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-picks"]'),
-    ).not.toBeNull();
+    await expect.element(page.getByTestId('no-picks')).toBeVisible();
   });
 });
 
@@ -134,9 +130,9 @@ function mountMealPlanRandomWeek({
   planWeek(mealPlanStore, assignments);
   const router = TestBed.inject(Router);
 
-  const fixture = TestBed.createComponent(MealPlanRandomWeek);
+  TestBed.createComponent(MealPlanRandomWeek);
 
-  return { fixture, randomAdapterFake, mealPlanStore, router };
+  return { randomAdapterFake, mealPlanStore, router };
 }
 
 function planWeek(
@@ -151,29 +147,9 @@ function planWeek(
   }
 }
 
-function randomPicks(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="random-pick"]')].map(
-    (el) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '',
-  );
-}
-
-function checkboxByLabel(root: HTMLElement, label: string): HTMLInputElement {
-  const checkbox = [...root.querySelectorAll('mat-checkbox')].find(
-    (el) => el.textContent?.trim() === label,
-  );
-  const input = checkbox?.querySelector('input');
-  if (input == null) {
-    throw new Error(`Checkbox "${label}" not found.`);
-  }
-  return input;
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function randomPicks() {
+  return page
+    .getByTestId('random-pick')
+    .elements()
+    .map((el) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '');
 }

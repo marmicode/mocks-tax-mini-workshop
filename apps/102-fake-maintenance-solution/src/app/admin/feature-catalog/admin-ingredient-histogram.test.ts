@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -9,9 +10,9 @@ import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminIngredientHistogram } from './admin-ingredient-histogram.ng';
 
-describe(AdminIngredientHistogram.name, () => {
+describe(AdminIngredientHistogram, () => {
   it('searches all recipes', async () => {
-    const { fixture } = mountAdminIngredientHistogram({
+    mountAdminIngredientHistogram({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -24,24 +25,26 @@ describe(AdminIngredientHistogram.name, () => {
         recipeMother.withBasicInfo('Hummus with Ful').withManySteps().build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(histogram(fixture.nativeElement)).toEqual([
-      { ingredientCount: '0', recipeCount: '1' },
-      { ingredientCount: '3', recipeCount: '1' },
-      { ingredientCount: '8', recipeCount: '1' },
-    ]);
+    await expect
+      .poll(() => histogram())
+      .toEqual([
+        { ingredientCount: '0', recipeCount: '1' },
+        { ingredientCount: '3', recipeCount: '1' },
+        { ingredientCount: '8', recipeCount: '1' },
+      ]);
   });
 
   it('shows an empty state when there are no recipes', async () => {
-    const { fixture } = mountAdminIngredientHistogram();
-    await fixture.whenStable();
+    mountAdminIngredientHistogram();
 
-    expect(emptyState(fixture.nativeElement)).toBe('No recipes yet.');
+    await expect
+      .element(page.getByTestId('empty-state'))
+      .toHaveTextContent('No recipes yet.');
   });
 
   it('counts a single recipe', async () => {
-    const { fixture } = mountAdminIngredientHistogram({
+    mountAdminIngredientHistogram({
       recipes: [
         recipeMother
           .withBasicInfo('Shakshuka')
@@ -52,15 +55,14 @@ describe(AdminIngredientHistogram.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(histogram(fixture.nativeElement)).toEqual([
-      { ingredientCount: '2', recipeCount: '1' },
-    ]);
+    await expect
+      .poll(() => histogram())
+      .toEqual([{ ingredientCount: '2', recipeCount: '1' }]);
   });
 
   it('groups recipes with the same ingredient count', async () => {
-    const { fixture } = mountAdminIngredientHistogram({
+    mountAdminIngredientHistogram({
       recipes: [
         recipeMother
           .withBasicInfo('Hummus with Ful')
@@ -72,15 +74,14 @@ describe(AdminIngredientHistogram.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(histogram(fixture.nativeElement)).toEqual([
-      { ingredientCount: '3', recipeCount: '2' },
-    ]);
+    await expect
+      .poll(() => histogram())
+      .toEqual([{ ingredientCount: '3', recipeCount: '2' }]);
   });
 
   it('sorts buckets by ingredient count', async () => {
-    const { fixture } = mountAdminIngredientHistogram({
+    mountAdminIngredientHistogram({
       recipes: [
         recipeMother
           .withBasicInfo('Tahini and Halva Brownies')
@@ -94,13 +95,14 @@ describe(AdminIngredientHistogram.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(histogram(fixture.nativeElement)).toEqual([
-      { ingredientCount: '0', recipeCount: '1' },
-      { ingredientCount: '3', recipeCount: '2' },
-      { ingredientCount: '8', recipeCount: '1' },
-    ]);
+    await expect
+      .poll(() => histogram())
+      .toEqual([
+        { ingredientCount: '0', recipeCount: '1' },
+        { ingredientCount: '3', recipeCount: '2' },
+        { ingredientCount: '8', recipeCount: '1' },
+      ]);
   });
 });
 
@@ -112,22 +114,17 @@ function mountAdminIngredientHistogram({
   });
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(AdminIngredientHistogram);
-
-  return { fixture };
+  TestBed.createComponent(AdminIngredientHistogram);
 }
 
-function histogram(root: HTMLElement) {
-  return [...root.querySelectorAll('[data-testid="histogram-row"]')].map(
-    (row) => {
-      const [ingredientCount, recipeCount] = [
-        ...row.querySelectorAll('td'),
-      ].map((cell) => cell.textContent?.trim());
+function histogram() {
+  return page
+    .getByTestId('histogram-row')
+    .elements()
+    .map((row) => {
+      const [ingredientCount, recipeCount] = [...row.children].map((cell) =>
+        cell.textContent?.trim(),
+      );
       return { ingredientCount, recipeCount };
-    },
-  );
-}
-
-function emptyState(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+    });
 }

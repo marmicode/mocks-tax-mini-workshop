@@ -1,6 +1,8 @@
+import { inputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import {
@@ -52,15 +54,17 @@ const emptyAssignments: WeekdayAssignments = {
   sunday: null,
 };
 
-describe(MealPlanSwap.name, () => {
+describe(MealPlanSwap, () => {
   it('fetches the planned recipe and searches recipes of the same course', async () => {
-    const { fixture, findById, search } = mountMealPlanSwap('monday', {
+    const { findById, search } = mountMealPlanSwap('monday', {
       ...emptyAssignments,
       monday: 'shakshuka',
     });
     findById.mockReturnValue(of(shakshuka));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('current-recipe'))
+      .toHaveTextContent('Shakshuka');
     expect(findById).toHaveBeenCalledTimes(1);
     expect(findById).toHaveBeenNthCalledWith(1, { id: 'shakshuka' });
     expect(search).toHaveBeenCalledTimes(1);
@@ -70,48 +74,42 @@ describe(MealPlanSwap.name, () => {
       maxStepCount: null,
       courses: ['main'],
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="current-recipe"]')
-        ?.textContent,
-    ).toBe('Shakshuka');
   });
 
   it('lists alternatives that are not planned yet', async () => {
-    const { fixture, findById, search } = mountMealPlanSwap('monday', {
+    const { findById, search } = mountMealPlanSwap('monday', {
       ...emptyAssignments,
       monday: 'shakshuka',
       tuesday: 'harissa-chicken',
     });
     findById.mockReturnValue(of(shakshuka));
     search.mockReturnValue(of([shakshuka, lambKofte, harissaChicken]));
-    await fixture.whenStable();
 
-    expect(alternativeNames(fixture.nativeElement)).toEqual([
-      'Lamb Kofte with Yogurt and Sumac',
-    ]);
+    await expect
+      .poll(() => alternativeNames())
+      .toEqual(['Lamb Kofte with Yogurt and Sumac']);
   });
 
   it('assigns the picked recipe and goes back to the meal plan', async () => {
-    const { fixture, findById, search, mealPlanStore, router } =
-      mountMealPlanSwap('friday', {
+    const { findById, search, mealPlanStore, router } = mountMealPlanSwap(
+      'friday',
+      {
         ...emptyAssignments,
         friday: 'shakshuka',
-      });
+      },
+    );
     findById.mockReturnValue(of(shakshuka));
     search.mockReturnValue(of([shakshuka, lambKofte]));
     const assign = vi
       .spyOn(mealPlanStore, 'assign')
       .mockImplementation(() => undefined);
     const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
-    await fixture.whenStable();
 
-    buttonByText(
-      fixture.nativeElement,
-      'Pick Lamb Kofte with Yogurt and Sumac',
-    ).click();
-    await fixture.whenStable();
+    await page
+      .getByRole('button', { name: 'Pick Lamb Kofte with Yogurt and Sumac' })
+      .click();
 
-    expect(assign).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => assign).toHaveBeenCalledExactlyOnceWith({
       weekday: 'friday',
       recipeId: 'lamb-kofte',
     });
@@ -119,37 +117,28 @@ describe(MealPlanSwap.name, () => {
   });
 
   it('says there is no alternative when every recipe of the course is planned', async () => {
-    const { fixture, findById, search } = mountMealPlanSwap('monday', {
+    const { findById, search } = mountMealPlanSwap('monday', {
       ...emptyAssignments,
       monday: 'shakshuka',
     });
     findById.mockReturnValue(of(shakshuka));
     search.mockReturnValue(of([shakshuka]));
-    await fixture.whenStable();
 
+    await expect.element(page.getByTestId('no-alternatives')).toBeVisible();
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['main'],
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-alternatives"]'),
-    ).not.toBeNull();
   });
 
   it('does not search anything when nothing is planned that day', async () => {
-    const { fixture, findById, search } = mountMealPlanSwap(
-      'monday',
-      emptyAssignments,
-    );
-    await fixture.whenStable();
+    const { findById, search } = mountMealPlanSwap('monday', emptyAssignments);
 
+    await expect.element(page.getByTestId('nothing-planned')).toBeVisible();
     expect(findById).not.toHaveBeenCalled();
     expect(search).not.toHaveBeenCalled();
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="nothing-planned"]'),
-    ).not.toBeNull();
   });
 });
 
@@ -176,24 +165,16 @@ function mountMealPlanSwap(weekday: Weekday, assignments: WeekdayAssignments) {
   vi.spyOn(mealPlanStore, 'assignments').mockReturnValue(assignments);
   const router = TestBed.inject(Router);
 
-  const fixture = TestBed.createComponent(MealPlanSwap);
-  fixture.componentRef.setInput('weekday', weekday);
+  TestBed.createComponent(MealPlanSwap, {
+    bindings: [inputBinding('weekday', () => weekday)],
+  });
 
-  return { fixture, findById, search, mealPlanStore, router };
+  return { findById, search, mealPlanStore, router };
 }
 
-function alternativeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="alternative-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function alternativeNames() {
+  return page
+    .getByTestId('alternative-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

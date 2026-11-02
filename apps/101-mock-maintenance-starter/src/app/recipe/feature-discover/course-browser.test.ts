@@ -1,6 +1,8 @@
+import { inputBinding, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { UserFavorites } from '@whiskmate/recipe/domain';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
@@ -29,125 +31,125 @@ const brownies: Recipe = {
   steps: [],
 };
 
-describe(CourseBrowser.name, () => {
+describe(CourseBrowser, () => {
   it('searches recipes of the course', async () => {
-    const { fixture, search } = mountCourseBrowser('dessert');
-    await fixture.whenStable();
+    const { search } = mountCourseBrowser('dessert');
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
-      keywords: '',
-      maxIngredientCount: null,
-      maxStepCount: null,
-      courses: ['dessert'],
-    });
+    await expect
+      .poll(() => search)
+      .toHaveBeenCalledExactlyOnceWith({
+        keywords: '',
+        maxIngredientCount: null,
+        maxStepCount: null,
+        courses: ['dessert'],
+      });
   });
 
   it('shows the course title and its recipes', async () => {
-    const { fixture, search } = mountCourseBrowser('dessert');
+    const { search } = mountCourseBrowser('dessert');
     search.mockReturnValue(of([cheesecake, brownies]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByRole('heading', { name: 'Desserts' }))
+      .toHaveTextContent('Desserts');
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Lemon and Ricotta Cheesecake', 'Tahini and Halva Brownies']);
     expect(search).toHaveBeenCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['dessert'],
     });
-    expect(fixture.nativeElement.querySelector('h2')?.textContent).toBe(
-      'Desserts',
-    );
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Lemon and Ricotta Cheesecake',
-      'Tahini and Halva Brownies',
-    ]);
   });
 
   it('searches again when the course changes', async () => {
-    const { fixture, search } = mountCourseBrowser('dessert');
-    await fixture.whenStable();
+    const { search, course } = mountCourseBrowser('dessert');
 
-    fixture.componentRef.setInput('course', 'starter');
-    await fixture.whenStable();
+    await expect.poll(() => search.mock.calls.length).toBe(1);
+    await expect
+      .element(page.getByRole('heading', { name: 'Desserts' }))
+      .toBeVisible();
 
-    expect(search).toHaveBeenCalledTimes(2);
+    course.set('starter');
+
+    await expect.poll(() => search.mock.calls.length).toBe(2);
     expect(search).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['starter'],
     });
-    expect(fixture.nativeElement.querySelector('h2')?.textContent).toBe(
-      'Starters',
-    );
+    await expect
+      .element(page.getByRole('heading', { name: 'Starters' }))
+      .toHaveTextContent('Starters');
   });
 
   it('shows a message when the course has no recipes', async () => {
-    const { fixture, search } = mountCourseBrowser('main');
+    const { search } = mountCourseBrowser('main');
     search.mockReturnValue(of([]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No recipes in this course yet');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['main'],
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No recipes in this course yet');
   });
 
   it('adds a recipe to favorites', async () => {
-    const { fixture, search, userFavorites } = mountCourseBrowser('dessert');
+    const { search, userFavorites } = mountCourseBrowser('dessert');
     search.mockReturnValue(of([cheesecake]));
     const addFavorite = vi
       .spyOn(userFavorites, 'addFavorite')
       .mockImplementation(() => undefined);
-    await fixture.whenStable();
 
-    buttonByLabel(fixture.nativeElement, 'Add to favorites').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Add to favorites' }).click();
 
+    await expect
+      .poll(() => addFavorite)
+      .toHaveBeenCalledExactlyOnceWith('lemon-ricotta-cheesecake');
     expect(search).toHaveBeenCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['dessert'],
     });
-    expect(addFavorite).toHaveBeenCalledExactlyOnceWith(
-      'lemon-ricotta-cheesecake',
-    );
   });
 
   it('assigns a recipe to the picked weekday', async () => {
-    const { fixture, search, mealPlanStore } = mountCourseBrowser('dessert');
+    const { search, mealPlanStore } = mountCourseBrowser('dessert');
     search.mockReturnValue(of([cheesecake]));
     vi.spyOn(mealPlanStore, 'canAdd').mockReturnValue(true);
     const assign = vi
       .spyOn(mealPlanStore, 'assign')
       .mockImplementation(() => undefined);
-    await fixture.whenStable();
 
-    buttonByText(fixture.nativeElement, 'add to meal plan').click();
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'sunday').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Add to meal plan' }).click();
+    await expect
+      .element(page.getByRole('button', { name: 'Sunday' }))
+      .toBeVisible();
+    await page.getByRole('button', { name: 'Sunday' }).click();
 
+    await expect
+      .poll(() => assign)
+      .toHaveBeenCalledExactlyOnceWith({
+        weekday: 'sunday',
+        recipeId: 'lemon-ricotta-cheesecake',
+      });
     expect(search).toHaveBeenCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['dessert'],
     });
-    expect(assign).toHaveBeenCalledExactlyOnceWith({
-      weekday: 'sunday',
-      recipeId: 'lemon-ricotta-cheesecake',
-    });
   });
 });
 
-function mountCourseBrowser(course: Course) {
+function mountCourseBrowser(initialCourse: Course) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
@@ -166,35 +168,18 @@ function mountCourseBrowser(course: Course) {
     .mockReturnValue(of([cheesecake, brownies]));
   const userFavorites = TestBed.inject(UserFavorites);
   const mealPlanStore = TestBed.inject(MealPlanStore);
+  const course = signal(initialCourse);
 
-  const fixture = TestBed.createComponent(CourseBrowser);
-  fixture.componentRef.setInput('course', course);
+  TestBed.createComponent(CourseBrowser, {
+    bindings: [inputBinding('course', course)],
+  });
 
-  return { fixture, search, userFavorites, mealPlanStore };
+  return { search, userFavorites, mealPlanStore, course };
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function buttonByLabel(root: HTMLElement, label: string): HTMLButtonElement {
-  const button = root.querySelector<HTMLButtonElement>(
-    `button[aria-label="${label}"]`,
-  );
-  if (button == null) {
-    throw new Error(`Button "${label}" not found.`);
-  }
-  return button;
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim().toLowerCase() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

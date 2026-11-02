@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { describe, it, vi } from 'vitest';
+import { page } from 'vitest/browser';
+import { describe, it } from 'vitest';
 import { RECIPES } from '../recipe/recipe-data';
 import { LocalStorage } from '../shared/local-storage';
 import { MealPlan } from './meal-plan.ng';
@@ -32,85 +33,72 @@ class MemoryStorage implements LocalStorage {
   }
 }
 
-function mountMealPlan(
-  arrange?: (store: MealPlanStore) => void,
-): ReturnType<typeof TestBed.createComponent<MealPlan>> {
+describe(MealPlan, () => {
+  it('shows seven empty weekdays', async () => {
+    mountMealPlan();
+
+    await expect.poll(weekdayLabels).toEqual(WEEKDAYS);
+    await expect
+      .element(page.getByText('No recipe is planned'))
+      .toHaveLength(7);
+  });
+
+  it('shows the name and picture of a planned recipe', async () => {
+    mountMealPlan((store) => {
+      store.assign({ weekday: 'monday', recipeId: shakshuka.id });
+    });
+
+    await expect.element(page.getByText('Shakshuka')).toBeVisible();
+    await expect
+      .element(page.getByRole('img', { name: 'Shakshuka' }))
+      .toHaveAttribute('src', shakshuka.pictureUri);
+    await expect
+      .element(page.getByText('No recipe is planned'))
+      .toHaveLength(6);
+  });
+
+  it('renders a missing recipe as an empty day', async () => {
+    mountMealPlan((store) => {
+      store.assign({ weekday: 'monday', recipeId: 'missing' });
+    });
+
+    await expect.element(page.getByText('Monday')).toBeVisible();
+    await expect
+      .element(page.getByText('No recipe is planned'))
+      .toHaveLength(7);
+  });
+
+  it('clears a day', async () => {
+    const { store } = mountMealPlan((plan) => {
+      plan.assign({ weekday: 'monday', recipeId: shakshuka.id });
+    });
+
+    await expect.element(page.getByText('Shakshuka')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Remove' }).click();
+
+    await expect.poll(() => store.assignments().monday).toBeNull();
+    await expect.element(page.getByText('Shakshuka')).not.toBeInTheDocument();
+    await expect
+      .element(page.getByText('No recipe is planned'))
+      .toHaveLength(7);
+  });
+});
+
+function mountMealPlan(arrange?: (store: MealPlanStore) => void) {
   TestBed.resetTestingModule();
   TestBed.overrideProvider(LocalStorage, { useValue: new MemoryStorage() });
   const store = TestBed.inject(MealPlanStore);
   arrange?.(store);
-  return TestBed.createComponent(MealPlan);
+
+  TestBed.createComponent(MealPlan);
+
+  return { store };
 }
 
-function dayElements(fixture: { nativeElement: HTMLElement }): HTMLElement[] {
-  return [
-    ...fixture.nativeElement.querySelectorAll<HTMLElement>('wm-meal-plan-day'),
-  ];
+function weekdayLabels() {
+  return page
+    .getByText(/Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday/)
+    .elements()
+    .map((element) => element.textContent?.trim() ?? '');
 }
-
-describe(MealPlan.name, () => {
-  it('shows seven empty weekdays', async () => {
-    const fixture = mountMealPlan();
-    await fixture.whenStable();
-
-    const days = dayElements(fixture);
-    expect(days).toHaveLength(7);
-    expect(
-      days.map((day) =>
-        WEEKDAYS.find((weekday) => day.textContent?.includes(weekday)),
-      ),
-    ).toEqual(WEEKDAYS);
-    for (const day of days) {
-      expect(day.textContent?.toLowerCase()).toContain('no recipe is planned');
-    }
-  });
-
-  it('shows the name and picture of a planned recipe', async () => {
-    const fixture = mountMealPlan((store) => {
-      store.assign({ weekday: 'monday', recipeId: shakshuka.id });
-    });
-    await fixture.whenStable();
-
-    const days = dayElements(fixture);
-    const monday = days[0];
-    expect(monday?.textContent).toContain('Shakshuka');
-    expect(monday?.querySelector('img')?.getAttribute('src')).toBe(
-      shakshuka.pictureUri,
-    );
-    for (const day of days.slice(1)) {
-      expect(day.textContent?.toLowerCase()).toContain('no recipe is planned');
-    }
-  });
-
-  it('renders a missing recipe as an empty day', async () => {
-    const fixture = mountMealPlan((store) => {
-      store.assign({ weekday: 'monday', recipeId: 'missing' });
-    });
-    await fixture.whenStable();
-
-    const days = dayElements(fixture);
-    const monday = days[0];
-    expect(monday?.textContent).toContain('Monday');
-    expect(monday?.textContent?.toLowerCase()).toContain(
-      'no recipe is planned',
-    );
-  });
-
-  it('clears a day', async () => {
-    TestBed.resetTestingModule();
-    TestBed.overrideProvider(LocalStorage, { useValue: new MemoryStorage() });
-    const store = TestBed.inject(MealPlanStore);
-    store.assign({ weekday: 'monday', recipeId: shakshuka.id });
-    const clear = vi.spyOn(store, 'clear');
-    const fixture = TestBed.createComponent(MealPlan);
-    await fixture.whenStable();
-
-    fixture.nativeElement.querySelector('button')?.click();
-    await fixture.whenStable();
-
-    expect(clear).toHaveBeenCalledWith({ weekday: 'monday' });
-    expect(dayElements(fixture)[0]?.textContent?.toLowerCase()).toContain(
-      'no recipe is planned',
-    );
-  });
-});

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import {
   RecipeRepository,
@@ -29,16 +30,16 @@ const salad: Recipe = {
   steps: ['Burn the aubergine.', 'Dress with tahini.'],
 };
 
-describe(ThreeStepRecipes.name, () => {
+describe(ThreeStepRecipes, () => {
   it('searches recipes with at most three steps', async () => {
-    const { fixture, search } = mountThreeStepRecipes();
-    await fixture.whenStable();
+    const { search } = mountThreeStepRecipes();
 
+    await expect.poll(() => search.mock.calls).toHaveLength(1);
     expect(search.mock.calls).toMatchSnapshot();
   });
 
   it('shows the three-step recipes', async () => {
-    const { fixture, search } = mountThreeStepRecipes();
+    const { search } = mountThreeStepRecipes();
     search.mockImplementation(
       (params) =>
         ({
@@ -56,16 +57,17 @@ describe(ThreeStepRecipes.name, () => {
           })]: of([salad]),
         })[JSON.stringify(params)] ?? of([]),
     );
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
   });
 
   it('shows the steps of each recipe', async () => {
-    const { fixture, search } = mountThreeStepRecipes();
+    const { search } = mountThreeStepRecipes();
     search.mockImplementation((params) => {
       expect(params).toEqual({
         keywords: '',
@@ -75,44 +77,40 @@ describe(ThreeStepRecipes.name, () => {
       });
       return of([salad]);
     });
-    await fixture.whenStable();
 
+    await expect
+      .poll(steps)
+      .toEqual(['Burn the aubergine.', 'Dress with tahini.']);
     expect(search).toHaveBeenCalledOnce();
-    expect(steps(fixture.nativeElement)).toEqual([
-      'Burn the aubergine.',
-      'Dress with tahini.',
-    ]);
   });
 
   it('links each recipe to its detail page', async () => {
-    const { fixture, search } = mountThreeStepRecipes();
+    const { search } = mountThreeStepRecipes();
     search.mockImplementation((params) =>
       isThreeStepSearch(params) ? of([hummus]) : of([]),
     );
-    await fixture.whenStable();
 
-    expect(
-      fixture.nativeElement
-        .querySelector('[data-testid="recipe-name"]')
-        ?.getAttribute('href'),
-    ).toBe('/recipes/hummus-ful');
+    await expect
+      .element(page.getByRole('link', { name: 'Hummus with Ful' }))
+      .toHaveTextContent('Hummus with Ful');
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveAttribute('href', '/recipes/hummus-ful');
   });
 
   it('shows a message when there are no three-step recipes', async () => {
-    const { fixture, search } = mountThreeStepRecipes();
+    const { search } = mountThreeStepRecipes();
     search.mockReturnValue(of([]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No three-step recipes found');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 3,
       courses: [],
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No three-step recipes found');
   });
 });
 
@@ -125,21 +123,23 @@ function mountThreeStepRecipes() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockReturnValue(of([hummus, salad]));
 
-  const fixture = TestBed.createComponent(ThreeStepRecipes);
+  TestBed.createComponent(ThreeStepRecipes);
 
-  return { fixture, search };
+  return { search };
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
-function steps(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-step"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function steps() {
+  return page
+    .getByTestId('recipe-step')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
 function isThreeStepSearch(params: RecipeSearchParams): boolean {

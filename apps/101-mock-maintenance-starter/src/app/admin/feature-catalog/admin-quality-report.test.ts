@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import {
   RecipeRepository,
@@ -48,12 +49,11 @@ const sketchyFritters: Recipe = {
 const WHOLE_CATALOG_QUERY =
   'keywords=&maxIngredientCount=null&maxStepCount=null';
 
-describe(AdminQualityReport.name, () => {
+describe(AdminQualityReport, () => {
   it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminQualityReport();
-    await fixture.whenStable();
+    const { search } = mountAdminQualityReport();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -61,30 +61,28 @@ describe(AdminQualityReport.name, () => {
   });
 
   it('gives a perfect score to a complete recipe', async () => {
-    const { fixture, search } = mountAdminQualityReport();
+    const { search } = mountAdminQualityReport();
     search.mockImplementation(searchCatalog([shakshuka]));
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual(['Shakshuka 100% ✅']);
+    await expect.poll(() => rowTexts()).toEqual(['Shakshuka 100% ✅']);
   });
 
   it('reports a missing description', async () => {
-    const { fixture, search } = mountAdminQualityReport();
+    const { search } = mountAdminQualityReport();
     search.mockImplementation(searchCatalog([brownies]));
-    await fixture.whenStable();
 
+    await expect
+      .poll(() => rowTexts())
+      .toEqual(['Tahini and Halva Brownies 75% Missing description']);
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Tahini and Halva Brownies 75% Missing description',
-    ]);
   });
 
   it('reports every issue of a sketchy recipe', async () => {
-    const { fixture, search } = mountAdminQualityReport();
+    const { search } = mountAdminQualityReport();
     search.mockImplementation(
       searchCatalog(
         [shakshuka, brownies, sketchyFritters].filter(
@@ -92,18 +90,19 @@ describe(AdminQualityReport.name, () => {
         ),
       ),
     );
-    await fixture.whenStable();
 
+    await expect
+      .poll(() => rowTexts())
+      .toEqual([
+        'Courgette Fritters 0% Missing description Fewer than 3 steps Most ingredients have no quantity Picture is not served over https',
+      ]);
     await expect(
       JSON.stringify(search.mock.calls, null, 2),
     ).toMatchFileSnapshot('./__snapshots__/admin-quality-report.calls.json');
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Courgette Fritters 0% Missing description Fewer than 3 steps Most ingredients have no quantity Picture is not served over https',
-    ]);
   });
 
   it('shows only recipes with issues when filtered', async () => {
-    const { fixture, search } = mountAdminQualityReport();
+    const { search } = mountAdminQualityReport();
     search
       .mockImplementationOnce(
         searchCatalog([shakshuka, brownies, sketchyFritters]),
@@ -116,41 +115,53 @@ describe(AdminQualityReport.name, () => {
             ),
         ),
       );
-    await fixture.whenStable();
 
-    checkboxByLabel(fixture.nativeElement, 'Only recipes with issues').click();
-    await fixture.whenStable();
+    await expect
+      .poll(() => rowNames())
+      .toEqual([
+        'Shakshuka',
+        'Tahini and Halva Brownies',
+        'Courgette Fritters',
+      ]);
+    await page
+      .getByRole('checkbox', { name: 'Only recipes with issues' })
+      .click();
 
+    await expect
+      .poll(() => rowNames())
+      .toEqual(['Tahini and Halva Brownies', 'Courgette Fritters']);
     expect(search).toHaveBeenCalledOnce();
-    expect(rowNames(fixture.nativeElement)).toEqual([
-      'Tahini and Halva Brownies',
-      'Courgette Fritters',
-    ]);
   });
 
   it('shows every recipe again once the filter is unchecked', async () => {
-    const { fixture, search } = mountAdminQualityReport();
+    const { search } = mountAdminQualityReport();
     search.mockReturnValue(of([shakshuka, brownies]));
-    await fixture.whenStable();
 
-    checkboxByLabel(fixture.nativeElement, 'Only recipes with issues').click();
-    await fixture.whenStable();
-    checkboxByLabel(fixture.nativeElement, 'Only recipes with issues').click();
-    await fixture.whenStable();
+    await expect
+      .poll(() => rowNames())
+      .toEqual(['Shakshuka', 'Tahini and Halva Brownies']);
+    await page
+      .getByRole('checkbox', { name: 'Only recipes with issues' })
+      .click();
+    await expect
+      .poll(() => rowNames())
+      .toEqual(['Tahini and Halva Brownies']);
+    await page
+      .getByRole('checkbox', { name: 'Only recipes with issues' })
+      .click();
 
+    await expect
+      .poll(() => rowNames())
+      .toEqual(['Shakshuka', 'Tahini and Halva Brownies']);
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(rowNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Tahini and Halva Brownies',
-    ]);
   });
 
   it('tolerates up to half of the ingredients without quantity', async () => {
-    const { fixture, search } = mountAdminQualityReport();
+    const { search } = mountAdminQualityReport();
     search.mockImplementation((params) =>
       toQueryString(params) !== WHOLE_CATALOG_QUERY
         ? of([])
@@ -164,18 +175,19 @@ describe(AdminQualityReport.name, () => {
             },
           ]),
     );
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual(['Shakshuka 100% ✅']);
+    await expect.poll(() => rowTexts()).toEqual(['Shakshuka 100% ✅']);
   });
 
   it('reports a blank description and too few steps', async () => {
-    const { fixture, search } = mountAdminQualityReport();
+    const { search } = mountAdminQualityReport();
     search.mockReturnValue(
       of([{ ...shakshuka, description: '   ', steps: ['Cook.', 'Serve.'] }]),
     );
-    await fixture.whenStable();
 
+    await expect
+      .poll(() => rowTexts())
+      .toEqual(['Shakshuka 50% Missing description Fewer than 3 steps']);
     expect(search.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -187,29 +199,21 @@ describe(AdminQualityReport.name, () => {
         ],
       ]
     `);
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Shakshuka 50% Missing description Fewer than 3 steps',
-    ]);
   });
 
   it('links each recipe to its edit page', async () => {
-    const { fixture, search } = mountAdminQualityReport();
+    const { search } = mountAdminQualityReport();
     search.mockReturnValue(of([shakshuka, brownies]));
-    await fixture.whenStable();
 
+    await expect.poll(() => rowHrefs()).toEqual([
+      '/admin/recipes/shakshuka/edit',
+      '/admin/recipes/tahini-halva-brownies/edit',
+    ]);
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(
-      rows(fixture.nativeElement).map((row) =>
-        row.querySelector('a')?.getAttribute('href'),
-      ),
-    ).toEqual([
-      '/admin/recipes/shakshuka/edit',
-      '/admin/recipes/tahini-halva-brownies/edit',
-    ]);
   });
 });
 
@@ -220,9 +224,9 @@ function mountAdminQualityReport() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockReturnValue(of([]));
 
-  const fixture = TestBed.createComponent(AdminQualityReport);
+  TestBed.createComponent(AdminQualityReport);
 
-  return { fixture, search };
+  return { search };
 }
 
 /**
@@ -250,31 +254,39 @@ function toQueryString(params: RecipeSearchParams): string {
   ).toString();
 }
 
-function rows(root: HTMLElement): HTMLElement[] {
-  return [...root.querySelectorAll<HTMLElement>('[data-testid="quality-row"]')];
+function rowTexts() {
+  return page.getByTestId('quality-row').elements().map((row) => rowText(row));
 }
 
-function rowTexts(root: HTMLElement): string[] {
-  return rows(root).map((row) =>
-    [...row.querySelectorAll('td, li')]
-      .filter((el) => el.querySelector('li') == null)
-      .map((el) => el.textContent?.replace(/\s+/g, ' ').trim())
-      .join(' '),
-  );
+function rowNames() {
+  return page
+    .getByTestId('quality-row')
+    .getByRole('link')
+    .elements()
+    .map((link) => link.textContent?.trim() ?? '');
 }
 
-function rowNames(root: HTMLElement): string[] {
-  return rows(root).map(
-    (row) => row.querySelector('a')?.textContent?.trim() ?? '',
-  );
+function rowHrefs() {
+  return page
+    .getByTestId('quality-row')
+    .getByRole('link')
+    .elements()
+    .map((link) => link.getAttribute('href'));
 }
 
-function checkboxByLabel(root: HTMLElement, label: string): HTMLInputElement {
-  const input = [...root.querySelectorAll('label')]
-    .find((el) => el.textContent?.trim() === label)
-    ?.querySelector('input');
-  if (input == null) {
-    throw new Error(`Checkbox "${label}" not found.`);
+function rowText(row: Element) {
+  return textOf(row);
+}
+
+function textOf(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent?.replace(/\s+/g, ' ').trim() ?? '';
   }
-  return input;
+  if (!(node instanceof Element)) {
+    return '';
+  }
+  return [...node.childNodes]
+    .map((child) => textOf(child))
+    .filter((text) => text.length > 0)
+    .join(' ');
 }

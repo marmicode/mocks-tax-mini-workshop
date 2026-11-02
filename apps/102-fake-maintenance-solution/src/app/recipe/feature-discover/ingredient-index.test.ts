@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -26,9 +27,9 @@ const hummus = recipeMother
   ])
   .build();
 
-describe(IngredientIndex.name, () => {
+describe(IngredientIndex, () => {
   it('searches all recipes', async () => {
-    const { fixture } = mountIngredientIndex({
+    mountIngredientIndex({
       recipes: [
         recipeMother
           .withBasicInfo({ name: 'Baklava', course: 'dessert' })
@@ -42,84 +43,62 @@ describe(IngredientIndex.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(recipeNamesFor(fixture.nativeElement, 'pistachios')).toEqual([
-      'Baklava',
-    ]);
-    expect(recipeNamesFor(fixture.nativeElement, 'salt')).toEqual([
-      'Cassoulet',
-    ]);
-    expect(recipeNamesFor(fixture.nativeElement, 'saffron')).toEqual([
-      'Shakshuka',
-    ]);
+    await expect.poll(() => recipeNamesFor('pistachios')).toEqual(['Baklava']);
+    await expect.poll(() => recipeNamesFor('salt')).toEqual(['Cassoulet']);
+    await expect.poll(() => recipeNamesFor('saffron')).toEqual(['Shakshuka']);
   });
 
   it('lists normalized ingredient names alphabetically', async () => {
-    const { fixture } = mountIngredientIndex();
-    await fixture.whenStable();
+    mountIngredientIndex();
 
-    expect(ingredientNames(fixture.nativeElement)).toEqual([
-      'garlic',
-      'red peppers',
-      'tahini',
-      'tinned chopped tomatoes',
-    ]);
+    await expect
+      .poll(ingredientNames)
+      .toEqual(['garlic', 'red peppers', 'tahini', 'tinned chopped tomatoes']);
   });
 
   it('groups ingredients by first letter', async () => {
-    const { fixture } = mountIngredientIndex();
-    await fixture.whenStable();
+    mountIngredientIndex();
 
-    expect(sectionLetters(fixture.nativeElement)).toEqual(['g', 'r', 't']);
+    await expect.poll(sectionLetters).toEqual(['g', 'r', 't']);
   });
 
   it('lists every recipe using an ingredient', async () => {
-    const { fixture } = mountIngredientIndex();
-    await fixture.whenStable();
+    mountIngredientIndex();
 
-    expect(recipeNamesFor(fixture.nativeElement, 'garlic')).toEqual([
-      'Shakshuka',
-      'Hummus with Ful',
-    ]);
+    await expect
+      .poll(() => recipeNamesFor('garlic'))
+      .toEqual(['Shakshuka', 'Hummus with Ful']);
   });
 
   it('filters ingredients', async () => {
-    const { fixture } = mountIngredientIndex();
-    await fixture.whenStable();
+    mountIngredientIndex();
 
-    typeInto(fixture.nativeElement.querySelector('input'), 'ta');
-    await fixture.whenStable();
+    await page.getByLabelText('Filter ingredients').fill('ta');
 
-    expect(ingredientNames(fixture.nativeElement)).toEqual(['tahini']);
+    await expect.poll(ingredientNames).toEqual(['tahini']);
   });
 
   it('shows a message when no ingredient matches', async () => {
-    const { fixture } = mountIngredientIndex();
-    await fixture.whenStable();
+    mountIngredientIndex();
 
-    typeInto(fixture.nativeElement.querySelector('input'), 'saffron');
-    await fixture.whenStable();
+    await page.getByLabelText('Filter ingredients').fill('saffron');
 
-    expect(
-      fixture.nativeElement.querySelector(
-        '[data-testid="no-ingredients-message"]',
-      )?.textContent,
-    ).toContain('No ingredients found.');
+    await expect
+      .element(page.getByTestId('no-ingredients-message'))
+      .toMatchTextContent('No ingredients found.');
   });
 
   it('filters ingredients ignoring case and surrounding spaces', async () => {
-    const { fixture } = mountIngredientIndex();
-    await fixture.whenStable();
+    mountIngredientIndex();
 
-    typeInto(fixture.nativeElement.querySelector('input'), '  GAR ');
-    await fixture.whenStable();
+    await page.getByLabelText('Filter ingredients').fill('  GAR ');
 
-    expect(ingredientNames(fixture.nativeElement)).toEqual(['garlic']);
+    await expect.poll(ingredientNames).toEqual(['garlic']);
   });
 
   it('lists a recipe only once when it uses an ingredient twice', async () => {
-    const { fixture } = mountIngredientIndex({
+    mountIngredientIndex({
       recipes: [
         recipeMother
           .withBasicInfo('Hummus with Ful')
@@ -130,33 +109,31 @@ describe(IngredientIndex.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(ingredientNames(fixture.nativeElement)).toEqual(['garlic']);
-    expect(recipeNamesFor(fixture.nativeElement, 'garlic')).toEqual([
-      'Hummus with Ful',
-    ]);
+    await expect.poll(ingredientNames).toEqual(['garlic']);
+    await expect
+      .poll(() => recipeNamesFor('garlic'))
+      .toEqual(['Hummus with Ful']);
   });
 
   it('links each recipe to its detail page', async () => {
-    const { fixture } = mountIngredientIndex();
-    await fixture.whenStable();
+    mountIngredientIndex();
 
-    expect(recipeLinksFor(fixture.nativeElement, 'tahini')).toEqual([
-      `/recipes/${hummus.id}`,
-    ]);
+    await expect
+      .element(recipeLinks('tahini'))
+      .toHaveTextContent('Hummus with Ful');
+    await expect
+      .poll(() => recipeLinksFor('tahini'))
+      .toEqual([`/recipes/${hummus.id}`]);
   });
 
   it('shows a message when the repository returns no recipes', async () => {
-    const { fixture } = mountIngredientIndex({ recipes: [] });
-    await fixture.whenStable();
+    mountIngredientIndex({ recipes: [] });
 
-    expect(sectionLetters(fixture.nativeElement)).toEqual([]);
-    expect(
-      fixture.nativeElement.querySelector(
-        '[data-testid="no-ingredients-message"]',
-      )?.textContent,
-    ).toContain('No ingredients found.');
+    await expect
+      .element(page.getByTestId('no-ingredients-message'))
+      .toMatchTextContent('No ingredients found.');
+    await expect.poll(sectionLetters).toEqual([]);
   });
 });
 
@@ -169,46 +146,43 @@ function mountIngredientIndex({
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(IngredientIndex);
-
-  return { fixture };
+  TestBed.createComponent(IngredientIndex);
 }
 
-function entries(root: HTMLElement): HTMLElement[] {
-  return [...root.querySelectorAll<HTMLElement>('[data-testid="index-entry"]')];
+function ingredientNames() {
+  return page
+    .getByRole('term')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
-function ingredientNames(root: HTMLElement): string[] {
-  return entries(root).map(
-    (entry) => entry.querySelector('dt')?.textContent?.trim() ?? '',
-  );
+function sectionLetters() {
+  return page
+    .getByTestId('index-section')
+    .getByRole('heading')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
-function sectionLetters(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="index-section"] h3')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function entry(ingredient: string) {
+  return page
+    .getByTestId('index-entry')
+    .filter({ hasText: ingredient });
 }
 
-function recipeNamesFor(root: HTMLElement, ingredient: string): string[] {
-  const entry = entries(root).find(
-    (el) => el.querySelector('dt')?.textContent?.trim() === ingredient,
-  );
-  return [...(entry?.querySelectorAll('dd a') ?? [])].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function recipeNamesFor(ingredient: string) {
+  return entry(ingredient)
+    .getByRole('link')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
-function recipeLinksFor(root: HTMLElement, ingredient: string): string[] {
-  const entry = entries(root).find(
-    (el) => el.querySelector('dt')?.textContent?.trim() === ingredient,
-  );
-  return [...(entry?.querySelectorAll('dd a') ?? [])].map(
-    (el) => el.getAttribute('href') ?? '',
-  );
+function recipeLinks(ingredient: string) {
+  return entry(ingredient).getByRole('link');
 }
 
-function typeInto(input: HTMLInputElement, value: string): void {
-  input.value = value;
-  input.dispatchEvent(new Event('input'));
+function recipeLinksFor(ingredient: string) {
+  return recipeLinks(ingredient)
+    .elements()
+    .map((el) => el.getAttribute('href') ?? '');
 }

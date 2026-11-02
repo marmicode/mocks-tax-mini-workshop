@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -40,70 +41,80 @@ const emptyAssignments: WeekdayAssignments = {
   sunday: null,
 };
 
-describe(ShoppingList.name, () => {
+describe(ShoppingList, () => {
   it('shows an empty state when nothing is planned', async () => {
-    const { fixture } = mountShoppingList(emptyAssignments);
-    await fixture.whenStable();
+    mountShoppingList(emptyAssignments);
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="empty-shopping-list"]')
-        ?.textContent,
-    ).toContain('Nothing to buy yet');
+    await expect
+      .element(page.getByTestId('empty-shopping-list'))
+      .toMatchTextContent('Nothing to buy yet');
   });
 
   it('lists the ingredients of the planned recipes', async () => {
-    const { fixture } = mountShoppingList({
+    mountShoppingList({
       ...emptyAssignments,
       monday: shakshuka.id,
     });
-    await fixture.whenStable();
 
-    expect(itemLabels(fixture.nativeElement)).toEqual([
-      'fresh coriander, to serve',
-      '6 large eggs',
-      '3 tbsp olive oil',
-    ]);
-    expect(itemsLeft(fixture.nativeElement)).toBe('3 items left');
+    await expect
+      .poll(() => itemLabels())
+      .toEqual([
+        'fresh coriander, to serve',
+        '6 large eggs',
+        '3 tbsp olive oil',
+      ]);
+    await expect
+      .element(page.getByTestId('items-left'))
+      .toHaveTextContent('3 items left');
   });
 
   it('merges ingredients shared by several recipes', async () => {
-    const { fixture } = mountShoppingList({
+    mountShoppingList({
       ...emptyAssignments,
       monday: shakshuka.id,
       tuesday: hummus.id,
     });
-    await fixture.whenStable();
 
-    expect(itemLabels(fixture.nativeElement)).toContain('5 tbsp olive oil');
-    expect(fixture.nativeElement.textContent).toContain(
-      'for Shakshuka, Hummus with Ful',
-    );
+    await expect.poll(() => itemLabels()).toContain('5 tbsp olive oil');
+    await expect
+      .element(
+        page.getByText('for Shakshuka, Hummus with Ful', { exact: true }),
+      )
+      .toBeVisible();
   });
 
   it('counts down the items left as they are checked', async () => {
-    const { fixture } = mountShoppingList({
+    mountShoppingList({
       ...emptyAssignments,
       monday: shakshuka.id,
     });
-    await fixture.whenStable();
 
-    checkboxes(fixture.nativeElement)[0]?.click();
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('items-left'))
+      .toHaveTextContent('3 items left');
+    await page
+      .getByRole('checkbox', { name: 'fresh coriander, to serve' })
+      .click();
 
-    expect(itemsLeft(fixture.nativeElement)).toBe('2 items left');
+    await expect
+      .element(page.getByTestId('items-left'))
+      .toHaveTextContent('2 items left');
   });
 
   it('celebrates once every item is checked', async () => {
-    const { fixture } = mountShoppingList({
+    mountShoppingList({
       ...emptyAssignments,
       monday: hummus.id,
     });
-    await fixture.whenStable();
 
-    checkboxes(fixture.nativeElement)[0]?.click();
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('items-left'))
+      .toHaveTextContent('1 item left');
+    await page.getByRole('checkbox', { name: '2 tbsp olive oil' }).click();
 
-    expect(itemsLeft(fixture.nativeElement)).toBe('All done 🎉');
+    await expect
+      .element(page.getByTestId('items-left'))
+      .toHaveTextContent('All done 🎉');
   });
 });
 
@@ -120,9 +131,7 @@ function mountShoppingList(assignments: WeekdayAssignments) {
   const mealPlanStore = TestBed.inject(MealPlanStore);
   planWeek(mealPlanStore, assignments);
 
-  const fixture = TestBed.createComponent(ShoppingList);
-
-  return { fixture, mealPlanStore };
+  TestBed.createComponent(ShoppingList);
 }
 
 function planWeek(
@@ -137,20 +146,13 @@ function planWeek(
   }
 }
 
-function itemLabels(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="shopping-item"] label')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function itemsLeft(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="items-left"]')?.textContent?.trim();
-}
-
-function checkboxes(root: HTMLElement): HTMLInputElement[] {
-  return [
-    ...root.querySelectorAll<HTMLInputElement>(
-      '[data-testid="shopping-item"] input[type="checkbox"]',
-    ),
-  ];
+function itemLabels() {
+  return page
+    .getByTestId('shopping-item')
+    .elements()
+    .map((item) =>
+      [...item.getElementsByTagName('label')]
+        .map((label) => label.textContent?.trim() ?? '')
+        .join(''),
+    );
 }

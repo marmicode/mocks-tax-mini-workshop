@@ -1,6 +1,7 @@
-import { signal } from '@angular/core';
+import { inputBinding, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { describe, it, vi } from 'vitest';
+import { page } from 'vitest/browser';
+import { describe, it } from 'vitest';
 import { WIP_STORAGE_KEY } from '../authz/wip.guard';
 import { MealPlanStore } from '../meal-plan/meal-plan-store';
 import { LocalStorage } from '../shared/local-storage';
@@ -24,23 +25,97 @@ class MemoryStorage implements LocalStorage {
   }
 }
 
-function buttonByLabel(
-  root: ParentNode,
-  label: string,
-): HTMLButtonElement | undefined {
-  return [...root.querySelectorAll('button')].find(
-    (button) => button.textContent?.trim().toLowerCase() === label,
-  );
-}
+const emptyAssignments = {
+  monday: null,
+  tuesday: null,
+  wednesday: null,
+  thursday: null,
+  friday: null,
+  saturday: null,
+  sunday: null,
+};
+
+describe(RecipePreview, () => {
+  it('asks which weekday, then assigns it', async () => {
+    const { store } = mountRecipePreview();
+
+    await page.getByRole('button', { name: 'Add to meal plan' }).click();
+
+    await expect
+      .element(page.getByRole('button', { name: 'Wednesday' }))
+      .toBeVisible();
+
+    await page.getByRole('button', { name: 'Wednesday' }).click();
+
+    await expect.poll(() => store.assignments().wednesday).toBe(shakshuka.id);
+  });
+
+  it('leaves the plan unchanged when the picker is dismissed', async () => {
+    const { store } = mountRecipePreview();
+
+    await page.getByRole('button', { name: 'Add to meal plan' }).click();
+    await expect
+      .element(page.getByRole('button', { name: 'Wednesday' }))
+      .toBeVisible();
+
+    await page.getByRole('button', { name: 'Dismiss' }).click();
+
+    await expect
+      .element(page.getByRole('button', { name: 'Add to meal plan' }))
+      .toBeVisible();
+    await expect
+      .element(page.getByRole('button', { name: 'Wednesday' }))
+      .not.toBeInTheDocument();
+    expect(store.assignments()).toEqual(emptyAssignments);
+  });
+
+  it('hides add to meal plan unless wip is set', async () => {
+    const storage = new MemoryStorage();
+    mountRecipePreview({ storage });
+
+    await expect
+      .element(page.getByRole('button', { name: 'Add to meal plan' }))
+      .toBeVisible();
+
+    storage.setItem(WIP_STORAGE_KEY, 'true');
+
+    await expect
+      .element(page.getByRole('button', { name: 'Add to meal plan' }))
+      .toBeVisible();
+  });
+
+  it('disables add when the recipe is already planned', async () => {
+    const storage = new MemoryStorage();
+    storage.setItem(WIP_STORAGE_KEY, 'true');
+    mountRecipePreview({
+      storage,
+      beforeCreate: (store) => {
+        store.assign({ weekday: 'monday', recipeId: shakshuka.id });
+      },
+    });
+
+    await expect
+      .element(page.getByRole('button', { name: 'Add to meal plan' }))
+      .toBeDisabled();
+    await expect
+      .element(page.getByRole('button', { name: 'Wednesday' }))
+      .not.toBeInTheDocument();
+  });
+
+  it('shows add to meal plan with the wip flag removed', async () => {
+    const storage = new MemoryStorage();
+    mountRecipePreview({ storage });
+
+    await expect
+      .element(page.getByRole('button', { name: 'Add to meal plan' }))
+      .toBeVisible();
+  });
+});
 
 function mountRecipePreview(arrange?: {
   storage?: MemoryStorage;
   beforeCreate?: (store: MealPlanStore) => void;
-}): {
-  fixture: ReturnType<typeof TestBed.createComponent<RecipePreview>>;
-  storage: MemoryStorage;
-  store: MealPlanStore;
-} {
+}) {
   TestBed.resetTestingModule();
   const storage = arrange?.storage ?? new MemoryStorage();
   if (arrange?.storage == null) {
@@ -49,88 +124,10 @@ function mountRecipePreview(arrange?: {
   TestBed.overrideProvider(LocalStorage, { useValue: storage });
   const store = TestBed.inject(MealPlanStore);
   arrange?.beforeCreate?.(store);
-  const fixture = TestBed.createComponent(RecipePreview);
-  fixture.componentRef.setInput('recipe', shakshuka);
-  return { fixture, storage, store };
+
+  TestBed.createComponent(RecipePreview, {
+    bindings: [inputBinding('recipe', () => shakshuka)],
+  });
+
+  return { storage, store };
 }
-
-describe(RecipePreview.name, () => {
-  it('asks which weekday, then assigns it', async () => {
-    const { fixture, store } = mountRecipePreview();
-    const assign = vi.spyOn(store, 'assign');
-    await fixture.whenStable();
-
-    buttonByLabel(fixture.nativeElement, 'add to meal plan')?.click();
-    await fixture.whenStable();
-
-    expect(fixture.nativeElement.querySelector('wm-weekday-picker')).not.toBeNull();
-
-    buttonByLabel(fixture.nativeElement, 'wednesday')?.click();
-    await fixture.whenStable();
-
-    expect(assign).toHaveBeenCalledWith({
-      weekday: 'wednesday',
-      recipeId: shakshuka.id,
-    });
-  });
-
-  it('leaves the plan unchanged when the picker is dismissed', async () => {
-    const { fixture, store } = mountRecipePreview();
-    const assign = vi.spyOn(store, 'assign');
-    await fixture.whenStable();
-
-    buttonByLabel(fixture.nativeElement, 'add to meal plan')?.click();
-    await fixture.whenStable();
-    buttonByLabel(fixture.nativeElement, 'dismiss')?.click();
-    await fixture.whenStable();
-
-    expect(assign).not.toHaveBeenCalled();
-  });
-
-  it('hides add to meal plan unless wip is set', async () => {
-    const storage = new MemoryStorage();
-    const { fixture } = mountRecipePreview({ storage });
-    await fixture.whenStable();
-
-    expect(
-      buttonByLabel(fixture.nativeElement, 'add to meal plan'),
-    ).toBeDefined();
-
-    storage.setItem(WIP_STORAGE_KEY, 'true');
-    await fixture.whenStable();
-
-    expect(
-      buttonByLabel(fixture.nativeElement, 'add to meal plan'),
-    ).toBeDefined();
-  });
-
-  it('disables add when the recipe is already planned', async () => {
-    const storage = new MemoryStorage();
-    storage.setItem(WIP_STORAGE_KEY, 'true');
-    const { fixture } = mountRecipePreview({
-      storage,
-      beforeCreate: (store) => {
-        store.assign({ weekday: 'monday', recipeId: shakshuka.id });
-      },
-    });
-    await fixture.whenStable();
-
-    const addButton = buttonByLabel(fixture.nativeElement, 'add to meal plan');
-    expect(addButton?.disabled).toBe(true);
-
-    addButton?.click();
-    await fixture.whenStable();
-
-    expect(fixture.nativeElement.querySelector('wm-weekday-picker')).toBeNull();
-  });
-
-  it('shows add to meal plan with the wip flag removed', async () => {
-    const storage = new MemoryStorage();
-    const { fixture } = mountRecipePreview({ storage });
-    await fixture.whenStable();
-
-    expect(
-      buttonByLabel(fixture.nativeElement, 'add to meal plan'),
-    ).toBeDefined();
-  });
-});

@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -19,9 +20,9 @@ const fritters = recipeMother
 
 const shakshuka = recipeMother.withBasicInfo('Shakshuka').build();
 
-describe(CourseCounts.name, () => {
+describe(CourseCounts, () => {
   it('searches each course', async () => {
-    const { fixture } = mountCourseCounts({
+    mountCourseCounts({
       recipes: [
         hummus,
         recipeMother.withBasicInfo('Cassoulet').withManyIngredients().build(),
@@ -31,37 +32,32 @@ describe(CourseCounts.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(courseCountTexts(fixture.nativeElement)).toEqual([
-      'Starters (1)',
-      'Mains (1)',
-      'Desserts (1)',
-    ]);
+    await expect
+      .poll(courseCountTexts)
+      .toEqual(['Starters (1)', 'Mains (1)', 'Desserts (1)']);
   });
 
   it('shows the recipe count of each course', async () => {
-    const { fixture } = mountCourseCounts({
+    mountCourseCounts({
       recipes: [hummus, fritters, shakshuka],
     });
-    await fixture.whenStable();
 
-    expect(courseCountTexts(fixture.nativeElement)).toEqual([
-      'Starters (2)',
-      'Mains (1)',
-      'Desserts (0)',
-    ]);
+    await expect
+      .poll(courseCountTexts)
+      .toEqual(['Starters (2)', 'Mains (1)', 'Desserts (0)']);
   });
 
   it('links each course to its page', async () => {
-    const { fixture } = mountCourseCounts();
-    await fixture.whenStable();
+    mountCourseCounts();
 
-    expect(courseCountLinks(fixture.nativeElement)).toEqual([
-      '/discover/courses/starter',
-      '/discover/courses/main',
-      '/discover/courses/dessert',
-    ]);
+    await expect
+      .poll(courseCountLinks)
+      .toEqual([
+        '/discover/courses/starter',
+        '/discover/courses/main',
+        '/discover/courses/dessert',
+      ]);
   });
 });
 
@@ -72,21 +68,21 @@ function mountCourseCounts({ recipes = [] }: { recipes?: Recipe[] } = {}) {
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(CourseCounts);
-
-  return { fixture };
+  TestBed.createComponent(CourseCounts);
 }
 
-function courseCountElements(root: HTMLElement): HTMLAnchorElement[] {
-  return [
-    ...root.querySelectorAll<HTMLAnchorElement>('[data-testid="course-count"]'),
-  ];
+function courseCounts() {
+  return page.getByTestId('course-count');
 }
 
-function courseCountTexts(root: HTMLElement): string[] {
-  return courseCountElements(root).map((el) => el.textContent?.trim() ?? '');
+function courseCountTexts() {
+  return courseCounts()
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
-function courseCountLinks(root: HTMLElement): (string | null)[] {
-  return courseCountElements(root).map((el) => el.getAttribute('href'));
+function courseCountLinks() {
+  return courseCounts()
+    .elements()
+    .map((el) => el.getAttribute('href'));
 }

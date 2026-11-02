@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import { RecentlyViewed } from '@whiskmate/recipe/domain';
 import {
@@ -19,58 +20,49 @@ const cheesecake = recipeMother
   .withBasicInfo('Lemon and Ricotta Cheesecake')
   .build();
 
-describe(RecentlyViewedPage.name, () => {
+describe(RecentlyViewedPage, () => {
   it('shows a message when no recipe was viewed', async () => {
-    const { fixture } = mountRecentlyViewedPage({ viewedIds: [] });
-    await fixture.whenStable();
+    mountRecentlyViewedPage({ viewedIds: [] });
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="empty-message"]')
-        ?.textContent,
-    ).toContain("You haven't viewed any recipe yet.");
+    await expect
+      .element(page.getByTestId('empty-message'))
+      .toMatchTextContent("You haven't viewed any recipe yet.");
   });
 
   it('shows only the recently viewed recipes', async () => {
-    const { fixture } = mountRecentlyViewedPage({
+    mountRecentlyViewedPage({
       viewedIds: [shakshuka.id, hummus.id],
       recipes: [shakshuka, hummus, cheesecake],
     });
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Shakshuka',
-    ]);
+    await expect.poll(recipeNames).toEqual(['Hummus with Ful', 'Shakshuka']);
   });
 
   it('lists recipes in the recently viewed order', async () => {
-    const { fixture } = mountRecentlyViewedPage({
+    mountRecentlyViewedPage({
       viewedIds: [shakshuka.id, hummus.id],
     });
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Shakshuka',
-    ]);
+    await expect.poll(recipeNames).toEqual(['Hummus with Ful', 'Shakshuka']);
   });
 
   it('links to the recipe detail', async () => {
-    const { fixture } = mountRecentlyViewedPage({ viewedIds: [shakshuka.id] });
-    await fixture.whenStable();
+    mountRecentlyViewedPage({ viewedIds: [shakshuka.id] });
 
-    expect(
-      fixture.nativeElement.querySelector('li a')?.getAttribute('href'),
-    ).toBe(`/recipes/${shakshuka.id}`);
+    await expect
+      .element(page.getByRole('link', { name: 'Shakshuka' }))
+      .toHaveTextContent('Shakshuka');
+    await expect
+      .element(page.getByRole('link', { name: 'Shakshuka' }))
+      .toHaveAttribute('href', `/recipes/${shakshuka.id}`);
   });
 
   it('skips recipes that no longer exist', async () => {
-    const { fixture } = mountRecentlyViewedPage({
+    mountRecentlyViewedPage({
       viewedIds: [shakshuka.id, 'deleted-recipe'],
     });
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Shakshuka']);
+    await expect.poll(recipeNames).toEqual(['Shakshuka']);
   });
 });
 
@@ -98,13 +90,13 @@ function mountRecentlyViewedPage({
     recentlyViewed.track(id);
   }
 
-  const fixture = TestBed.createComponent(RecentlyViewedPage);
-
-  return { fixture, recentlyViewed };
+  TestBed.createComponent(RecentlyViewedPage);
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [
-    ...root.querySelectorAll('[data-testid="recently-viewed-recipe"] a'),
-  ].map((el) => el.textContent?.trim() ?? '');
+function recipeNames() {
+  return page
+    .getByTestId('recently-viewed-recipe')
+    .getByRole('link')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

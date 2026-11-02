@@ -1,5 +1,7 @@
+import { inputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -45,75 +47,66 @@ const emptyAssignments: WeekdayAssignments = {
   sunday: null,
 };
 
-describe(MealPlanDayPicker.name, () => {
+describe(MealPlanDayPicker, () => {
   it('searches the catalog', async () => {
-    const { fixture } = mountMealPlanDayPicker({
+    mountMealPlanDayPicker({
       weekday: 'monday',
       assignments: emptyAssignments,
       recipes: [shakshuka, cassoulet, beefWellington],
     });
-    await fixture.whenStable();
 
-    expect(candidateNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Cassoulet',
-      'Beef Wellington',
-    ]);
+    await expect
+      .poll(() => candidateNames())
+      .toEqual(['Shakshuka', 'Cassoulet', 'Beef Wellington']);
   });
 
   it('only lists mains', async () => {
-    const { fixture } = mountMealPlanDayPicker({
+    mountMealPlanDayPicker({
       weekday: 'monday',
       assignments: emptyAssignments,
       recipes: [hummus, shakshuka, lambKofte],
     });
-    await fixture.whenStable();
 
-    expect(candidateNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Lamb Kofte with Yogurt and Sumac',
-    ]);
+    await expect
+      .poll(() => candidateNames())
+      .toEqual(['Shakshuka', 'Lamb Kofte with Yogurt and Sumac']);
   });
 
   it('does not list mains that are already planned', async () => {
-    const { fixture } = mountMealPlanDayPicker({
+    mountMealPlanDayPicker({
       weekday: 'monday',
       assignments: { ...emptyAssignments, tuesday: shakshuka.id },
       recipes: [shakshuka, lambKofte],
     });
-    await fixture.whenStable();
 
-    expect(candidateNames(fixture.nativeElement)).toEqual([
-      'Lamb Kofte with Yogurt and Sumac',
-    ]);
+    await expect
+      .poll(() => candidateNames())
+      .toEqual(['Lamb Kofte with Yogurt and Sumac']);
   });
 
   it('assigns the picked main and goes back to the meal plan', async () => {
-    const { fixture, mealPlanStore, router } = mountMealPlanDayPicker({
+    const { mealPlanStore, router } = mountMealPlanDayPicker({
       weekday: 'thursday',
       assignments: emptyAssignments,
       recipes: [shakshuka, lambKofte],
     });
-    await fixture.whenStable();
 
-    buttonByText(fixture.nativeElement, 'Pick Shakshuka').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Pick Shakshuka' }).click();
 
-    expect(mealPlanStore.assignments().thursday).toBe(shakshuka.id);
-    expect(router.url).toBe('/meal-plan');
+    await expect
+      .poll(() => mealPlanStore.assignments().thursday)
+      .toBe(shakshuka.id);
+    await expect.poll(() => router.url).toBe('/meal-plan');
   });
 
   it('says there is nothing left to pick when every main is planned', async () => {
-    const { fixture } = mountMealPlanDayPicker({
+    mountMealPlanDayPicker({
       weekday: 'monday',
       assignments: { ...emptyAssignments, tuesday: shakshuka.id },
       recipes: [hummus, shakshuka],
     });
-    await fixture.whenStable();
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-candidates"]'),
-    ).not.toBeNull();
+    await expect.element(page.getByTestId('no-candidates')).toBeVisible();
   });
 });
 
@@ -139,10 +132,11 @@ function mountMealPlanDayPicker({
   planWeek(mealPlanStore, assignments);
   const router = TestBed.inject(Router);
 
-  const fixture = TestBed.createComponent(MealPlanDayPicker);
-  fixture.componentRef.setInput('weekday', weekday);
+  TestBed.createComponent(MealPlanDayPicker, {
+    bindings: [inputBinding('weekday', () => weekday)],
+  });
 
-  return { fixture, mealPlanStore, router };
+  return { mealPlanStore, router };
 }
 
 function planWeek(
@@ -157,18 +151,9 @@ function planWeek(
   }
 }
 
-function candidateNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="candidate-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function candidateNames() {
+  return page
+    .getByTestId('candidate-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

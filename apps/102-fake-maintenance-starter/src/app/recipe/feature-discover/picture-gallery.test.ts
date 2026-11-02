@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -15,7 +16,7 @@ const salad = recipeMother
   .withBasicInfo('Burnt Aubergine with Tahini and Pomegranate')
   .build();
 
-describe(PictureGallery.name, () => {
+describe(PictureGallery, () => {
   it('searches all recipes', async () => {
     const baklava = recipeMother
       .withBasicInfo({ name: 'Baklava', course: 'dessert' })
@@ -28,56 +29,48 @@ describe(PictureGallery.name, () => {
       .withBasicInfo('Slow-cooked Lamb Stew')
       .withManySteps()
       .build();
-    const { fixture } = mountPictureGallery({
+    mountPictureGallery({
       recipes: [baklava, cassoulet, stew],
     });
-    await fixture.whenStable();
 
-    expect(pictureSources(fixture.nativeElement)).toEqual([
-      baklava.pictureUri,
-      cassoulet.pictureUri,
-      stew.pictureUri,
-    ]);
+    await expect
+      .poll(pictureSources)
+      .toEqual([baklava.pictureUri, cassoulet.pictureUri, stew.pictureUri]);
   });
 
   it('shows the picture of each recipe', async () => {
-    const { fixture } = mountPictureGallery({ recipes: [hummus, salad] });
-    await fixture.whenStable();
+    mountPictureGallery({ recipes: [hummus, salad] });
 
-    expect(pictureSources(fixture.nativeElement)).toEqual([
-      hummus.pictureUri,
-      salad.pictureUri,
-    ]);
+    await expect
+      .poll(pictureSources)
+      .toEqual([hummus.pictureUri, salad.pictureUri]);
   });
 
   it('describes each picture with the recipe name', async () => {
-    const { fixture } = mountPictureGallery({ recipes: [salad] });
-    await fixture.whenStable();
+    mountPictureGallery({ recipes: [salad] });
 
-    expect(
-      fixture.nativeElement.querySelector('img')?.getAttribute('alt'),
-    ).toBe('Burnt Aubergine with Tahini and Pomegranate');
+    await expect
+      .element(page.getByRole('img'))
+      .toHaveAttribute('alt', 'Burnt Aubergine with Tahini and Pomegranate');
   });
 
   it('links each picture to the recipe detail page', async () => {
-    const { fixture } = mountPictureGallery({ recipes: [hummus] });
-    await fixture.whenStable();
+    mountPictureGallery({ recipes: [hummus] });
 
-    expect(
-      fixture.nativeElement
-        .querySelector('[data-testid="gallery-item"]')
-        ?.getAttribute('href'),
-    ).toBe(`/recipes/${hummus.id}`);
+    await expect
+      .element(page.getByRole('img', { name: 'Hummus with Ful' }))
+      .toBeVisible();
+    await expect
+      .element(page.getByTestId('gallery-item'))
+      .toHaveAttribute('href', `/recipes/${hummus.id}`);
   });
 
   it('shows a message when there are no pictures', async () => {
-    const { fixture } = mountPictureGallery({ recipes: [] });
-    await fixture.whenStable();
+    mountPictureGallery({ recipes: [] });
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No pictures to show');
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No pictures to show');
   });
 });
 
@@ -90,13 +83,12 @@ function mountPictureGallery({
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(PictureGallery);
-
-  return { fixture };
+  TestBed.createComponent(PictureGallery);
 }
 
-function pictureSources(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('img')].map(
-    (img) => img.getAttribute('src') ?? '',
-  );
+function pictureSources() {
+  return page
+    .getByRole('img')
+    .elements()
+    .map((img) => img.getAttribute('src') ?? '');
 }

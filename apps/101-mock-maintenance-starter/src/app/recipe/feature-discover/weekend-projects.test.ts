@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import {
   RecipeRepository,
@@ -29,11 +30,11 @@ const lamb: Recipe = {
   steps: ['Marinate.', 'Sear.', 'Roast.', 'Rest.', 'Carve.'],
 };
 
-describe(WeekendProjects.name, () => {
+describe(WeekendProjects, () => {
   it('searches all recipes', async () => {
-    const { fixture, search } = mountWeekendProjects();
-    await fixture.whenStable();
+    const { search } = mountWeekendProjects();
 
+    await expect.poll(() => search.mock.calls).toHaveLength(1);
     expect(search.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -48,20 +49,18 @@ describe(WeekendProjects.name, () => {
   });
 
   it('shows the most involved recipes first', async () => {
-    const { fixture, search } = mountWeekendProjects();
+    const { search } = mountWeekendProjects();
     search.mockImplementation((params) =>
       of(filterByCourses([hummus, lamb], params)),
     );
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Slow-roasted Lamb',
-      'Hummus with Ful',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Slow-roasted Lamb', 'Hummus with Ful']);
   });
 
   it('shows the step count of each project', async () => {
-    const { fixture, search } = mountWeekendProjects();
+    const { search } = mountWeekendProjects();
     search
       .mockReturnValue(of([]))
       .mockImplementationOnce((params) =>
@@ -71,18 +70,15 @@ describe(WeekendProjects.name, () => {
             : [lamb],
         ),
       );
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('step-count'))
+      .toHaveTextContent('5 steps');
     expect(search).toHaveBeenCalledOnce();
-    expect(
-      fixture.nativeElement
-        .querySelector('[data-testid="step-count"]')
-        ?.textContent?.trim(),
-    ).toBe('5 steps');
   });
 
   it('keeps only the top five projects', async () => {
-    const { fixture, search } = mountWeekendProjects();
+    const { search } = mountWeekendProjects();
     search.mockImplementation((params) =>
       of(
         filterByCourses(
@@ -99,31 +95,24 @@ describe(WeekendProjects.name, () => {
         ),
       ),
     );
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Recipe 6',
-      'Recipe 5',
-      'Recipe 4',
-      'Recipe 3',
-      'Recipe 2',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Recipe 6', 'Recipe 5', 'Recipe 4', 'Recipe 3', 'Recipe 2']);
   });
 
   it('shows a message when there are no projects', async () => {
-    const { fixture, search } = mountWeekendProjects();
+    const { search } = mountWeekendProjects();
     search.mockReturnValue(of([]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No weekend projects found');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No weekend projects found');
   });
 });
 
@@ -136,15 +125,16 @@ function mountWeekendProjects() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockReturnValue(of([hummus, lamb]));
 
-  const fixture = TestBed.createComponent(WeekendProjects);
+  TestBed.createComponent(WeekendProjects);
 
-  return { fixture, search };
+  return { search };
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
 /* Mimics the backend: recipes are only filtered by course when asked to. */

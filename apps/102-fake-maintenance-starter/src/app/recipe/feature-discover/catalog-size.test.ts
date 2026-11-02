@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -18,9 +19,9 @@ const salad = recipeMother
   .withIngredients([{ name: '2 aubergines' }, { name: 'Tahini' }])
   .build();
 
-describe(CatalogSize.name, () => {
+describe(CatalogSize, () => {
   it('searches all recipes', async () => {
-    const { fixture } = mountCatalogSize({
+    mountCatalogSize({
       recipes: [
         recipeMother
           .withBasicInfo({ name: 'Baklava', course: 'dessert' })
@@ -29,41 +30,42 @@ describe(CatalogSize.name, () => {
         recipeMother.withBasicInfo('Shakshuka').withManySteps().build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(textOf(fixture.nativeElement, 'catalog-size')).toBe('3 recipes');
+    await expect
+      .element(page.getByTestId('catalog-size'))
+      .toHaveTextContent('3 recipes');
   });
 
   it('shows the number of recipes', async () => {
-    const { fixture } = mountCatalogSize({ recipes: [hummus, salad] });
-    await fixture.whenStable();
+    mountCatalogSize({ recipes: [hummus, salad] });
 
-    expect(textOf(fixture.nativeElement, 'catalog-size')).toBe('2 recipes');
+    await expect
+      .element(page.getByTestId('catalog-size'))
+      .toHaveTextContent('2 recipes');
   });
 
   it('uses the singular for a single recipe', async () => {
-    const { fixture } = mountCatalogSize({ recipes: [hummus] });
-    await fixture.whenStable();
+    mountCatalogSize({ recipes: [hummus] });
 
-    expect(textOf(fixture.nativeElement, 'catalog-size')).toBe('1 recipe');
+    await expect
+      .element(page.getByTestId('catalog-size'))
+      .toHaveTextContent('1 recipe');
   });
 
   it('counts distinct ingredients', async () => {
-    const { fixture } = mountCatalogSize({ recipes: [hummus, salad] });
-    await fixture.whenStable();
+    mountCatalogSize({ recipes: [hummus, salad] });
 
-    expect(textOf(fixture.nativeElement, 'ingredient-count')).toBe(
-      'Using 3 distinct ingredients.',
-    );
+    await expect
+      .element(page.getByTestId('ingredient-count'))
+      .toHaveTextContent('Using 3 distinct ingredients.');
   });
 
   it('shows a message when the catalog is empty', async () => {
-    const { fixture } = mountCatalogSize({ recipes: [] });
-    await fixture.whenStable();
+    mountCatalogSize({ recipes: [] });
 
-    expect(textOf(fixture.nativeElement, 'no-recipes-message')).toBe(
-      'The catalog is empty.',
-    );
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toHaveTextContent('The catalog is empty.');
   });
 });
 
@@ -76,11 +78,5 @@ function mountCatalogSize({
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(CatalogSize);
-
-  return { fixture };
-}
-
-function textOf(root: HTMLElement, testId: string): string | undefined {
-  return root.querySelector(`[data-testid="${testId}"]`)?.textContent?.trim();
+  TestBed.createComponent(CatalogSize);
 }

@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -16,55 +17,52 @@ const cake = recipeMother.withBasicInfo('Orange Polenta Cake').build();
 
 const salad = recipeMother.withBasicInfo('Fattoush Salad').build();
 
-describe(KeywordCollections.name, () => {
+describe(KeywordCollections, () => {
   it('searches soups by default', async () => {
-    const { fixture } = mountKeywordCollections();
-    await fixture.whenStable();
+    mountKeywordCollections();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Red Lentil Soup']);
+    await expect.poll(recipeNames).toEqual(['Red Lentil Soup']);
   });
 
   it('shows the recipes of the collection', async () => {
-    const { fixture } = mountKeywordCollections({ recipes: [soup] });
-    await fixture.whenStable();
+    mountKeywordCollections({ recipes: [soup] });
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Red Lentil Soup']);
+    await expect.poll(recipeNames).toEqual(['Red Lentil Soup']);
   });
 
   it('searches salads when the salads collection is chosen', async () => {
-    const { fixture } = mountKeywordCollections({
+    mountKeywordCollections({
       recipes: [soup, cake, salad],
     });
-    await fixture.whenStable();
 
-    clickToggle(fixture.nativeElement, 'Salads');
-    await fixture.whenStable();
+    await expect.poll(recipeNames).toEqual(['Red Lentil Soup']);
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Fattoush Salad']);
+    await page.getByRole('radio', { name: 'Salads' }).click();
+
+    await expect.poll(recipeNames).toEqual(['Fattoush Salad']);
   });
 
   it('shows cakes when the cakes collection is chosen', async () => {
-    const { fixture } = mountKeywordCollections();
-    await fixture.whenStable();
+    mountKeywordCollections();
 
-    clickToggle(fixture.nativeElement, 'Cakes');
-    await fixture.whenStable();
+    await expect.poll(recipeNames).toEqual(['Red Lentil Soup']);
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Orange Polenta Cake']);
+    await page.getByRole('radio', { name: 'Cakes' }).click();
+
+    await expect.poll(recipeNames).toEqual(['Orange Polenta Cake']);
   });
 
   it('shows a message when the collection is empty', async () => {
-    const { fixture } = mountKeywordCollections();
-    await fixture.whenStable();
+    mountKeywordCollections();
 
-    clickToggle(fixture.nativeElement, 'Salads');
-    await fixture.whenStable();
+    await expect.poll(recipeNames).toEqual(['Red Lentil Soup']);
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([]);
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('Nothing in this collection yet');
+    await page.getByRole('radio', { name: 'Salads' }).click();
+
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('Nothing in this collection yet');
+    await expect.poll(recipeNames).toEqual([]);
   });
 });
 
@@ -81,24 +79,12 @@ function mountKeywordCollections({
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(KeywordCollections);
-
-  return { fixture };
+  TestBed.createComponent(KeywordCollections);
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function clickToggle(root: HTMLElement, label: string): void {
-  const toggle = [...root.querySelectorAll('mat-button-toggle')].find(
-    (el) => el.textContent?.trim() === label,
-  );
-  const button = toggle?.querySelector('button');
-  if (button == null) {
-    throw new Error(`Toggle "${label}" not found.`);
-  }
-  button.click();
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

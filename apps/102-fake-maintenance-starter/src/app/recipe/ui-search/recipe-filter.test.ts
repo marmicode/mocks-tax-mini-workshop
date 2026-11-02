@@ -1,17 +1,17 @@
+import { outputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { describe, it } from 'vitest';
+import { page } from 'vitest/browser';
+import { describe, it, vi } from 'vitest';
 import type { RecipeFilterCriteria } from '@whiskmate/recipe/model';
 import { RecipeFilter } from './recipe-filter.ng';
 
-describe(RecipeFilter.name, () => {
+describe(RecipeFilter, () => {
   it('emits the selected course', async () => {
-    const { fixture, filterChanges } = mountRecipeFilter();
-    await fixture.whenStable();
+    const { filterChange } = mountRecipeFilter();
 
-    clickCourse(fixture.nativeElement, 'starter');
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'starter' }).click();
 
-    expect(filterChanges.at(-1)).toEqual({
+    expect(filterChange).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -21,15 +21,12 @@ describe(RecipeFilter.name, () => {
   });
 
   it('emits every selected course', async () => {
-    const { fixture, filterChanges } = mountRecipeFilter();
-    await fixture.whenStable();
+    const { filterChange } = mountRecipeFilter();
 
-    clickCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    clickCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'main' }).click();
+    await page.getByRole('button', { name: 'dessert' }).click();
 
-    expect(filterChanges.at(-1)).toEqual({
+    expect(filterChange).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -39,16 +36,13 @@ describe(RecipeFilter.name, () => {
   });
 
   it('emits `null` when all courses are unselected', async () => {
-    const { fixture, filterChanges } = mountRecipeFilter();
-    await fixture.whenStable();
+    const { filterChange } = mountRecipeFilter();
 
-    clickCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    clickCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'main' }).click();
+    await page.getByRole('button', { name: 'main' }).click();
 
-    expect(filterChanges).toHaveLength(2);
-    expect(filterChanges.at(-1)).toEqual({
+    expect(filterChange).toHaveBeenCalledTimes(2);
+    expect(filterChange).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -59,21 +53,11 @@ describe(RecipeFilter.name, () => {
 });
 
 function mountRecipeFilter() {
-  const fixture = TestBed.createComponent(RecipeFilter);
-  const filterChanges: RecipeFilterCriteria[] = [];
-  fixture.componentInstance.filter.subscribe((filter) =>
-    filterChanges.push(filter),
-  );
-  return { fixture, filterChanges };
-}
+  const filterChange = vi.fn<(filter: RecipeFilterCriteria) => void>();
 
-function clickCourse(root: HTMLElement, course: string): void {
-  const toggle = [...root.querySelectorAll('mat-button-toggle')].find(
-    (el) => el.textContent?.trim() === course,
-  );
-  const button = toggle?.querySelector('button');
-  if (button == null) {
-    throw new Error(`Course "${course}" not found.`);
-  }
-  button.click();
+  TestBed.createComponent(RecipeFilter, {
+    bindings: [outputBinding('filterChange', filterChange)],
+  });
+
+  return { filterChange };
 }

@@ -1,16 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import { AdminMissingDescriptions } from './admin-missing-descriptions.ng';
 
-describe(AdminMissingDescriptions.name, () => {
+describe(AdminMissingDescriptions, () => {
   it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminMissingDescriptions();
-    await fixture.whenStable();
+    const { search } = mountAdminMissingDescriptions();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -18,7 +18,7 @@ describe(AdminMissingDescriptions.name, () => {
   });
 
   it('shows an empty state when every recipe has a description', async () => {
-    const { fixture, search } = mountAdminMissingDescriptions();
+    const { search } = mountAdminMissingDescriptions();
     search.mockImplementation((params) => {
       expect(params.keywords).toBe('');
       expect(params.courses).toBeUndefined();
@@ -34,15 +34,14 @@ describe(AdminMissingDescriptions.name, () => {
         },
       ]);
     });
-    await fixture.whenStable();
 
-    expect(emptyState(fixture.nativeElement)).toBe(
-      'Every recipe has a description.',
-    );
+    await expect
+      .element(page.getByTestId('empty-state'))
+      .toHaveTextContent('Every recipe has a description.');
   });
 
   it('lists recipes with a null description', async () => {
-    const { fixture, search } = mountAdminMissingDescriptions();
+    const { search } = mountAdminMissingDescriptions();
     search.mockImplementation((params) =>
       of(
         Object.keys(params).length === 3
@@ -60,15 +59,14 @@ describe(AdminMissingDescriptions.name, () => {
           : [],
       ),
     );
-    await fixture.whenStable();
 
-    expect(rowNames(fixture.nativeElement)).toEqual([
-      'Tahini and Halva Brownies',
-    ]);
+    await expect
+      .element(page.getByTestId('missing-description-row'))
+      .toHaveTextContent('Tahini and Halva Brownies');
   });
 
   it('treats blank descriptions as missing and sorts by name', async () => {
-    const { fixture, search } = mountAdminMissingDescriptions();
+    const { search } = mountAdminMissingDescriptions();
     search.mockReturnValue(
       of([
         {
@@ -100,21 +98,19 @@ describe(AdminMissingDescriptions.name, () => {
         },
       ]),
     );
-    await fixture.whenStable();
 
+    await expect
+      .poll(() => rowTexts('missing-description-row'))
+      .toEqual(['Courgette Fritters', 'Shakshuka']);
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(rowNames(fixture.nativeElement)).toEqual([
-      'Courgette Fritters',
-      'Shakshuka',
-    ]);
   });
 
   it('summarizes how many recipes miss a description', async () => {
-    const { fixture, search } = mountAdminMissingDescriptions();
+    const { search } = mountAdminMissingDescriptions();
     search.mockReturnValue(
       of([
         {
@@ -137,14 +133,15 @@ describe(AdminMissingDescriptions.name, () => {
         },
       ]),
     );
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('missing-description-summary'))
+      .toHaveTextContent('1 of 2 recipes');
     await expect(
       JSON.stringify(search.mock.calls, null, 2),
     ).toMatchFileSnapshot(
       './__snapshots__/admin-missing-descriptions.calls.json',
     );
-    expect(summary(fixture.nativeElement)).toBe('1 of 2 recipes');
   });
 });
 
@@ -155,23 +152,28 @@ function mountAdminMissingDescriptions() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockReturnValue(of([]));
 
-  const fixture = TestBed.createComponent(AdminMissingDescriptions);
+  TestBed.createComponent(AdminMissingDescriptions);
 
-  return { fixture, search };
+  return { search };
 }
 
-function rowNames(root: HTMLElement): string[] {
-  return [
-    ...root.querySelectorAll('[data-testid="missing-description-row"]'),
-  ].map((row) => row.textContent?.trim() ?? '');
+function rowTexts(testId: string) {
+  return page.getByTestId(testId).elements().map((row) => rowText(row));
 }
 
-function summary(root: HTMLElement): string | undefined {
-  return root
-    .querySelector('[data-testid="missing-description-summary"]')
-    ?.textContent?.trim();
+function rowText(row: Element) {
+  return textOf(row);
 }
 
-function emptyState(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+function textOf(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+  }
+  if (!(node instanceof Element)) {
+    return '';
+  }
+  return [...node.childNodes]
+    .map((child) => textOf(child))
+    .filter((text) => text.length > 0)
+    .join(' ');
 }

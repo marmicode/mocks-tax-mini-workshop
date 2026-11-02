@@ -1,5 +1,6 @@
-import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -22,9 +23,9 @@ const hummus = recipeMother
   .withIngredients([{ name: 'olive oil' }, { name: 'tahini' }])
   .build();
 
-describe(AdminIngredients.name, () => {
+describe(AdminIngredients, () => {
   it('searches all recipes', async () => {
-    const { fixture } = mountAdminIngredients({
+    mountAdminIngredients({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -45,56 +46,55 @@ describe(AdminIngredients.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(ingredientRows(fixture.nativeElement)).toContainEqual([
-      'olive oil',
-      '3',
-    ]);
+    await expect
+      .poll(() => ingredientRows())
+      .toContainEqual(['olive oil', '3']);
   });
 
   it('counts how many recipes use each ingredient', async () => {
-    const { fixture } = mountAdminIngredients();
-    await fixture.whenStable();
+    mountAdminIngredients();
 
-    expect(ingredientRows(fixture.nativeElement)).toEqual([
-      ['olive oil', '2'],
-      ['eggs', '1'],
-      ['tahini', '1'],
-    ]);
+    await expect
+      .poll(() => ingredientRows())
+      .toEqual([
+        ['olive oil', '2'],
+        ['eggs', '1'],
+        ['tahini', '1'],
+      ]);
   });
 
   it('renames an ingredient in every recipe using it', async () => {
-    const { fixture, recipeRepositoryFake } = mountAdminIngredients();
-    await fixture.whenStable();
+    const { recipeRepositoryFake } = mountAdminIngredients();
 
-    await renameIngredient(fixture, 'olive oil', 'extra virgin olive oil');
-    await fixture.whenStable();
+    await renameIngredient('olive oil', 'extra virgin olive oil');
 
-    expect(recipeRepositoryFake.getRecipesSync()).toEqual([
-      recipeMother
-        .withBasicInfo('Shakshuka')
-        .withIngredients([
-          {
-            name: 'extra virgin olive oil',
-            quantity: { amount: 3, unit: 'tbsp' },
-          },
-          { name: 'eggs' },
-        ])
-        .build(),
-      recipeMother
-        .withBasicInfo('Hummus with Ful')
-        .withIngredients([
-          { name: 'extra virgin olive oil' },
-          { name: 'tahini' },
-        ])
-        .build(),
-    ]);
+    await expect
+      .poll(() => recipeRepositoryFake.getRecipesSync())
+      .toEqual([
+        recipeMother
+          .withBasicInfo('Shakshuka')
+          .withIngredients([
+            {
+              name: 'extra virgin olive oil',
+              quantity: { amount: 3, unit: 'tbsp' },
+            },
+            { name: 'eggs' },
+          ])
+          .build(),
+        recipeMother
+          .withBasicInfo('Hummus with Ful')
+          .withIngredients([
+            { name: 'extra virgin olive oil' },
+            { name: 'tahini' },
+          ])
+          .build(),
+      ]);
   });
 
   it('searches recipes again after renaming', async () => {
-    const { fixture, recipeRepositoryFake } = mountAdminIngredients();
-    await fixture.whenStable();
+    const { recipeRepositoryFake } = mountAdminIngredients();
+    await expect.element(page.getByTestId('ingredient-row').first()).toBeVisible();
 
     recipeRepositoryFake.setRecipes([
       shakshuka,
@@ -104,29 +104,28 @@ describe(AdminIngredients.name, () => {
         .withIngredients([{ name: 'cumin' }])
         .build(),
     ]);
-    await renameIngredient(fixture, 'tahini', 'light tahini');
-    await fixture.whenStable();
+    await renameIngredient('tahini', 'light tahini');
 
-    expect(ingredientRows(fixture.nativeElement)).toEqual([
-      ['olive oil', '2'],
-      ['cumin', '1'],
-      ['eggs', '1'],
-      ['light tahini', '1'],
-    ]);
+    await expect
+      .poll(() => ingredientRows())
+      .toEqual([
+        ['olive oil', '2'],
+        ['cumin', '1'],
+        ['eggs', '1'],
+        ['light tahini', '1'],
+      ]);
   });
 
   it('does not update anything when the name is unchanged', async () => {
-    const { fixture, recipeRepositoryFake } = mountAdminIngredients();
-    await fixture.whenStable();
+    const { recipeRepositoryFake } = mountAdminIngredients();
 
-    await renameIngredient(fixture, 'eggs', 'eggs');
-    await fixture.whenStable();
+    await renameIngredient('eggs', 'eggs');
 
     expect(recipeRepositoryFake.getRecipesSync()).toEqual([shakshuka, hummus]);
   });
 
   it('counts an ingredient once per recipe', async () => {
-    const { fixture } = mountAdminIngredients({
+    mountAdminIngredients({
       recipes: [
         {
           ...shakshuka,
@@ -134,47 +133,53 @@ describe(AdminIngredients.name, () => {
         },
       ],
     });
-    await fixture.whenStable();
 
-    expect(ingredientRows(fixture.nativeElement)).toEqual([['eggs', '1']]);
+    await expect.poll(() => ingredientRows()).toEqual([['eggs', '1']]);
   });
 
   it('does not update anything when the new name is blank', async () => {
-    const { fixture, recipeRepositoryFake } = mountAdminIngredients();
-    await fixture.whenStable();
+    const { recipeRepositoryFake } = mountAdminIngredients();
 
-    await renameIngredient(fixture, 'tahini', '   ');
-    await fixture.whenStable();
+    await renameIngredient('tahini', '   ');
 
     expect(recipeRepositoryFake.getRecipesSync()).toEqual([shakshuka, hummus]);
   });
 
   it('cancels renaming', async () => {
-    const { fixture, recipeRepositoryFake } = mountAdminIngredients();
-    await fixture.whenStable();
+    const { recipeRepositoryFake } = mountAdminIngredients();
 
-    buttonByText(fixture.nativeElement, 'Rename').click();
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'Cancel').click();
-    await fixture.whenStable();
+    await ingredientRow('olive oil')
+      .getByRole('button', { name: 'Rename' })
+      .click();
+    await page.getByRole('button', { name: 'Cancel' }).click();
 
+    await expect
+      .element(
+        ingredientRow('olive oil').getByRole('button', { name: 'Rename' }),
+      )
+      .toBeVisible();
+    await expect
+      .element(page.getByLabelText('New name for olive oil'))
+      .not.toBeInTheDocument();
     expect(recipeRepositoryFake.getRecipesSync()).toEqual([shakshuka, hummus]);
-    expect(fixture.nativeElement.querySelector('input')).toBeNull();
   });
 
   it('shows the renamed ingredient once recipes are searched again', async () => {
-    const { fixture } = mountAdminIngredients();
-    await fixture.whenStable();
+    mountAdminIngredients();
 
-    await renameIngredient(fixture, 'tahini', 'tahina');
-    await fixture.whenStable();
+    await renameIngredient('tahini', 'tahina');
 
-    expect(ingredientRows(fixture.nativeElement)).toEqual([
-      ['olive oil', '2'],
-      ['eggs', '1'],
-      ['tahina', '1'],
-    ]);
-    expect(fixture.nativeElement.querySelector('input')).toBeNull();
+    await expect
+      .poll(() => ingredientRows())
+      .toEqual([
+        ['olive oil', '2'],
+        ['eggs', '1'],
+        ['tahina', '1'],
+      ]);
+    await expect
+      .element(page.getByRole('button', { name: 'Rename' }))
+      .toHaveLength(3);
+    await expect.element(page.getByRole('textbox')).not.toBeInTheDocument();
   });
 });
 
@@ -187,56 +192,32 @@ function mountAdminIngredients({
   const recipeRepositoryFake = TestBed.inject(RecipeRepositoryFake);
   recipeRepositoryFake.setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(AdminIngredients);
+  TestBed.createComponent(AdminIngredients);
 
-  return { fixture, recipeRepositoryFake };
+  return { recipeRepositoryFake };
 }
 
-function ingredientRows(root: HTMLElement): string[][] {
-  return [...root.querySelectorAll('[data-testid="ingredient-row"]')].map(
-    (row) => [
-      row
-        .querySelector('[data-testid="ingredient-name"]')
-        ?.textContent?.trim() ?? '',
-      row
-        .querySelector('[data-testid="ingredient-count"]')
-        ?.textContent?.trim() ?? '',
-    ],
-  );
+function ingredientRows() {
+  const names = page
+    .getByTestId('ingredient-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
+  const counts = page
+    .getByTestId('ingredient-count')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
+  return names.map((name, index) => [name, counts[index]]);
 }
 
-async function renameIngredient(
-  fixture: ComponentFixture<AdminIngredients>,
-  name: string,
-  newName: string,
-) {
-  const row = [
-    ...fixture.nativeElement.querySelectorAll('[data-testid="ingredient-row"]'),
-  ].find(
-    (el) =>
-      el
-        .querySelector('[data-testid="ingredient-name"]')
-        ?.textContent?.trim() === name,
-  );
-  buttonByText(row, 'Rename').click();
-  await fixture.whenStable();
-  const input = row?.querySelector('input');
-  if (input == null) {
-    throw new Error(`Rename input for "${name}" not found.`);
-  }
-  input.value = newName;
-  buttonByText(row, 'Save').click();
+function ingredientRow(name: string) {
+  return page.getByTestId('ingredient-row').filter({
+    has: page.getByText(name, { exact: true }),
+  });
 }
 
-function buttonByText(
-  root: Element | undefined,
-  text: string,
-): HTMLButtonElement {
-  const button = [...(root?.querySelectorAll('button') ?? [])].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+async function renameIngredient(name: string, newName: string) {
+  const row = ingredientRow(name);
+  await row.getByRole('button', { name: 'Rename' }).click();
+  await row.getByLabelText(`New name for ${name}`).fill(newName);
+  await row.getByRole('button', { name: 'Save' }).click();
 }

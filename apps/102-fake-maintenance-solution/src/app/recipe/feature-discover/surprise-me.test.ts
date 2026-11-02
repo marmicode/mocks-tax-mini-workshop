@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -19,123 +20,141 @@ const cheesecake = recipeMother
   .withBasicInfo({ name: 'Lemon and Ricotta Cheesecake', course: 'dessert' })
   .build();
 
-describe(SurpriseMe.name, () => {
+describe(SurpriseMe, () => {
   it('picks a random recipe among all recipes', async () => {
-    const { fixture, randomAdapterFake } = mountSurpriseMe();
-    randomAdapterFake.setPickIndex(-1);
-    await fixture.whenStable();
+    mountSurpriseMe({ pickIndex: -1 });
 
-    expect(recipeName(fixture.nativeElement)).toBe(
-      'Lemon and Ricotta Cheesecake',
-    );
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Lemon and Ricotta Cheesecake');
   });
 
   it('searches only the chosen course', async () => {
-    const { fixture } = mountSurpriseMe();
-    await fixture.whenStable();
+    mountSurpriseMe();
 
-    clickToggle(fixture.nativeElement, 'Desserts');
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Shakshuka');
 
-    expect(recipeName(fixture.nativeElement)).toBe(
-      'Lemon and Ricotta Cheesecake',
-    );
+    await page.getByRole('radio', { name: 'Desserts' }).click();
+
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Lemon and Ricotta Cheesecake');
   });
 
   it('stops filtering by course when "Any" is chosen', async () => {
-    const { fixture, randomAdapterFake } = mountSurpriseMe();
+    const { randomAdapterFake } = mountSurpriseMe({ pickIndex: -1 });
+
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Lemon and Ricotta Cheesecake');
+
+    await page.getByRole('radio', { name: 'Mains' }).click();
+
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Shakshuka');
+
     randomAdapterFake.setPickIndex(-1);
-    await fixture.whenStable();
+    await page.getByRole('radio', { name: 'Any' }).click();
 
-    clickToggle(fixture.nativeElement, 'Mains');
-    await fixture.whenStable();
-    expect(recipeName(fixture.nativeElement)).toBe('Shakshuka');
-
-    clickToggle(fixture.nativeElement, 'Any');
-    await fixture.whenStable();
-
-    expect(recipeName(fixture.nativeElement)).toBe(
-      'Lemon and Ricotta Cheesecake',
-    );
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Lemon and Ricotta Cheesecake');
   });
 
   it('picks another recipe when asked again', async () => {
-    const { fixture, randomAdapterFake } = mountSurpriseMe();
-    await fixture.whenStable();
+    const { randomAdapterFake } = mountSurpriseMe();
+
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Shakshuka');
 
     randomAdapterFake.setPickIndex(-1);
-    buttonByText(fixture.nativeElement, 'Surprise me again').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Surprise me again' }).click();
 
-    expect(recipeName(fixture.nativeElement)).toBe(
-      'Lemon and Ricotta Cheesecake',
-    );
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Lemon and Ricotta Cheesecake');
   });
 
   it('shows a message when there is nothing to pick', async () => {
-    const { fixture } = mountSurpriseMe({ recipes: [] });
-    await fixture.whenStable();
+    mountSurpriseMe({ recipes: [] });
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('Nothing to surprise you with');
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('Nothing to surprise you with');
   });
 
   it('picks among the recipes of the chosen course', async () => {
-    const { fixture } = mountSurpriseMe();
-    await fixture.whenStable();
+    mountSurpriseMe();
 
-    clickToggle(fixture.nativeElement, 'Desserts');
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Shakshuka');
 
-    expect(recipeName(fixture.nativeElement)).toBe(
-      'Lemon and Ricotta Cheesecake',
-    );
+    await page.getByRole('radio', { name: 'Desserts' }).click();
+
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Lemon and Ricotta Cheesecake');
   });
 
   it('links the surprise to its recipe page', async () => {
-    const { fixture } = mountSurpriseMe();
-    await fixture.whenStable();
+    mountSurpriseMe();
 
-    const root: HTMLElement = fixture.nativeElement;
-    expect(root.querySelector('.eyebrow')?.textContent?.trim()).toBe('🎲 main');
-    expect(root.querySelector('a')?.getAttribute('href')).toBe(
-      `/recipes/${shakshuka.id}`,
-    );
+    await expect
+      .element(page.getByText('🎲 main'))
+      .toHaveTextContent('🎲 main');
+    await expect
+      .element(page.getByRole('link', { name: 'See the recipe' }))
+      .toHaveAttribute('href', `/recipes/${shakshuka.id}`);
   });
 
   it('keeps the chosen course when asked again', async () => {
-    const { fixture, randomAdapterFake } = mountSurpriseMe();
-    await fixture.whenStable();
+    const { randomAdapterFake } = mountSurpriseMe();
 
-    clickToggle(fixture.nativeElement, 'Mains');
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Shakshuka');
+
+    await page.getByRole('radio', { name: 'Mains' }).click();
+    await expect
+      .element(page.getByRole('radio', { name: 'Mains' }))
+      .toBeChecked();
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Shakshuka');
+
     /* Picking the last recipe would surface the dessert if the course were lost. */
     randomAdapterFake.setPickIndex(-1);
-    buttonByText(fixture.nativeElement, 'Surprise me again').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Surprise me again' }).click();
 
-    expect(recipeName(fixture.nativeElement)).toBe('Shakshuka');
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Shakshuka');
   });
 
   it('shows a message when the chosen course has no recipes', async () => {
-    const { fixture } = mountSurpriseMe();
-    await fixture.whenStable();
+    mountSurpriseMe();
 
-    clickToggle(fixture.nativeElement, 'Starters');
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveTextContent('Shakshuka');
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('Nothing to surprise you with');
+    await page.getByRole('radio', { name: 'Starters' }).click();
+
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('Nothing to surprise you with');
   });
 });
 
 function mountSurpriseMe({
   recipes = [shakshuka, cheesecake],
-}: { recipes?: Recipe[] } = {}) {
+  pickIndex,
+}: { recipes?: Recipe[]; pickIndex?: number } = {}) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
@@ -146,33 +165,11 @@ function mountSurpriseMe({
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
   const randomAdapterFake = TestBed.inject(RandomAdapterFake);
-
-  const fixture = TestBed.createComponent(SurpriseMe);
-
-  return { fixture, randomAdapterFake };
-}
-
-function recipeName(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="recipe-name"]')?.textContent?.trim();
-}
-
-function clickToggle(root: HTMLElement, label: string): void {
-  const toggle = [...root.querySelectorAll('mat-button-toggle')].find(
-    (el) => el.textContent?.trim() === label,
-  );
-  const button = toggle?.querySelector('button');
-  if (button == null) {
-    throw new Error(`Toggle "${label}" not found.`);
+  if (pickIndex != null) {
+    randomAdapterFake.setPickIndex(pickIndex);
   }
-  button.click();
-}
 
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+  TestBed.createComponent(SurpriseMe);
+
+  return { randomAdapterFake };
 }

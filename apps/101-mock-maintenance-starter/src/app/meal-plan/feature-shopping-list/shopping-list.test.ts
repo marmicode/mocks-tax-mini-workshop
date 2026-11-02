@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import {
@@ -45,37 +46,38 @@ const emptyAssignments: WeekdayAssignments = {
   sunday: null,
 };
 
-describe(ShoppingList.name, () => {
+describe(ShoppingList, () => {
   it('shows an empty state when nothing is planned', async () => {
-    const { fixture, findById } = mountShoppingList(emptyAssignments);
-    await fixture.whenStable();
+    const { findById } = mountShoppingList(emptyAssignments);
 
+    await expect
+      .element(page.getByTestId('empty-shopping-list'))
+      .toMatchTextContent('Nothing to buy yet');
     expect(findById).not.toHaveBeenCalled();
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="empty-shopping-list"]')
-        ?.textContent,
-    ).toContain('Nothing to buy yet');
   });
 
   it('lists the ingredients of the planned recipes', async () => {
-    const { fixture, findById } = mountShoppingList({
+    const { findById } = mountShoppingList({
       ...emptyAssignments,
       monday: 'shakshuka',
     });
     findById.mockReturnValue(of(shakshuka));
-    await fixture.whenStable();
 
+    await expect
+      .poll(() => itemLabels())
+      .toEqual([
+        'fresh coriander, to serve',
+        '6 large eggs',
+        '3 tbsp olive oil',
+      ]);
+    await expect
+      .element(page.getByTestId('items-left'))
+      .toHaveTextContent('3 items left');
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-    expect(itemLabels(fixture.nativeElement)).toEqual([
-      'fresh coriander, to serve',
-      '6 large eggs',
-      '3 tbsp olive oil',
-    ]);
-    expect(itemsLeft(fixture.nativeElement)).toBe('3 items left');
   });
 
   it('merges ingredients shared by several recipes', async () => {
-    const { fixture, findById } = mountShoppingList({
+    const { findById } = mountShoppingList({
       ...emptyAssignments,
       monday: 'shakshuka',
       tuesday: 'hummus-ful',
@@ -83,45 +85,52 @@ describe(ShoppingList.name, () => {
     findById.mockImplementation(({ id }) =>
       of(id === 'shakshuka' ? shakshuka : hummus),
     );
-    await fixture.whenStable();
 
+    await expect.poll(() => itemLabels()).toContain('5 tbsp olive oil');
+    await expect
+      .element(page.getByText('for Shakshuka, Hummus with Ful'))
+      .toBeVisible();
     expect(findById).toHaveBeenCalledTimes(2);
     expect(findById).toHaveBeenNthCalledWith(1, { id: 'shakshuka' });
     expect(findById).toHaveBeenNthCalledWith(2, { id: 'hummus-ful' });
-    expect(itemLabels(fixture.nativeElement)).toContain('5 tbsp olive oil');
-    expect(fixture.nativeElement.textContent).toContain(
-      'for Shakshuka, Hummus with Ful',
-    );
   });
 
   it('counts down the items left as they are checked', async () => {
-    const { fixture, findById } = mountShoppingList({
+    const { findById } = mountShoppingList({
       ...emptyAssignments,
       monday: 'shakshuka',
     });
     findById.mockReturnValue(of(shakshuka));
-    await fixture.whenStable();
 
-    checkboxes(fixture.nativeElement)[0]?.click();
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('items-left'))
+      .toHaveTextContent('3 items left');
+    await page
+      .getByRole('checkbox', { name: 'fresh coriander, to serve' })
+      .click();
 
+    await expect
+      .element(page.getByTestId('items-left'))
+      .toHaveTextContent('2 items left');
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-    expect(itemsLeft(fixture.nativeElement)).toBe('2 items left');
   });
 
   it('celebrates once every item is checked', async () => {
-    const { fixture, findById } = mountShoppingList({
+    const { findById } = mountShoppingList({
       ...emptyAssignments,
       monday: 'hummus-ful',
     });
     findById.mockReturnValue(of(hummus));
-    await fixture.whenStable();
 
-    checkboxes(fixture.nativeElement)[0]?.click();
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('items-left'))
+      .toHaveTextContent('1 item left');
+    await page.getByRole('checkbox', { name: '2 tbsp olive oil' }).click();
 
+    await expect
+      .element(page.getByTestId('items-left'))
+      .toHaveTextContent('All done 🎉');
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'hummus-ful' });
-    expect(itemsLeft(fixture.nativeElement)).toBe('All done 🎉');
   });
 });
 
@@ -145,25 +154,18 @@ function mountShoppingList(assignments: WeekdayAssignments) {
   const mealPlanStore = TestBed.inject(MealPlanStore);
   vi.spyOn(mealPlanStore, 'assignments').mockReturnValue(assignments);
 
-  const fixture = TestBed.createComponent(ShoppingList);
+  TestBed.createComponent(ShoppingList);
 
-  return { fixture, findById, mealPlanStore };
+  return { findById, mealPlanStore };
 }
 
-function itemLabels(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="shopping-item"] label')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function itemsLeft(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="items-left"]')?.textContent?.trim();
-}
-
-function checkboxes(root: HTMLElement): HTMLInputElement[] {
-  return [
-    ...root.querySelectorAll<HTMLInputElement>(
-      '[data-testid="shopping-item"] input[type="checkbox"]',
-    ),
-  ];
+function itemLabels() {
+  return page
+    .getByTestId('shopping-item')
+    .getByRole('checkbox')
+    .elements()
+    .map((checkbox) => {
+      const label = (checkbox as HTMLInputElement).labels?.[0];
+      return label?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    });
 }

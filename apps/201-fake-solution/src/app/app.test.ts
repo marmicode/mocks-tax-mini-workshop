@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -13,27 +14,30 @@ const cheesecake = recipeMother
   .withBasicInfo({ name: 'Lemon and Ricotta Cheesecake', course: 'dessert' })
   .build();
 
-describe(App.name, () => {
+describe(App, () => {
   it('searches all recipes', async () => {
-    TestBed.configureTestingModule({
-      providers: [provideRecipeRepositoryFake()],
-    });
-    TestBed.inject(RecipeRepositoryFake).configure({
-      recipes: [shakshuka, cheesecake],
-    });
+    mountApp();
 
-    const fixture = TestBed.createComponent(App);
-    await fixture.whenStable();
-
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Shakshuka', 'Lemon and Ricotta Cheesecake']);
   });
 });
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function mountApp() {
+  TestBed.configureTestingModule({
+    providers: [provideRecipeRepositoryFake()],
+  });
+  TestBed.inject(RecipeRepositoryFake).configure({
+    recipes: [shakshuka, cheesecake],
+  });
+
+  TestBed.createComponent(App);
+}
+
+function recipeNames() {
+  return page
+    .getByRole('heading')
+    .elements()
+    .map((element) => element.textContent?.trim() ?? '');
 }

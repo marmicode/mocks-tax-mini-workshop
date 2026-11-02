@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { UserFavorites } from '@whiskmate/recipe/domain';
 import {
@@ -32,11 +33,11 @@ const cheesecake: Recipe = {
   steps: [],
 };
 
-describe(RecipeSearch.name, () => {
+describe(RecipeSearch, () => {
   it('searches all recipes on load', async () => {
-    const { fixture, search } = await mountRecipeSearch();
-    await fixture.whenStable();
+    const { search } = mountRecipeSearch();
 
+    await expect.poll(() => search.mock.calls).toHaveLength(1);
     expect(search.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -52,41 +53,36 @@ describe(RecipeSearch.name, () => {
   });
 
   it('renders the recipes returned by the repository', async () => {
-    const { fixture, search } = await mountRecipeSearch();
-    await fixture.whenStable();
+    const { search, recipeNames } = mountRecipeSearch();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Shakshuka',
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(() => recipeNames())
+      .toEqual(['Shakshuka', 'Lemon and Ricotta Cheesecake']);
     expect(search).toHaveBeenCalledOnce();
   });
 
   it('shows "no recipes" when the repository returns nothing', async () => {
-    const { fixture, search } = await mountRecipeSearch();
+    const { search } = mountRecipeSearch();
     search.mockReturnValue(of([]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByText('No recipes found'))
+      .toHaveTextContent('No recipes found');
     expect(search).toHaveBeenCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: [],
     });
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No recipes found');
   });
 
   it('searches by keywords', async () => {
-    const { fixture, search } = await mountRecipeSearch();
-    await fixture.whenStable();
+    const { search } = mountRecipeSearch();
+    await expect.poll(() => search.mock.calls).toHaveLength(1);
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'shak');
-    await fixture.whenStable();
+    await page.getByLabelText('Keywords').fill('shak');
 
-    expect(search).toHaveBeenLastCalledWith({
+    await expect.poll(() => search).toHaveBeenLastCalledWith({
       keywords: 'shak',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -95,8 +91,10 @@ describe(RecipeSearch.name, () => {
   });
 
   it('searches by max ingredients', async () => {
-    const { fixture, search } = await mountRecipeSearch();
-    await fixture.whenStable();
+    const { search, recipeNames } = mountRecipeSearch();
+    await expect
+      .poll(() => recipeNames())
+      .toEqual(['Shakshuka', 'Lemon and Ricotta Cheesecake']);
 
     search.mockImplementation((params) =>
       of(
@@ -116,19 +114,18 @@ describe(RecipeSearch.name, () => {
         }[JSON.stringify(params)] ?? [],
       ),
     );
-    typeInto(inputByLabel(fixture.nativeElement, 'Max Ingredients'), '5');
-    await fixture.whenStable();
+    await page.getByLabelText('Max Ingredients').fill('5');
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Shakshuka']);
+    await expect.poll(() => recipeNames()).toEqual(['Shakshuka']);
   });
 
   it('searches by max steps', async () => {
-    const { fixture, search } = await mountRecipeSearch();
-    await fixture.whenStable();
+    const { search } = mountRecipeSearch();
+    await expect.poll(() => search.mock.calls).toHaveLength(1);
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Max Steps'), '3');
-    await fixture.whenStable();
+    await page.getByLabelText('Max Steps').fill('3');
 
+    await expect.poll(() => search.mock.lastCall?.[0]?.maxStepCount).toBe(3);
     expect(search.mock.lastCall).toMatchInlineSnapshot(`
       [
         {
@@ -142,15 +139,16 @@ describe(RecipeSearch.name, () => {
   });
 
   it('searches by course', async () => {
-    const { fixture, search } = await mountRecipeSearch();
-    await fixture.whenStable();
+    const { search, recipeNames } = mountRecipeSearch();
+    await expect
+      .poll(() => recipeNames())
+      .toEqual(['Shakshuka', 'Lemon and Ricotta Cheesecake']);
 
-    clickCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'dessert' }).click();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(() => recipeNames())
+      .toEqual(['Lemon and Ricotta Cheesecake']);
     expect(search).toHaveBeenCalledTimes(2);
     expect(search.mock.calls[0]?.[0]).toHaveProperty('courses', []);
     expect(search).toHaveBeenNthCalledWith(2, {
@@ -162,32 +160,33 @@ describe(RecipeSearch.name, () => {
   });
 
   it('searches by multiple courses', async () => {
-    const { fixture, search } = await mountRecipeSearch();
-    await fixture.whenStable();
+    const { search } = mountRecipeSearch();
+    await expect.poll(() => search.mock.calls).toHaveLength(1);
 
-    clickCourse(fixture.nativeElement, 'starter');
-    await fixture.whenStable();
-    clickCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'starter' }).click();
+    await expect.poll(() => search.mock.calls).toHaveLength(2);
+    await page.getByRole('button', { name: 'dessert' }).click();
 
-    expect(search).toHaveBeenCalledTimes(3);
-    expect(search).toHaveBeenLastCalledWith({
+    await expect.poll(() => search).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: ['starter', 'dessert'],
     });
+    expect(search).toHaveBeenCalledTimes(3);
   });
 
   it('combines keywords and course', async () => {
-    const { fixture, search } = await mountRecipeSearch();
-    await fixture.whenStable();
+    const { search } = mountRecipeSearch();
+    await expect.poll(() => search.mock.calls).toHaveLength(1);
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'lemon');
-    await fixture.whenStable();
-    clickCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
+    await page.getByLabelText('Keywords').fill('lemon');
+    await expect
+      .poll(() => search.mock.lastCall?.[0])
+      .toMatchObject({ keywords: 'lemon' });
+    await page.getByRole('button', { name: 'dessert' }).click();
 
+    await expect.poll(() => search.mock.calls).toHaveLength(3);
     expect(search).toHaveBeenCalledTimes(3);
     await expect(
       JSON.stringify(search.mock.calls, null, 2),
@@ -197,15 +196,16 @@ describe(RecipeSearch.name, () => {
   });
 
   it('combines max ingredients and max steps', async () => {
-    const { fixture, search } = await mountRecipeSearch();
-    await fixture.whenStable();
+    const { search } = mountRecipeSearch();
+    await expect.poll(() => search.mock.calls).toHaveLength(1);
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Max Ingredients'), '8');
-    await fixture.whenStable();
-    typeInto(inputByLabel(fixture.nativeElement, 'Max Steps'), '4');
-    await fixture.whenStable();
+    await page.getByLabelText('Max Ingredients').fill('8');
+    await expect
+      .poll(() => search.mock.lastCall?.[0])
+      .toMatchObject({ maxIngredientCount: 8 });
+    await page.getByLabelText('Max Steps').fill('4');
 
-    expect(search).toHaveBeenLastCalledWith({
+    await expect.poll(() => search).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: 8,
       maxStepCount: 4,
@@ -214,52 +214,49 @@ describe(RecipeSearch.name, () => {
   });
 
   it('searches all recipes again once keywords are cleared', async () => {
-    const { fixture, search } = await mountRecipeSearch();
-    await fixture.whenStable();
+    const { search } = mountRecipeSearch();
+    await expect.poll(() => search.mock.calls).toHaveLength(1);
 
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), 'shak');
-    await fixture.whenStable();
-    typeInto(inputByLabel(fixture.nativeElement, 'Keywords'), '');
-    await fixture.whenStable();
+    await page.getByLabelText('Keywords').fill('shak');
+    await expect
+      .poll(() => search.mock.lastCall?.[0])
+      .toMatchObject({ keywords: 'shak' });
+    await page.getByLabelText('Keywords').fill('');
 
+    await expect.poll(() => search.mock.calls).toHaveLength(3);
     expect(search).toHaveBeenCalledTimes(3);
     expect(isWholeCatalogSearch(search.mock.lastCall![0])).toBe(true);
   });
 
   it('shows "no recipes" when favorites only is checked without any favorite', async () => {
-    const { fixture, search, userFavorites } = await mountRecipeSearch();
+    const { search, userFavorites, recipeNames } = mountRecipeSearch();
     vi.spyOn(userFavorites, 'favoriteIds').mockReturnValue(new Set());
-    await fixture.whenStable();
 
-    checkboxByLabel(fixture.nativeElement, 'Favorites only').click();
-    await fixture.whenStable();
+    await page.getByRole('checkbox', { name: 'Favorites only' }).click();
 
+    await expect
+      .element(page.getByText('No recipes found'))
+      .toHaveTextContent('No recipes found');
+    await expect.poll(() => recipeNames()).toEqual([]);
     expect(search).toHaveBeenLastCalledWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: [],
     });
-    expect(recipeNames(fixture.nativeElement)).toEqual([]);
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No recipes found');
   });
 
   it('shows only favorites without sending favorites to the repository', async () => {
-    const { fixture, search, userFavorites } = await mountRecipeSearch();
+    const { search, userFavorites, recipeNames } = mountRecipeSearch();
     vi.spyOn(userFavorites, 'favoriteIds').mockReturnValue(
       new Set([cheesecake.id]),
     );
-    await fixture.whenStable();
 
-    checkboxByLabel(fixture.nativeElement, 'Favorites only').click();
-    await fixture.whenStable();
+    await page.getByRole('checkbox', { name: 'Favorites only' }).click();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Lemon and Ricotta Cheesecake',
-    ]);
+    await expect
+      .poll(() => recipeNames())
+      .toEqual(['Lemon and Ricotta Cheesecake']);
     expect(Object.keys(search.mock.lastCall![0])).toEqual([
       'keywords',
       'maxIngredientCount',
@@ -269,23 +266,21 @@ describe(RecipeSearch.name, () => {
   });
 
   it('adds a recipe to favorites', async () => {
-    const { fixture, search, userFavorites } = await mountRecipeSearch();
+    const { search, userFavorites } = mountRecipeSearch();
     search.mockImplementation((params) =>
       params.courses?.length ? of([]) : of([shakshuka]),
     );
     const addFavorite = vi
       .spyOn(userFavorites, 'addFavorite')
       .mockImplementation(() => undefined);
-    await fixture.whenStable();
 
-    buttonByLabel(fixture.nativeElement, 'Add to favorites').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Add to favorites' }).click();
 
     expect(addFavorite).toHaveBeenCalledExactlyOnceWith('shakshuka');
   });
 
   it('removes a recipe from favorites', async () => {
-    const { fixture, search, userFavorites } = await mountRecipeSearch();
+    const { search, userFavorites } = mountRecipeSearch();
     search.mockImplementation((params) =>
       params.courses.length > 0 ? of([]) : of([shakshuka]),
     );
@@ -295,27 +290,25 @@ describe(RecipeSearch.name, () => {
     const removeFavorite = vi
       .spyOn(userFavorites, 'removeFavorite')
       .mockImplementation(() => undefined);
-    await fixture.whenStable();
 
-    buttonByLabel(fixture.nativeElement, 'Remove from favorites').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Remove from favorites' }).click();
 
     expect(removeFavorite).toHaveBeenCalledExactlyOnceWith('shakshuka');
   });
 
   it('assigns a recipe to the picked weekday', async () => {
-    const { fixture, search, mealPlanStore } = await mountRecipeSearch();
+    const { search, mealPlanStore } = mountRecipeSearch();
     search.mockReturnValue(of([shakshuka]));
     vi.spyOn(mealPlanStore, 'canAdd').mockReturnValue(true);
     const assign = vi
       .spyOn(mealPlanStore, 'assign')
       .mockImplementation(() => undefined);
-    await fixture.whenStable();
 
-    buttonByText(fixture.nativeElement, 'add to meal plan').click();
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'wednesday').click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Add to meal plan' }).click();
+    await expect
+      .element(page.getByRole('button', { name: 'Wednesday' }))
+      .toBeVisible();
+    await page.getByRole('button', { name: 'Wednesday' }).click();
 
     expect(search).toHaveBeenCalledWith({
       keywords: '',
@@ -330,21 +323,20 @@ describe(RecipeSearch.name, () => {
   });
 
   it('disables add when the store says the recipe cannot be added', async () => {
-    const { fixture, search, mealPlanStore } = await mountRecipeSearch();
+    const { search, mealPlanStore } = mountRecipeSearch();
     search.mockImplementation((params) =>
       isWholeCatalogSearch(params) ? of([shakshuka]) : of([]),
     );
     const canAdd = vi.spyOn(mealPlanStore, 'canAdd').mockReturnValue(false);
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByRole('button', { name: 'Add to meal plan' }))
+      .toBeDisabled();
     expect(canAdd).toHaveBeenCalledWith({ recipeId: 'shakshuka' });
-    expect(
-      buttonByText(fixture.nativeElement, 'add to meal plan').disabled,
-    ).toBe(true);
   });
 });
 
-async function mountRecipeSearch() {
+function mountRecipeSearch() {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
@@ -372,73 +364,18 @@ async function mountRecipeSearch() {
   const userFavorites = TestBed.inject(UserFavorites);
   const mealPlanStore = TestBed.inject(MealPlanStore);
 
-  const fixture = TestBed.createComponent(RecipeSearch);
+  TestBed.createComponent(RecipeSearch);
 
-  return { fixture, search, userFavorites, mealPlanStore };
-}
-
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function inputByLabel(root: HTMLElement, label: string): HTMLInputElement {
-  const field = [...root.querySelectorAll('mat-form-field')].find(
-    (el) => el.querySelector('mat-label')?.textContent?.trim() === label,
-  );
-  const input = field?.querySelector('input');
-  if (input == null) {
-    throw new Error(`Input "${label}" not found.`);
-  }
-  return input;
-}
-
-function typeInto(input: HTMLInputElement, value: string): void {
-  input.value = value;
-  input.dispatchEvent(new Event('input'));
-}
-
-function clickCourse(root: HTMLElement, course: string): void {
-  const toggle = [...root.querySelectorAll('mat-button-toggle')].find(
-    (el) => el.textContent?.trim() === course,
-  );
-  const button = toggle?.querySelector('button');
-  if (button == null) {
-    throw new Error(`Course "${course}" not found.`);
-  }
-  button.click();
-}
-
-function checkboxByLabel(root: HTMLElement, label: string): HTMLInputElement {
-  const checkbox = [...root.querySelectorAll('mat-checkbox')].find(
-    (el) => el.textContent?.trim() === label,
-  );
-  const input = checkbox?.querySelector('input');
-  if (input == null) {
-    throw new Error(`Checkbox "${label}" not found.`);
-  }
-  return input;
-}
-
-function buttonByLabel(root: HTMLElement, label: string): HTMLButtonElement {
-  const button = root.querySelector<HTMLButtonElement>(
-    `button[aria-label="${label}"]`,
-  );
-  if (button == null) {
-    throw new Error(`Button "${label}" not found.`);
-  }
-  return button;
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim().toLowerCase() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+  return {
+    search,
+    userFavorites,
+    mealPlanStore,
+    recipeNames: () =>
+      page
+        .getByRole('heading')
+        .elements()
+        .map((el) => el.textContent?.trim() ?? ''),
+  };
 }
 
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {

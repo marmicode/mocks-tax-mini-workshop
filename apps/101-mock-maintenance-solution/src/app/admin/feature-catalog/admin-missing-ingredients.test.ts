@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import {
   createRecipeSearchParams,
@@ -10,12 +11,11 @@ import {
 import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { AdminMissingIngredients } from './admin-missing-ingredients.ng';
 
-describe(AdminMissingIngredients.name, () => {
+describe(AdminMissingIngredients, () => {
   it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminMissingIngredients();
-    await fixture.whenStable();
+    const { search } = mountAdminMissingIngredients();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -24,7 +24,7 @@ describe(AdminMissingIngredients.name, () => {
   });
 
   it('shows an empty state when every recipe has ingredients', async () => {
-    const { fixture, search } = mountAdminMissingIngredients();
+    const { search } = mountAdminMissingIngredients();
     search.mockReturnValue(
       of([
         {
@@ -38,16 +38,15 @@ describe(AdminMissingIngredients.name, () => {
         },
       ]),
     );
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('empty-state'))
+      .toHaveTextContent('Every recipe has ingredients.');
     expect(search.mock.calls).toMatchSnapshot();
-    expect(emptyState(fixture.nativeElement)).toBe(
-      'Every recipe has ingredients.',
-    );
   });
 
   it('lists recipes without any ingredient', async () => {
-    const { fixture, search } = mountAdminMissingIngredients();
+    const { search } = mountAdminMissingIngredients();
     search.mockReturnValue(
       of([
         {
@@ -61,21 +60,20 @@ describe(AdminMissingIngredients.name, () => {
         },
       ]),
     );
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('missing-ingredients-row'))
+      .toHaveTextContent('Courgette Fritters — no ingredients');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
       courses: [],
     });
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Courgette Fritters — no ingredients',
-    ]);
   });
 
   it('lists recipes with unnamed ingredients', async () => {
-    const { fixture, search } = mountAdminMissingIngredients();
+    const { search } = mountAdminMissingIngredients();
     const responses: Record<string, Recipe[]> = {
       [searchKey(createRecipeSearchParams())]: [
         {
@@ -94,15 +92,14 @@ describe(AdminMissingIngredients.name, () => {
         ? of(responses[searchKey(params)])
         : throwError(() => new Error(`unexpected search ${searchKey(params)}`)),
     );
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Tahini and Halva Brownies — 2 unnamed ingredient(s)',
-    ]);
+    await expect
+      .element(page.getByTestId('missing-ingredients-row'))
+      .toHaveTextContent('Tahini and Halva Brownies — 2 unnamed ingredient(s)');
   });
 
   it('only lists incomplete recipes', async () => {
-    const { fixture, search } = mountAdminMissingIngredients();
+    const { search } = mountAdminMissingIngredients();
     search.mockImplementation((params) => {
       if (
         params.keywords !== '' ||
@@ -137,11 +134,10 @@ describe(AdminMissingIngredients.name, () => {
           : catalog,
       );
     });
-    await fixture.whenStable();
 
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Courgette Fritters — no ingredients',
-    ]);
+    await expect
+      .element(page.getByTestId('missing-ingredients-row'))
+      .toHaveTextContent('Courgette Fritters — no ingredients');
   });
 });
 
@@ -152,19 +148,9 @@ function mountAdminMissingIngredients() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockReturnValue(of([]));
 
-  const fixture = TestBed.createComponent(AdminMissingIngredients);
+  TestBed.createComponent(AdminMissingIngredients);
 
-  return { fixture, search };
-}
-
-function rowTexts(root: HTMLElement): string[] {
-  return [
-    ...root.querySelectorAll('[data-testid="missing-ingredients-row"]'),
-  ].map((row) => row.textContent?.replace(/\s+/g, ' ').trim() ?? '');
-}
-
-function emptyState(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+  return { search };
 }
 
 /**

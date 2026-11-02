@@ -1,6 +1,8 @@
+import { inputBinding } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -20,58 +22,53 @@ const shakshuka: Recipe = {
   steps: ['Cook the sauce.', 'Poach the eggs.'],
 };
 
-describe(AdminRecipeEdit.name, () => {
+describe(AdminRecipeEdit, () => {
   it('fetches the recipe and prefills the form', async () => {
-    const { fixture, findById } = mountAdminRecipeEdit('shakshuka');
-    await fixture.whenStable();
+    const { findById } = mountAdminRecipeEdit('shakshuka');
 
+    await expect.element(page.getByLabelText('Name')).toHaveValue('Shakshuka');
+    await expect.element(page.getByLabelText('Course')).toHaveValue('main');
+    await expect
+      .element(page.getByLabelText('Ingredients (one per line)'))
+      .toHaveValue('3 tbsp olive oil\n6 large eggs\nfresh coriander');
+    await expect
+      .element(page.getByLabelText('Steps (one per line)'))
+      .toHaveValue('Cook the sauce.\nPoach the eggs.');
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-    expect(fieldByLabel(fixture.nativeElement, 'Name').value).toBe('Shakshuka');
-    expect(fieldByLabel(fixture.nativeElement, 'Course').value).toBe('main');
-    expect(
-      fieldByLabel(fixture.nativeElement, 'Ingredients (one per line)').value,
-    ).toBe('3 tbsp olive oil\n6 large eggs\nfresh coriander');
-    expect(
-      fieldByLabel(fixture.nativeElement, 'Steps (one per line)').value,
-    ).toBe('Cook the sauce.\nPoach the eggs.');
   });
 
   it('does not allow changing the id', async () => {
-    const { fixture, findById } = mountAdminRecipeEdit('shakshuka');
-    await fixture.whenStable();
+    const { findById } = mountAdminRecipeEdit('shakshuka');
 
-    const idField = fieldByLabel(fixture.nativeElement, 'Id');
-
+    await expect.element(page.getByLabelText('Id')).toHaveValue('shakshuka');
+    await expect
+      .poll(
+        () => (page.getByLabelText('Id').element() as HTMLInputElement).readOnly,
+      )
+      .toBe(true);
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-    expect(idField.value).toBe('shakshuka');
-    expect((idField as HTMLInputElement).readOnly).toBe(true);
   });
 
   it('saves an unchanged recipe as is', async () => {
-    const { fixture, findById, update } = mountAdminRecipeEdit('shakshuka');
-    await fixture.whenStable();
+    const { findById, update } = mountAdminRecipeEdit('shakshuka');
 
-    buttonByText(fixture.nativeElement, 'Save').click();
-    await fixture.whenStable();
+    await expect.element(page.getByLabelText('Name')).toHaveValue('Shakshuka');
+    await page.getByRole('button', { name: 'Save' }).click();
 
+    await expect.poll(() => update).toHaveBeenCalledExactlyOnceWith(shakshuka);
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-    expect(update).toHaveBeenCalledExactlyOnceWith(shakshuka);
   });
 
   it('updates the recipe and goes back to the list', async () => {
-    const { fixture, findById, update, navigate } =
-      mountAdminRecipeEdit('shakshuka');
-    await fixture.whenStable();
+    const { findById, update, navigate } = mountAdminRecipeEdit('shakshuka');
 
-    typeInto(fieldByLabel(fixture.nativeElement, 'Name'), 'Green Shakshuka');
-    selectValue(fieldByLabel(fixture.nativeElement, 'Course'), 'starter');
-    typeInto(fieldByLabel(fixture.nativeElement, 'Description'), '');
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'Save').click();
-    await fixture.whenStable();
+    await expect.element(page.getByLabelText('Name')).toHaveValue('Shakshuka');
+    await page.getByLabelText('Name').fill('Green Shakshuka');
+    await page.getByLabelText('Course').selectOptions('starter');
+    await page.getByLabelText('Description').fill('');
+    await page.getByRole('button', { name: 'Save' }).click();
 
-    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
-    expect(update).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => update).toHaveBeenCalledExactlyOnceWith({
       id: 'shakshuka',
       course: 'starter',
       name: 'Green Shakshuka',
@@ -84,17 +81,19 @@ describe(AdminRecipeEdit.name, () => {
       ],
       steps: ['Cook the sauce.', 'Poach the eggs.'],
     });
+    expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'shakshuka' });
     expect(navigate).toHaveBeenCalledExactlyOnceWith(['/', 'admin', 'recipes']);
   });
 
   it('shows "Recipe not found" for an unknown recipe', async () => {
-    const { fixture, findById, update } = mountAdminRecipeEdit('missing');
+    const { findById, update } = mountAdminRecipeEdit('missing');
     findById.mockReturnValue(of(undefined));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByRole('heading', { name: 'Recipe not found' }))
+      .toBeVisible();
+    expect(page.getByLabelText('Name').query()).toBeNull();
     expect(findById).toHaveBeenCalledExactlyOnceWith({ id: 'missing' });
-    expect(fixture.nativeElement.textContent).toContain('Recipe not found');
-    expect(fixture.nativeElement.querySelector('form')).toBeNull();
     expect(update).not.toHaveBeenCalled();
   });
 });
@@ -112,46 +111,9 @@ function mountAdminRecipeEdit(recipeId: string) {
     .spyOn(TestBed.inject(Router), 'navigate')
     .mockResolvedValue(true);
 
-  const fixture = TestBed.createComponent(AdminRecipeEdit);
-  fixture.componentRef.setInput('recipeId', recipeId);
+  TestBed.createComponent(AdminRecipeEdit, {
+    bindings: [inputBinding('recipeId', () => recipeId)],
+  });
 
-  return { fixture, findById, update, navigate };
-}
-
-type FormControlElement =
-  | HTMLInputElement
-  | HTMLTextAreaElement
-  | HTMLSelectElement;
-
-function fieldByLabel(root: HTMLElement, label: string): FormControlElement {
-  const field = [...root.querySelectorAll('mat-form-field')].find(
-    (el) => el.querySelector('mat-label')?.textContent?.trim() === label,
-  );
-  const control = field?.querySelector<FormControlElement>(
-    'input, textarea, select',
-  );
-  if (control == null) {
-    throw new Error(`Field "${label}" not found.`);
-  }
-  return control;
-}
-
-function typeInto(control: FormControlElement, value: string): void {
-  control.value = value;
-  control.dispatchEvent(new Event('input'));
-}
-
-function selectValue(control: FormControlElement, value: string): void {
-  control.value = value;
-  control.dispatchEvent(new Event('change'));
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+  return { findById, update, navigate };
 }

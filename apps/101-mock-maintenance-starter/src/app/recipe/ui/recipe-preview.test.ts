@@ -1,6 +1,9 @@
+import { inputBinding, outputBinding, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { describe, it } from 'vitest';
+import { page } from 'vitest/browser';
+import { describe, it, vi } from 'vitest';
 import { createRecipe } from '@whiskmate/shared-recipe/model';
+import type { Recipe } from '@whiskmate/shared-recipe/model';
 import type { Weekday } from '@whiskmate/shared/model';
 import { RecipePreview } from './recipe-preview.ng';
 
@@ -14,80 +17,71 @@ const shakshuka = createRecipe({
   steps: [],
 });
 
-function buttonByLabel(
-  root: ParentNode,
-  label: string,
-): HTMLButtonElement | undefined {
-  return [...root.querySelectorAll('button')].find(
-    (button) => button.textContent?.trim().toLowerCase() === label,
-  );
-}
-
-function mountRecipePreview(canAdd = true) {
-  const fixture = TestBed.createComponent(RecipePreview);
-  fixture.componentRef.setInput('recipe', shakshuka);
-  fixture.componentRef.setInput('canAdd', canAdd);
-  return fixture;
-}
-
-describe(RecipePreview.name, () => {
+describe(RecipePreview, () => {
   it('asks which weekday, then emits it', async () => {
-    const fixture = mountRecipePreview();
-    let selected: Weekday | undefined;
-    fixture.componentInstance.addToMealPlan.subscribe((weekday) => {
-      selected = weekday;
-    });
-    await fixture.whenStable();
+    const { addToMealPlan } = mountRecipePreview();
 
-    buttonByLabel(fixture.nativeElement, 'add to meal plan')?.click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Add to meal plan' }).click();
 
-    expect(
-      fixture.nativeElement.querySelector('wm-weekday-picker'),
-    ).not.toBeNull();
+    await expect
+      .element(page.getByRole('button', { name: 'Wednesday' }))
+      .toBeVisible();
 
-    buttonByLabel(fixture.nativeElement, 'wednesday')?.click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Wednesday' }).click();
 
-    expect(selected).toBe('wednesday');
+    expect(addToMealPlan).toHaveBeenCalledExactlyOnceWith('wednesday');
   });
 
   it('does not emit when the picker is dismissed', async () => {
-    const fixture = mountRecipePreview();
-    let emitted = 0;
-    fixture.componentInstance.addToMealPlan.subscribe(() => {
-      emitted += 1;
-    });
-    await fixture.whenStable();
+    const { addToMealPlan } = mountRecipePreview();
 
-    buttonByLabel(fixture.nativeElement, 'add to meal plan')?.click();
-    await fixture.whenStable();
-    buttonByLabel(fixture.nativeElement, 'dismiss')?.click();
-    await fixture.whenStable();
+    await page.getByRole('button', { name: 'Add to meal plan' }).click();
+    await expect
+      .element(page.getByRole('button', { name: 'Wednesday' }))
+      .toBeVisible();
 
-    expect(emitted).toBe(0);
-    expect(fixture.nativeElement.querySelector('wm-weekday-picker')).toBeNull();
+    await page.getByRole('button', { name: 'Dismiss' }).click();
+
+    await expect
+      .element(page.getByRole('button', { name: 'Add to meal plan' }))
+      .toBeVisible();
+    await expect
+      .element(page.getByRole('button', { name: 'Wednesday' }))
+      .not.toBeInTheDocument();
+    expect(addToMealPlan).not.toHaveBeenCalled();
   });
 
   it('shows add to meal plan', async () => {
-    const fixture = mountRecipePreview();
-    await fixture.whenStable();
+    mountRecipePreview();
 
-    expect(
-      buttonByLabel(fixture.nativeElement, 'add to meal plan'),
-    ).toBeDefined();
+    await expect
+      .element(page.getByRole('button', { name: 'Add to meal plan' }))
+      .toBeVisible();
   });
 
   it('disables add when the recipe cannot be added', async () => {
-    const fixture = mountRecipePreview(false);
-    await fixture.whenStable();
+    mountRecipePreview(false);
 
-    const addButton = buttonByLabel(fixture.nativeElement, 'add to meal plan');
-    expect(addButton?.disabled).toBe(true);
-
-    addButton?.click();
-    await fixture.whenStable();
-
-    expect(fixture.nativeElement.querySelector('wm-weekday-picker')).toBeNull();
+    await expect
+      .element(page.getByRole('button', { name: 'Add to meal plan' }))
+      .toBeDisabled();
+    await expect
+      .element(page.getByRole('button', { name: 'Wednesday' }))
+      .not.toBeInTheDocument();
   });
 });
+
+function mountRecipePreview(canAdd = true) {
+  const recipe = signal<Recipe>(shakshuka);
+  const addToMealPlan = vi.fn<(weekday: Weekday) => void>();
+
+  TestBed.createComponent(RecipePreview, {
+    bindings: [
+      inputBinding('recipe', recipe),
+      inputBinding('canAdd', () => canAdd),
+      outputBinding('addToMealPlan', addToMealPlan),
+    ],
+  });
+
+  return { recipe, addToMealPlan };
+}

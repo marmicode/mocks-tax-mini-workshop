@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import { App } from './app';
 import { appRoutes } from './app.routes';
@@ -19,33 +20,39 @@ class MemoryStorage implements LocalStorage {
   }
 }
 
-function mealPlanLink(root: ParentNode): HTMLAnchorElement | undefined {
-  return [...root.querySelectorAll('a')].find(
-    (link) => link.textContent?.trim().toLowerCase() === 'meal plan',
-  );
-}
-
-describe(App.name, () => {
+describe(App, () => {
   it('hides the meal plan link unless wip is set', async () => {
-    TestBed.resetTestingModule();
-    const storage = new MemoryStorage();
-    TestBed.overrideProvider(LocalStorage, { useValue: storage });
-    TestBed.configureTestingModule({
-      providers: [provideRouter(appRoutes)],
-    });
-    const fixture = TestBed.createComponent(App);
-    await fixture.whenStable();
+    const { storage } = mountApp();
 
-    expect(mealPlanLink(fixture.nativeElement)).toBeDefined();
+    await expect
+      .element(page.getByRole('link', { name: 'MEAL PLAN' }))
+      .toBeVisible();
 
     storage.setItem(WIP_STORAGE_KEY, 'true');
-    await fixture.whenStable();
 
-    const links = [...fixture.nativeElement.querySelectorAll('a')];
-    const labels = links.map((link) => link.textContent?.trim().toLowerCase());
-    const searchIndex = labels.indexOf('search');
-    const mealPlanIndex = labels.indexOf('meal plan');
-    expect(mealPlanIndex).toBe(searchIndex + 1);
-    expect(links[mealPlanIndex]?.getAttribute('href')).toBe('/meal-plan');
+    await expect.poll(linkLabels).toEqual(['search', 'meal plan', 'admin']);
+    await expect
+      .element(page.getByRole('link', { name: 'MEAL PLAN' }))
+      .toHaveAttribute('href', '/meal-plan');
   });
 });
+
+function mountApp() {
+  TestBed.resetTestingModule();
+  const storage = new MemoryStorage();
+  TestBed.overrideProvider(LocalStorage, { useValue: storage });
+  TestBed.configureTestingModule({
+    providers: [provideRouter(appRoutes)],
+  });
+
+  TestBed.createComponent(App);
+
+  return { storage };
+}
+
+function linkLabels() {
+  return page
+    .getByRole('link')
+    .elements()
+    .map((link) => link.textContent?.trim().toLowerCase() ?? '');
+}

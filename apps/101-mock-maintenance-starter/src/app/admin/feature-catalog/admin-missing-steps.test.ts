@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import {
   RecipeRepository,
@@ -8,12 +9,11 @@ import {
 } from '@whiskmate/recipe/infra';
 import { AdminMissingSteps } from './admin-missing-steps.ng';
 
-describe(AdminMissingSteps.name, () => {
+describe(AdminMissingSteps, () => {
   it('searches all recipes', async () => {
-    const { fixture, search } = mountAdminMissingSteps();
-    await fixture.whenStable();
+    const { search } = mountAdminMissingSteps();
 
-    expect(search).toHaveBeenCalledExactlyOnceWith({
+    await expect.poll(() => search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
@@ -21,7 +21,7 @@ describe(AdminMissingSteps.name, () => {
   });
 
   it('shows an empty state when every recipe has steps', async () => {
-    const { fixture, search } = mountAdminMissingSteps();
+    const { search } = mountAdminMissingSteps();
     search.mockImplementation((params) =>
       of(
         isWholeCatalogSearch(params)
@@ -39,14 +39,15 @@ describe(AdminMissingSteps.name, () => {
           : [],
       ),
     );
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('empty-state'))
+      .toHaveTextContent('Every recipe has steps.');
     expect(search).toHaveBeenCalledOnce();
-    expect(emptyState(fixture.nativeElement)).toBe('Every recipe has steps.');
   });
 
   it('lists recipes without any step', async () => {
-    const { fixture, search } = mountAdminMissingSteps();
+    const { search } = mountAdminMissingSteps();
     search.mockReturnValue(
       of([
         {
@@ -60,8 +61,10 @@ describe(AdminMissingSteps.name, () => {
         },
       ]),
     );
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('missing-steps-row'))
+      .toHaveTextContent('Hummus with Ful');
     expect(search.mock.calls).toMatchInlineSnapshot(`
       [
         [
@@ -73,11 +76,10 @@ describe(AdminMissingSteps.name, () => {
         ],
       ]
     `);
-    expect(rowTexts(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
 
   it('lists recipes with only blank steps', async () => {
-    const { fixture, search } = mountAdminMissingSteps();
+    const { search } = mountAdminMissingSteps();
     search.mockImplementation((params) =>
       of(
         !params.courses?.length
@@ -95,20 +97,19 @@ describe(AdminMissingSteps.name, () => {
           : [],
       ),
     );
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('missing-steps-row'))
+      .toHaveTextContent('Courgette Fritters (2 blank)');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
     });
-    expect(rowTexts(fixture.nativeElement)).toEqual([
-      'Courgette Fritters (2 blank)',
-    ]);
   });
 
   it('ignores recipes with at least one real step', async () => {
-    const { fixture, search } = mountAdminMissingSteps();
+    const { search } = mountAdminMissingSteps();
     search.mockImplementation((params) =>
       of(
         isWholeCatalogSearch(params)
@@ -135,10 +136,11 @@ describe(AdminMissingSteps.name, () => {
           : [],
       ),
     );
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('missing-steps-row'))
+      .toHaveTextContent('Hummus with Ful');
     expect(search).toHaveBeenCalledOnce();
-    expect(rowTexts(fixture.nativeElement)).toEqual(['Hummus with Ful']);
   });
 });
 
@@ -149,19 +151,9 @@ function mountAdminMissingSteps() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockReturnValue(of([]));
 
-  const fixture = TestBed.createComponent(AdminMissingSteps);
+  TestBed.createComponent(AdminMissingSteps);
 
-  return { fixture, search };
-}
-
-function rowTexts(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="missing-steps-row"]')].map(
-    (row) => row.textContent?.replace(/\s+/g, ' ').trim() ?? '',
-  );
-}
-
-function emptyState(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+  return { search };
 }
 
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {

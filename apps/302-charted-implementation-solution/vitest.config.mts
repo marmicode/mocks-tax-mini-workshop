@@ -13,7 +13,9 @@ export default mergeConfig(
         enabled: true,
         headless: true,
         provider: playwright(),
-        instances: [{ browser: 'chromium' }],
+        instances: [
+          { browser: 'chromium', viewport: { width: 1280, height: 800 } },
+        ],
       },
       include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
       setupFiles: ['src/test-setup.ts'],

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { describe, it, vi } from 'vitest';
+import { page } from 'vitest/browser';
+import { describe, it, onTestFinished, vi } from 'vitest';
 import {
   provideRecipeRepositoryFake,
   RecipeRepositoryFake,
@@ -15,7 +16,7 @@ const cheesecake = recipeMother
   .withBasicInfo({ name: 'Lemon and Ricotta Cheesecake', course: 'dessert' })
   .build();
 
-describe(AdminExport.name, () => {
+describe(AdminExport, () => {
   it('searches all recipes without a course filter', async () => {
     const lambShoulder = recipeMother
       .withBasicInfo('Slow-Roasted Lamb Shoulder')
@@ -25,59 +26,47 @@ describe(AdminExport.name, () => {
       .withBasicInfo('Lamb Kofte')
       .withManySteps()
       .build();
-    const { fixture } = mountAdminExport({
+    mountAdminExport({
       recipes: [shakshuka, cheesecake, lambShoulder, kofte],
     });
-    await fixture.whenStable();
 
-    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
-      '4 recipe(s) to export',
-    );
-    expect(
-      JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
-    ).toEqual([shakshuka, cheesecake, lambShoulder, kofte]);
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('4 recipe(s) to export');
+    expect(previewJson()).toEqual([shakshuka, cheesecake, lambShoulder, kofte]);
   });
 
   it('previews the exported recipes as JSON', async () => {
-    const { fixture } = mountAdminExport();
-    await fixture.whenStable();
+    mountAdminExport();
 
-    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
-      '2 recipe(s) to export',
-    );
-    expect(
-      JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
-    ).toEqual([shakshuka, cheesecake]);
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('2 recipe(s) to export');
+    expect(previewJson()).toEqual([shakshuka, cheesecake]);
   });
 
   it('exports a single course', async () => {
-    const { fixture } = mountAdminExport();
-    await fixture.whenStable();
+    mountAdminExport();
 
-    selectCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('export-count')).toBeVisible();
+    await page.getByLabelText('Course').selectOptions('dessert');
 
-    expect(
-      JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
-    ).toEqual([cheesecake]);
+    await expect.poll(() => previewJson()).toEqual([cheesecake]);
   });
 
   it('goes back to all courses', async () => {
-    const { fixture } = mountAdminExport();
-    await fixture.whenStable();
+    mountAdminExport();
 
-    selectCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    selectCourse(fixture.nativeElement, '');
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('export-count')).toBeVisible();
+    await page.getByLabelText('Course').selectOptions('main');
+    await expect.poll(() => previewJson()).toEqual([shakshuka]);
+    await page.getByLabelText('Course').selectOptions('');
 
-    expect(
-      JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
-    ).toEqual([shakshuka, cheesecake]);
+    await expect.poll(() => previewJson()).toEqual([shakshuka, cheesecake]);
   });
 
   it('downloads the recipes as recipes.json', async () => {
-    const { fixture } = mountAdminExport();
+    mountAdminExport();
     const createObjectURL = vi
       .spyOn(URL, 'createObjectURL')
       .mockReturnValue('blob:recipes');
@@ -85,9 +74,12 @@ describe(AdminExport.name, () => {
     const click = vi
       .spyOn(HTMLAnchorElement.prototype, 'click')
       .mockImplementation(() => undefined);
-    await fixture.whenStable();
+    onTestFinished(() => {
+      vi.restoreAllMocks();
+    });
 
-    buttonByText(fixture.nativeElement, 'Download recipes.json').click();
+    await expect.element(page.getByTestId('export-count')).toBeVisible();
+    await page.getByRole('button', { name: 'Download recipes.json' }).click();
 
     const blob = createObjectURL.mock.lastCall?.[0] as Blob;
     expect(JSON.parse(await blob.text())).toEqual([shakshuka, cheesecake]);
@@ -97,54 +89,46 @@ describe(AdminExport.name, () => {
   });
 
   it('previews an empty export when the catalog is empty', async () => {
-    const { fixture } = mountAdminExport({ recipes: [] });
-    await fixture.whenStable();
+    mountAdminExport({ recipes: [] });
 
-    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
-      '0 recipe(s) to export',
-    );
-    expect(
-      JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
-    ).toEqual([]);
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('0 recipe(s) to export');
+    expect(previewJson()).toEqual([]);
   });
 
   it('switches from one course to another', async () => {
-    const { fixture } = mountAdminExport();
-    await fixture.whenStable();
+    mountAdminExport();
 
-    selectCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    selectCourse(fixture.nativeElement, 'dessert');
-    await fixture.whenStable();
+    await expect.element(page.getByTestId('export-count')).toBeVisible();
+    await page.getByLabelText('Course').selectOptions('main');
+    await expect.poll(() => previewJson()).toEqual([shakshuka]);
+    await page.getByLabelText('Course').selectOptions('dessert');
 
-    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
-      '1 recipe(s) to export',
-    );
-    expect(
-      JSON.parse(textByTestId(fixture.nativeElement, 'export-preview')),
-    ).toEqual([cheesecake]);
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('1 recipe(s) to export');
+    expect(previewJson()).toEqual([cheesecake]);
   });
 
   it('counts the recipes to export again after going back to all courses', async () => {
-    const { fixture } = mountAdminExport();
-    await fixture.whenStable();
+    mountAdminExport();
 
-    selectCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
-      '1 recipe(s) to export',
-    );
+    await expect.element(page.getByTestId('export-count')).toBeVisible();
+    await page.getByLabelText('Course').selectOptions('main');
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('1 recipe(s) to export');
 
-    selectCourse(fixture.nativeElement, '');
-    await fixture.whenStable();
+    await page.getByLabelText('Course').selectOptions('');
 
-    expect(textByTestId(fixture.nativeElement, 'export-count')).toBe(
-      '2 recipe(s) to export',
-    );
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('2 recipe(s) to export');
   });
 
   it('downloads only the recipes of the selected course', async () => {
-    const { fixture } = mountAdminExport();
+    mountAdminExport();
     const createObjectURL = vi
       .spyOn(URL, 'createObjectURL')
       .mockReturnValue('blob:recipes');
@@ -152,11 +136,16 @@ describe(AdminExport.name, () => {
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(
       () => undefined,
     );
-    await fixture.whenStable();
+    onTestFinished(() => {
+      vi.restoreAllMocks();
+    });
 
-    selectCourse(fixture.nativeElement, 'main');
-    await fixture.whenStable();
-    buttonByText(fixture.nativeElement, 'Download recipes.json').click();
+    await expect.element(page.getByTestId('export-count')).toBeVisible();
+    await page.getByLabelText('Course').selectOptions('main');
+    await expect
+      .element(page.getByTestId('export-count'))
+      .toHaveTextContent('1 recipe(s) to export');
+    await page.getByRole('button', { name: 'Download recipes.json' }).click();
 
     const blob = createObjectURL.mock.lastCall?.[0] as Blob;
     expect(JSON.parse(await blob.text())).toEqual([shakshuka]);
@@ -171,34 +160,11 @@ function mountAdminExport({
   });
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(AdminExport);
-
-  return { fixture };
+  TestBed.createComponent(AdminExport);
 }
 
-function textByTestId(root: HTMLElement, testId: string): string {
-  return (
-    root.querySelector(`[data-testid="${testId}"]`)?.textContent?.trim() ?? ''
+function previewJson() {
+  return JSON.parse(
+    page.getByTestId('export-preview').element().textContent?.trim() ?? '',
   );
-}
-
-function selectCourse(root: HTMLElement, course: string): void {
-  const select = root.querySelector<HTMLSelectElement>(
-    'select[aria-label="Course"]',
-  );
-  if (select == null) {
-    throw new Error('Course select not found.');
-  }
-  select.value = course;
-  select.dispatchEvent(new Event('change'));
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
 }

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { page } from 'vitest/browser';
 import { describe, it, vi } from 'vitest';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
@@ -35,11 +36,13 @@ const searchResults: Record<string, Recipe[]> = {
     [hummus, salad],
 };
 
-describe(IngredientSpotlight.name, () => {
+describe(IngredientSpotlight, () => {
   it('picks a random ingredient among all distinct ingredients', async () => {
-    const { fixture, search, pick } = mountIngredientSpotlight();
-    await fixture.whenStable();
+    const { search, pick } = mountIngredientSpotlight();
 
+    await expect
+      .element(page.getByTestId('spotlight-ingredient'))
+      .toHaveTextContent('chickpeas');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
@@ -54,35 +57,42 @@ describe(IngredientSpotlight.name, () => {
   });
 
   it('shows the recipes using the spotlighted ingredient', async () => {
-    const { fixture, search, pick } = mountIngredientSpotlight();
+    const { pick } = mountIngredientSpotlight();
     pick.mockReturnValue('tahini');
-    await fixture.whenStable();
 
-    expect(spotlightIngredient(fixture.nativeElement)).toBe('tahini');
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await expect
+      .element(page.getByTestId('spotlight-ingredient'))
+      .toHaveTextContent('tahini');
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
   });
 
   it('only shows recipes using the spotlighted ingredient', async () => {
-    const { fixture, search, pick } = mountIngredientSpotlight();
+    const { pick } = mountIngredientSpotlight();
     pick.mockReturnValue('aubergines');
-    await fixture.whenStable();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual(['Burnt Aubergine with Tahini and Pomegranate']);
   });
 
   it('spotlights another ingredient when asked', async () => {
-    const { fixture, search, pick } = mountIngredientSpotlight();
+    const { search, pick } = mountIngredientSpotlight();
     pick.mockReturnValueOnce('chickpeas').mockReturnValueOnce('aubergines');
-    await fixture.whenStable();
 
-    buttonByText(fixture.nativeElement, 'Another ingredient').click();
-    await fixture.whenStable();
+    await expect
+      .element(page.getByTestId('spotlight-ingredient'))
+      .toHaveTextContent('chickpeas');
 
+    await page.getByRole('button', { name: 'Another ingredient' }).click();
+
+    await expect
+      .element(page.getByTestId('spotlight-ingredient'))
+      .toHaveTextContent('aubergines');
     expect(search).toHaveBeenCalledTimes(2);
     expect(search.mock.calls[1]).toEqual(search.mock.calls[0]);
     expect(search.mock.calls).toMatchInlineSnapshot(`
@@ -105,14 +115,15 @@ describe(IngredientSpotlight.name, () => {
         ],
       ]
     `);
-    expect(spotlightIngredient(fixture.nativeElement)).toBe('aubergines');
   });
 
   it('shows a message when there is no ingredient to spotlight', async () => {
-    const { fixture, search, pick } = mountIngredientSpotlight();
+    const { search, pick } = mountIngredientSpotlight();
     search.mockReturnValue(of([]));
-    await fixture.whenStable();
 
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No ingredient to put in the spotlight');
     expect(search).toHaveBeenCalledExactlyOnceWith({
       keywords: '',
       maxIngredientCount: null,
@@ -120,10 +131,6 @@ describe(IngredientSpotlight.name, () => {
       courses: [],
     });
     expect(pick).not.toHaveBeenCalled();
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No ingredient to put in the spotlight');
   });
 });
 
@@ -145,29 +152,14 @@ function mountIngredientSpotlight() {
     .spyOn(TestBed.inject(RandomAdapter), 'pick')
     .mockReturnValue('chickpeas');
 
-  const fixture = TestBed.createComponent(IngredientSpotlight);
+  TestBed.createComponent(IngredientSpotlight);
 
-  return { fixture, search, pick };
+  return { search, pick };
 }
 
-function spotlightIngredient(root: HTMLElement): string | undefined {
-  return root
-    .querySelector('[data-testid="spotlight-ingredient"]')
-    ?.textContent?.trim();
-}
-
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
-  const button = [...root.querySelectorAll('button')].find(
-    (el) => el.textContent?.trim() === text,
-  );
-  if (button == null) {
-    throw new Error(`Button "${text}" not found.`);
-  }
-  return button;
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

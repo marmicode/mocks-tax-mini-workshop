@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -22,93 +23,93 @@ const stew = recipeMother
   .withManySteps()
   .build();
 
-describe(QuickRecipes.name, () => {
+describe(QuickRecipes, () => {
   it('searches recipes with few steps', async () => {
-    const { fixture } = mountQuickRecipes();
-    await fixture.whenStable();
+    mountQuickRecipes();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
   });
 
   it('shows the quick recipes', async () => {
-    const { fixture } = mountQuickRecipes({ recipes: [hummus, salad] });
-    await fixture.whenStable();
+    mountQuickRecipes({ recipes: [hummus, salad] });
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
   });
 
   it('also caps ingredients when asked', async () => {
-    const { fixture } = mountQuickRecipes();
-    await fixture.whenStable();
+    mountQuickRecipes();
 
-    checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
-    await fixture.whenStable();
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
+    await page.getByRole('checkbox', { name: 'At most 6 ingredients' }).click();
+
+    await expect.poll(recipeNames).toEqual(['Hummus with Ful']);
   });
 
   it('stops capping ingredients once unchecked', async () => {
-    const { fixture } = mountQuickRecipes();
-    await fixture.whenStable();
+    mountQuickRecipes();
 
-    checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
-    await fixture.whenStable();
-    checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
-    await fixture.whenStable();
+    await page.getByRole('checkbox', { name: 'At most 6 ingredients' }).click();
+    await expect.poll(recipeNames).toEqual(['Hummus with Ful']);
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await page.getByRole('checkbox', { name: 'At most 6 ingredients' }).click();
+
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
   });
 
   it('shows a message when there are no quick recipes', async () => {
-    const { fixture } = mountQuickRecipes({ recipes: [stew] });
-    await fixture.whenStable();
+    mountQuickRecipes({ recipes: [stew] });
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No quick recipes found');
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No quick recipes found');
   });
 
   it('mentions the step cap', async () => {
-    const { fixture } = mountQuickRecipes();
-    await fixture.whenStable();
+    mountQuickRecipes();
 
-    expect(fixture.nativeElement.textContent).toContain(
-      'Recipes with at most 5 steps.',
-    );
+    await expect
+      .element(page.getByText('Recipes with at most 5 steps.'))
+      .toMatchTextContent('Recipes with at most 5 steps.');
   });
 
   it('shows the recipes with few ingredients once capped', async () => {
-    const { fixture } = mountQuickRecipes();
-    await fixture.whenStable();
+    mountQuickRecipes();
 
-    checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
-    await fixture.whenStable();
+    await page.getByRole('checkbox', { name: 'At most 6 ingredients' }).click();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual(['Hummus with Ful']);
+    await expect.poll(recipeNames).toEqual(['Hummus with Ful']);
   });
 
   it('shows a message when no quick recipe has few ingredients', async () => {
-    const { fixture } = mountQuickRecipes({ recipes: [salad, stew] });
-    await fixture.whenStable();
+    mountQuickRecipes({ recipes: [salad, stew] });
 
-    checkboxByLabel(fixture.nativeElement, 'At most 6 ingredients').click();
-    await fixture.whenStable();
+    await page.getByRole('checkbox', { name: 'At most 6 ingredients' }).click();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([]);
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No quick recipes found');
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No quick recipes found');
+    await expect.poll(recipeNames).toEqual([]);
   });
 });
 
@@ -125,24 +126,12 @@ function mountQuickRecipes({
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(QuickRecipes);
-
-  return { fixture };
+  TestBed.createComponent(QuickRecipes);
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
-}
-
-function checkboxByLabel(root: HTMLElement, label: string): HTMLInputElement {
-  const checkbox = [...root.querySelectorAll('mat-checkbox')].find(
-    (el) => el.textContent?.trim() === label,
-  );
-  const input = checkbox?.querySelector('input');
-  if (input == null) {
-    throw new Error(`Checkbox "${label}" not found.`);
-  }
-  return input;
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }

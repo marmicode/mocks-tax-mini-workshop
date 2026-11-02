@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -9,9 +10,9 @@ import type { Recipe } from '@whiskmate/shared-recipe/model';
 import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { AdminMissingDescriptions } from './admin-missing-descriptions.ng';
 
-describe(AdminMissingDescriptions.name, () => {
+describe(AdminMissingDescriptions, () => {
   it('searches all recipes', async () => {
-    const { fixture } = mountAdminMissingDescriptions({
+    mountAdminMissingDescriptions({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -23,18 +24,21 @@ describe(AdminMissingDescriptions.name, () => {
         recipeMother.withBasicInfo('Hummus with Ful').withManySteps().build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(summary(fixture.nativeElement)).toBe('3 of 3 recipes');
-    expect(rowNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Lemon and Ricotta Cheesecake',
-      'Shakshuka',
-    ]);
+    await expect
+      .element(page.getByTestId('missing-description-summary'))
+      .toHaveTextContent('3 of 3 recipes');
+    await expect
+      .poll(() => rowTexts('missing-description-row'))
+      .toEqual([
+        'Hummus with Ful',
+        'Lemon and Ricotta Cheesecake',
+        'Shakshuka',
+      ]);
   });
 
   it('shows an empty state when every recipe has a description', async () => {
-    const { fixture } = mountAdminMissingDescriptions({
+    mountAdminMissingDescriptions({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -44,15 +48,14 @@ describe(AdminMissingDescriptions.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(emptyState(fixture.nativeElement)).toBe(
-      'Every recipe has a description.',
-    );
+    await expect
+      .element(page.getByTestId('empty-state'))
+      .toHaveTextContent('Every recipe has a description.');
   });
 
   it('lists recipes with a null description', async () => {
-    const { fixture } = mountAdminMissingDescriptions({
+    mountAdminMissingDescriptions({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -61,15 +64,14 @@ describe(AdminMissingDescriptions.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowNames(fixture.nativeElement)).toEqual([
-      'Tahini and Halva Brownies',
-    ]);
+    await expect
+      .poll(() => rowTexts('missing-description-row'))
+      .toEqual(['Tahini and Halva Brownies']);
   });
 
   it('treats blank descriptions as missing and sorts by name', async () => {
-    const { fixture } = mountAdminMissingDescriptions({
+    mountAdminMissingDescriptions({
       recipes: [
         recipeMother
           .withBasicInfo({ name: 'Shakshuka', description: '   ' })
@@ -88,16 +90,14 @@ describe(AdminMissingDescriptions.name, () => {
           .build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(rowNames(fixture.nativeElement)).toEqual([
-      'Courgette Fritters',
-      'Shakshuka',
-    ]);
+    await expect
+      .poll(() => rowTexts('missing-description-row'))
+      .toEqual(['Courgette Fritters', 'Shakshuka']);
   });
 
   it('summarizes how many recipes miss a description', async () => {
-    const { fixture } = mountAdminMissingDescriptions({
+    mountAdminMissingDescriptions({
       recipes: [
         recipeMother
           .withBasicInfo({
@@ -108,9 +108,10 @@ describe(AdminMissingDescriptions.name, () => {
         recipeMother.withBasicInfo('Shakshuka').build(),
       ],
     });
-    await fixture.whenStable();
 
-    expect(summary(fixture.nativeElement)).toBe('1 of 2 recipes');
+    await expect
+      .element(page.getByTestId('missing-description-summary'))
+      .toHaveTextContent('1 of 2 recipes');
   });
 });
 
@@ -122,23 +123,26 @@ function mountAdminMissingDescriptions({
   });
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(AdminMissingDescriptions);
-
-  return { fixture };
+  TestBed.createComponent(AdminMissingDescriptions);
 }
 
-function rowNames(root: HTMLElement): string[] {
-  return [
-    ...root.querySelectorAll('[data-testid="missing-description-row"]'),
-  ].map((row) => row.textContent?.trim() ?? '');
+function rowTexts(testId: string) {
+  return page.getByTestId(testId).elements().map((row) => rowText(row));
 }
 
-function summary(root: HTMLElement): string | undefined {
-  return root
-    .querySelector('[data-testid="missing-description-summary"]')
-    ?.textContent?.trim();
+function rowText(row: Element) {
+  return textOf(row);
 }
 
-function emptyState(root: HTMLElement): string | undefined {
-  return root.querySelector('[data-testid="empty-state"]')?.textContent?.trim();
+function textOf(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+  }
+  if (!(node instanceof Element)) {
+    return '';
+  }
+  return [...node.childNodes]
+    .map((child) => textOf(child))
+    .filter((text) => text.length > 0)
+    .join(' ');
 }

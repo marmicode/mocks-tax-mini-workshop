@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { page } from 'vitest/browser';
 import { describe, it } from 'vitest';
 import {
   provideRecipeRepositoryFake,
@@ -21,56 +22,54 @@ const lamb = recipeMother
   .withManySteps()
   .build();
 
-describe(ThreeStepRecipes.name, () => {
+describe(ThreeStepRecipes, () => {
   it('searches recipes with at most three steps', async () => {
-    const { fixture } = mountThreeStepRecipes();
-    await fixture.whenStable();
+    mountThreeStepRecipes();
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
   });
 
   it('shows the three-step recipes', async () => {
-    const { fixture } = mountThreeStepRecipes({ recipes: [hummus, salad] });
-    await fixture.whenStable();
+    mountThreeStepRecipes({ recipes: [hummus, salad] });
 
-    expect(recipeNames(fixture.nativeElement)).toEqual([
-      'Hummus with Ful',
-      'Burnt Aubergine with Tahini and Pomegranate',
-    ]);
+    await expect
+      .poll(recipeNames)
+      .toEqual([
+        'Hummus with Ful',
+        'Burnt Aubergine with Tahini and Pomegranate',
+      ]);
   });
 
   it('shows the steps of each recipe', async () => {
-    const { fixture } = mountThreeStepRecipes({ recipes: [salad] });
-    await fixture.whenStable();
+    mountThreeStepRecipes({ recipes: [salad] });
 
-    expect(steps(fixture.nativeElement)).toEqual([
-      'Burn the aubergine.',
-      'Dress with tahini.',
-    ]);
+    await expect
+      .poll(steps)
+      .toEqual(['Burn the aubergine.', 'Dress with tahini.']);
   });
 
   it('links each recipe to its detail page', async () => {
-    const { fixture } = mountThreeStepRecipes({ recipes: [hummus] });
-    await fixture.whenStable();
+    mountThreeStepRecipes({ recipes: [hummus] });
 
-    expect(
-      fixture.nativeElement
-        .querySelector('[data-testid="recipe-name"]')
-        ?.getAttribute('href'),
-    ).toBe(`/recipes/${hummus.id}`);
+    await expect
+      .element(page.getByRole('link', { name: 'Hummus with Ful' }))
+      .toHaveTextContent('Hummus with Ful');
+    await expect
+      .element(page.getByTestId('recipe-name'))
+      .toHaveAttribute('href', `/recipes/${hummus.id}`);
   });
 
   it('shows a message when there are no three-step recipes', async () => {
-    const { fixture } = mountThreeStepRecipes({ recipes: [lamb] });
-    await fixture.whenStable();
+    mountThreeStepRecipes({ recipes: [lamb] });
 
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="no-recipes-message"]')
-        ?.textContent,
-    ).toContain('No three-step recipes found');
+    await expect
+      .element(page.getByTestId('no-recipes-message'))
+      .toMatchTextContent('No three-step recipes found');
   });
 });
 
@@ -83,19 +82,19 @@ function mountThreeStepRecipes({
 
   TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
 
-  const fixture = TestBed.createComponent(ThreeStepRecipes);
-
-  return { fixture };
+  TestBed.createComponent(ThreeStepRecipes);
 }
 
-function recipeNames(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-name"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function recipeNames() {
+  return page
+    .getByTestId('recipe-name')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
 
-function steps(root: HTMLElement): string[] {
-  return [...root.querySelectorAll('[data-testid="recipe-step"]')].map(
-    (el) => el.textContent?.trim() ?? '',
-  );
+function steps() {
+  return page
+    .getByTestId('recipe-step')
+    .elements()
+    .map((el) => el.textContent?.trim() ?? '');
 }
