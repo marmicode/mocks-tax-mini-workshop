@@ -16,18 +16,17 @@ sidebar_label: 301. Charted Design
 pnpm cook start 301-charted-design
 ```
 
-The starter has `angular-developer`. It does not have the Charted Coding skills, and it does not have a meal-plan design doc.
-
 ## 🎯 Goal
 
-Install the Charted Coding skills and write the weekly meal plan design. The hard part is the testing strategy and the ordered PR plan, not the feature list. Do not implement the meal plan.
+Install the Charted Coding skills and write the weekly meal plan design.
+Do not implement the meal plan.
 
 ## 📝 Steps
 
 #### 1. Install the Charted Coding skills.
 
 ```sh
-npx skills add marmicode/skills # and select all the skills
+npx skills add marmicode/skills # and select all the charted-* skills
 ```
 
 #### 2. Prompt the agent to write the design.
@@ -39,7 +38,7 @@ npx skills add marmicode/skills # and select all the skills
 #### 3. Design the feature.
 
 Answer the agent's questions.
-Feel free to edit the design doc as you go.
+Feel free to edit and commit the design doc as you go.
 
 :::warning
 Do not implement the feature yet.
