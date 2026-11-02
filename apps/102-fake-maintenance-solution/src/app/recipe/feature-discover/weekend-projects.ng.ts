@@ -16,7 +16,7 @@ const PROJECT_COUNT = 5;
   imports: [RouterLink],
   template: `
     <h2>Weekend projects</h2>
-    <p class="wm-muted">The ${PROJECT_COUNT} most involved recipes.</p>
+    <p class="wm-muted">The {{ projectCount }} most involved recipes.</p>
     @if (projects.hasValue()) {
       <ol>
         @for (recipe of projects.value(); track recipe.id) {
@@ -63,6 +63,8 @@ const PROJECT_COUNT = 5;
   `,
 })
 export class WeekendProjects {
+  readonly projectCount = PROJECT_COUNT;
+
   private _recipeRepository = inject(RecipeRepository);
 
   projects = rxResource({

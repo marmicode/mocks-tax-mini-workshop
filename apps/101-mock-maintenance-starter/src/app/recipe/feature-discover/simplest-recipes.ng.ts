@@ -17,7 +17,7 @@ const SIMPLEST_COUNT = 5;
   template: `
     <h2>Simplest recipes</h2>
     <p class="wm-muted">
-      The ${SIMPLEST_COUNT} recipes with the fewest ingredients.
+      The {{ simplestCount }} recipes with the fewest ingredients.
     </p>
     @if (recipes.hasValue()) {
       <ol>
@@ -65,6 +65,8 @@ const SIMPLEST_COUNT = 5;
   `,
 })
 export class SimplestRecipes {
+  readonly simplestCount = SIMPLEST_COUNT;
+
   private _recipeRepository = inject(RecipeRepository);
 
   recipes = rxResource({

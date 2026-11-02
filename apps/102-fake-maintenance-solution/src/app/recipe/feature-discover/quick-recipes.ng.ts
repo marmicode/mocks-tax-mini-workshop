@@ -18,12 +18,12 @@ const MAX_INGREDIENT_COUNT = 6;
   template: `
     <h2>Ready in a few steps</h2>
     <div class="wm-toolbar options">
-      <p class="wm-muted">Recipes with at most ${MAX_STEP_COUNT} steps.</p>
+      <p class="wm-muted">Recipes with at most {{ maxStepCount }} steps.</p>
       <mat-checkbox
         [checked]="fewIngredients()"
         (change)="fewIngredients.set($event.checked)"
       >
-        At most ${MAX_INGREDIENT_COUNT} ingredients
+        At most {{ maxIngredientCount }} ingredients
       </mat-checkbox>
     </div>
     <wm-catalog>
@@ -73,6 +73,9 @@ const MAX_INGREDIENT_COUNT = 6;
   `,
 })
 export class QuickRecipes {
+  readonly maxStepCount = MAX_STEP_COUNT;
+  readonly maxIngredientCount = MAX_INGREDIENT_COUNT;
+
   fewIngredients = signal(false);
 
   private _recipeRepository = inject(RecipeRepository);
