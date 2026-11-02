@@ -10,11 +10,11 @@ const config: Config = {
     v4: true,
   },
 
-  url: 'https://charted.marmicode.io',
+  url: 'https://mocks-tax.marmicode.io',
   baseUrl: '/',
 
   organizationName: 'marmicode',
-  projectName: 'charted-coding-workshop',
+  projectName: 'mocks-tax-mini-workshop',
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'throw',
