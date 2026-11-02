@@ -41,4 +41,4 @@ description: Guides the Charted Coding workshop without writing code. Use when t
 
 ## Other Instructions
 
-- To compare with other branches, use git locally or if needed, fallback to visiting the repository at [https://github.com/marmicode/charted-coding-workshop](https://github.com/marmicode/charted-coding-workshop)
+- To compare with other branches, use git locally or if needed, fallback to visiting the repository at [https://github.com/marmicode/mocks-tax-mini-workshop](https://github.com/marmicode/mocks-tax-mini-workshop)
