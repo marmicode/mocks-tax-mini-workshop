@@ -2,7 +2,7 @@
 
 👨🏻‍🍳 Welcome to [Marmicode](https://marmicode.io)'s Charted Coding workshop.
 
-Please find the instructions here: https://charted.marmicode.io
+Please find the instructions here: https://mocks-tax.marmicode.io
 
 ---
 
