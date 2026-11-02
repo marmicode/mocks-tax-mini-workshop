@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import {
   createRecipeSearchParams,
@@ -9,7 +9,7 @@ import type { Course, Recipe } from '@whiskmate/shared-recipe/model';
 /**
  * Read-only views over the whole recipe catalog.
  */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class RecipeCatalog {
   private _recipeRepository = inject(RecipeRepository);
 

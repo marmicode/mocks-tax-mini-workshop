@@ -1,8 +1,8 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { map, Observable, of } from 'rxjs';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class RecipeIdAvailability {
   private _recipeRepository = inject(RecipeRepository);
 

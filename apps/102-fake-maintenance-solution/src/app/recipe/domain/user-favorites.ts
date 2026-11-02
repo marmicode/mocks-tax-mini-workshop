@@ -1,9 +1,9 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Service, signal } from '@angular/core';
 import { LocalStorage } from '@whiskmate/shared/infra';
 
 const FAVORITES_STORAGE_KEY = 'whiskmate:favorites';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class UserFavorites {
   private _localStorage = inject(LocalStorage);
   private _favoriteIds = signal(this._loadFavoriteIds());

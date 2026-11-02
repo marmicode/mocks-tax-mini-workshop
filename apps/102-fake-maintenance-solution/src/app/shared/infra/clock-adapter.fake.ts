@@ -1,6 +1,6 @@
 import {
   type EnvironmentProviders,
-  Injectable,
+  Service,
   makeEnvironmentProviders,
 } from '@angular/core';
 import { ClockAdapter } from './clock-adapter';
@@ -8,7 +8,7 @@ import { ClockAdapter } from './clock-adapter';
 /**
  * Clock that only moves when the test says so.
  */
-@Injectable()
+@Service({ autoProvided: true })
 export class ClockAdapterFake implements ClockAdapter {
   private _now = new Date(2026, 0, 1);
 

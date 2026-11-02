@@ -1,10 +1,10 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Service, signal } from '@angular/core';
 import { LocalStorage } from '../shared/local-storage';
 import { User as UserProfile } from './user.model';
 
 const USER_STORAGE_KEY = 'whiskmate:user';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class CurrentUser {
   private _localStorage = inject(LocalStorage);
   private _user = signal<UserProfile | null>(this._loadUser());

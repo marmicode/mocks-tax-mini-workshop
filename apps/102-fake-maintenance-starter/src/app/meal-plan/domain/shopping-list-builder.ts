@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { forkJoin, map, Observable, of } from 'rxjs';
 import { RecipeRepository } from '@whiskmate/recipe/infra';
 import type { WeekdayAssignments } from '@whiskmate/shared-meal-plan/domain';
@@ -16,7 +16,7 @@ export interface ShoppingItem {
   from: string[];
 }
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ShoppingListBuilder {
   private _recipeRepository = inject(RecipeRepository);
 

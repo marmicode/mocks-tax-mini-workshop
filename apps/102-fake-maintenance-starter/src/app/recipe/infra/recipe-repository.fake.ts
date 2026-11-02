@@ -1,6 +1,6 @@
 import {
   type EnvironmentProviders,
-  Injectable,
+  Service,
   makeEnvironmentProviders,
 } from '@angular/core';
 import { defer, type Observable, of, throwError } from 'rxjs';
@@ -15,7 +15,7 @@ import {
  * In-memory stand-in for {@link RecipeRepository}.
  * It behaves like the recipe API, as verified by the repository contract.
  */
-@Injectable()
+@Service({ autoProvided: true })
 export class RecipeRepositoryFake implements RecipeRepositoryDef {
   private _recipes: Recipe[] = [];
 

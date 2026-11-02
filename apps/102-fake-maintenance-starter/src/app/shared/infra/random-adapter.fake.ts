@@ -1,6 +1,6 @@
 import {
   type EnvironmentProviders,
-  Injectable,
+  Service,
   makeEnvironmentProviders,
 } from '@angular/core';
 import { RandomAdapter } from './random-adapter';
@@ -8,7 +8,7 @@ import { RandomAdapter } from './random-adapter';
 /**
  * Predictable "random" picks: the first item unless told otherwise.
  */
-@Injectable()
+@Service({ autoProvided: true })
 export class RandomAdapterFake implements RandomAdapter {
   private _index = 0;
 

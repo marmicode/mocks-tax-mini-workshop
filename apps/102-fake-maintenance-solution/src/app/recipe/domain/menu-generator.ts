@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { forkJoin, map, Observable } from 'rxjs';
 import {
   createRecipeSearchParams,
@@ -12,7 +12,7 @@ import { RandomAdapter } from '@whiskmate/shared/infra';
  */
 export type Menu = Record<Course, Recipe | null>;
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class MenuGenerator {
   private _recipeRepository = inject(RecipeRepository);
   private _random = inject(RandomAdapter);

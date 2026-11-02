@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import {
   createRecipeSearchParams,
@@ -10,7 +10,7 @@ import { WEEKDAYS, type Weekday } from '@whiskmate/shared/model';
 
 export type MealPlanSuggestions = Partial<Record<Weekday, Recipe>>;
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class MealPlanSuggester {
   private _recipeRepository = inject(RecipeRepository);
 

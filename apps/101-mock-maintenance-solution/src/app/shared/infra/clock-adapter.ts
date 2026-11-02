@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ClockAdapter {
   now(): Date {
     return new Date();

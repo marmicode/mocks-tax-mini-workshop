@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import {
   createRecipeSearchParams,
@@ -18,7 +18,7 @@ export interface CatalogStatsSummary {
   missingDescriptionCount: number;
 }
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class CatalogStats {
   private _recipeRepository = inject(RecipeRepository);
 

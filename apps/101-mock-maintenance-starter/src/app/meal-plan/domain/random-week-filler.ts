@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import {
   createRecipeSearchParams,
@@ -11,7 +11,7 @@ import type { MealPlanSuggestions } from './meal-plan-suggester';
 
 const QUICK_MAX_STEP_COUNT = 4;
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class RandomWeekFiller {
   private _recipeRepository = inject(RecipeRepository);
   private _random = inject(RandomAdapter);

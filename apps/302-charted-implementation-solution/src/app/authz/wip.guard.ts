@@ -1,11 +1,11 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { CanActivate } from '@angular/router';
 import { LocalStorage } from '../shared/local-storage';
 
 export const WIP_STORAGE_KEY = 'wip';
 
 /** Work in progress — allows navigation only when the wip key is stored. */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class WipGuard implements CanActivate {
   private _localStorage = inject(LocalStorage);
 

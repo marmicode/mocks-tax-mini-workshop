@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { map, Observable, of } from 'rxjs';
 import {
   createRecipeSearchParams,
@@ -8,7 +8,7 @@ import {
 const MIN_PREFIX_LENGTH = 2;
 const MAX_KEYWORDS = 5;
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class KeywordSuggester {
   private _recipeRepository = inject(RecipeRepository);
 

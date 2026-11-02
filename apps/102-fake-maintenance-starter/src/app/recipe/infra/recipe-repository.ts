@@ -1,5 +1,5 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { catchError, Observable, of, throwError } from 'rxjs';
 import type { Course, Recipe } from '@whiskmate/shared-recipe/model';
 
@@ -41,7 +41,7 @@ export interface RecipeRepositoryDef {
 
 const RECIPES_URL = 'http://localhost:3333/api/recipes';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class RecipeRepository implements RecipeRepositoryDef {
   private _http = inject(HttpClient);
 

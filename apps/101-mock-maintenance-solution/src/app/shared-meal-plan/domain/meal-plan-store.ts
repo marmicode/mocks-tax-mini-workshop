@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { inject, Service, signal } from '@angular/core';
 import { LocalStorage } from '@whiskmate/shared/infra';
 import type { Weekday } from '@whiskmate/shared/model';
 
@@ -20,7 +20,7 @@ const EMPTY_ASSIGNMENTS: WeekdayAssignments = {
  */
 export type WeekdayAssignments = Record<Weekday, string | null>;
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class MealPlanStore {
   private readonly _localStorage = inject(LocalStorage);
   private readonly _assignments = signal(this._load());
