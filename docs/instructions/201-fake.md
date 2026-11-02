@@ -64,7 +64,7 @@ Add a few recipes with `recipeMother`: `recipeMother.withBasicInfo('Burger').bui
 Implement `it.todo('filters recipes by keywords')`: type a keyword and check those headings.
 
 ```sh
-npm test
+pnpm test
 ```
 
 #### 4. Write the search contract.
@@ -74,9 +74,9 @@ npm test
 - returns an empty list when no keywords match
 - filters by keywords
 
-`recipe-repository.fake.test.ts` runs the contract. Its factory configures the fake with three recipes similar to the server: Shakshuka, and Hummus.
+`recipe-repository.fake.test.ts` runs the contract. Its factory already configures the fake with Burger and Hummus. Leave that catalog as it is.
 
-`recipe-repository.wide.test.ts` runs the same contract against the real `RecipeRepository`. The server already has those recipes (`pnpm start-server`).
+`recipe-repository.wide.test.ts` runs the same contract against the real `RecipeRepository`. Start the server with `pnpm start-server`. The server already has those recipes amongst others.
 
 Implement the two cases.
 
