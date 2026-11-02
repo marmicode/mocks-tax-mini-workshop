@@ -15,7 +15,7 @@ describe(RecipeRepositoryFake.name, () => {
       providers: [provideRecipeRepositoryFake()],
     });
     const recipeRepository = TestBed.inject(RecipeRepositoryFake);
-    recipeRepository.setRecipes(recipes);
+    recipeRepository.configure({ recipes });
     return { recipeRepository };
   }
 });

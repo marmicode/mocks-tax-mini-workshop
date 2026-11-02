@@ -7,7 +7,8 @@
     "start-server": "nx start server",
     "start-web": "nx serve --excludeTaskDependencies",
     "cook": "node --experimental-strip-types tools/cook/main.ts",
-    "limbo": "tools/limbo.sh"
+    "limbo": "tools/limbo.sh",
+    "test": "nx test"
   },
   "private": true,
   "dependencies": {

@@ -16,67 +16,70 @@ sidebar_label: 201. Fake
 pnpm cook start 201-fake
 ```
 
-Recipe search is already on screen. `recipeMother` is in `@whiskmate/shared-recipe/testing`. There is no fake, no contract, and no search test yet.
-
 ## 🎯 Goal
 
-Cover recipe search with a fake and a contract. Tests assert what the user sees. The fake and the real repository share the contract, and the contract also runs against the API.
+Test that the `RecipeSearch` component filters the recipes by keywords.
+Replace the real `RecipeRepository` with an in-memory `RecipeRepositoryFake`.
 
 ## 📝 Steps
 
-#### 1. Add `RecipeRepositoryFake`.
+#### 1. Implement `RecipeRepositoryFake`.
 
-Keep an in-memory catalog and implement `search` with the same rules as the API:
+Edit `recipe-repository.fake.ts`. It already exists.
 
-- keywords match the recipe name, ignoring case
-- `maxIngredientCount` and `maxStepCount` keep recipes at or under that count
-- a missing `courses` field means every recipe
-- `courses: []` means no recipe
+- Make `RecipeRepositoryFake` implement `RecipeRepositoryDef`, the same interface as `RecipeRepository`
+- Implement `search`
+- Add `configure({ recipes }: { recipes: Recipe[] })` so tests can set the catalog
 
-`setRecipes()` replaces the catalog. `provideRecipeRepositoryFake()` provides the fake as `RecipeRepository`. Build recipes with `recipeMother`. Export both from `@whiskmate/recipe/infra`.
+#### 2. Create a provider utility for the fake.
 
-#### 2. Write the search contract once.
-
-`verifyRecipeRepositoryContract(createRecipeRepository)` takes a factory. The factory receives the recipes for that case and returns a `RecipeRepositoryDef`.
-
-Cover search:
-
-- an empty catalog
-- every recipe when no filter is set
-- keywords, ignoring case
-- a max ingredient count
-- a max step count
-- a list of courses
-- an empty course list
-- filters combined together
-
-Run it twice:
-
-- `recipe-repository.fake.test.ts` seeds the fake with `setRecipes()`
-- `recipe-repository.wide.test.ts` uses the real `RecipeRepository`
-
-The wide test calls `http://localhost:3333`. Start the API with:
-
-```sh
-pnpm start-server
+```ts
+export function provideRecipeRepositoryFake(): EnvironmentProviders {
+  return makeEnvironmentProviders([RecipeRepositoryFake, { provide: RecipeRepository, useExisting: RecipeRepositoryFake }]);
+}
 ```
 
-`RecipeRepository` only has `search`, so the wide test empties the catalog over HTTP, then posts the recipes for the case, before handing the repository to the contract.
+Export `provideRecipeRepositoryFake` from `index.ts`, next to `RecipeRepositoryFake`.
 
-#### 3. Test the screen through the fake.
+#### 3. Filter recipes with the fake.
 
-`recipe-filter.test.ts` asserts the criteria `RecipeFilter` emits: one course, several courses, and `courses: null` once every course is cleared.
+`recipe-search.test.ts` already mounts `RecipeSearch`. `mountRecipeSearch()` creates the component and returns `getRecipePreviewHeadings()`. That glove returns the locator for the recipe preview headings.
 
-`recipe-search.test.ts` renders `RecipeSearch` with `provideRecipeRepositoryFake()`. Assert the recipe names on screen:
+Provide the fake with `provideRecipeRepositoryFake()`, before calling `mountRecipeSearch()`:
 
-- the whole catalog on load
-- the recipes the fake was given
-- "No recipes found" when the catalog is empty
-- keywords, max ingredients, max steps
-- one course, several courses, and every recipe again once the last course is cleared
-- keywords combined with a course
-- max ingredients combined with max steps
-- the full catalog again once keywords are cleared
-- keywords kept once the course is cleared
+```ts
+TestBed.configureTestingModule({
+  providers: [provideRecipeRepositoryFake()],
+});
+```
 
-`app.test.ts` loads `App` against the fake and expects both seeded recipes.
+Configure the fake by injecting it:
+
+```ts
+TestBed.inject(RecipeRepositoryFake).configure(...);
+```
+
+Add a few recipes with `recipeMother`: `recipeMother.withBasicInfo('Burger').build()`.
+
+Implement `it.todo('filters recipes by keywords')`: type a keyword and check those headings.
+
+```sh
+npm test
+```
+
+#### 4. Write the search contract.
+
+`recipe-repository.contract.ts` lists the cases as `it.todo`:
+
+- returns an empty list when no keywords match
+- filters by keywords
+
+`recipe-repository.fake.test.ts` runs the contract. Its factory configures the fake with three recipes similar to the server: Shakshuka, and Hummus.
+
+`recipe-repository.wide.test.ts` runs the same contract against the real `RecipeRepository`. The server already has those recipes (`pnpm start-server`).
+
+Implement the two cases.
+
+```sh
+pnpm test
+```

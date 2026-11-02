@@ -205,7 +205,7 @@ function mountRecipeSearch({
     providers: [provideRecipeRepositoryFake()],
   });
 
-  TestBed.inject(RecipeRepositoryFake).setRecipes(recipes);
+  TestBed.inject(RecipeRepositoryFake).configure({ recipes });
 
   const fixture = TestBed.createComponent(RecipeSearch);
 

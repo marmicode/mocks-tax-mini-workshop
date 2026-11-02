@@ -18,7 +18,9 @@ describe(App.name, () => {
     TestBed.configureTestingModule({
       providers: [provideRecipeRepositoryFake()],
     });
-    TestBed.inject(RecipeRepositoryFake).setRecipes([shakshuka, cheesecake]);
+    TestBed.inject(RecipeRepositoryFake).configure({
+      recipes: [shakshuka, cheesecake],
+    });
 
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();

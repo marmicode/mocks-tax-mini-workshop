@@ -44,7 +44,7 @@ export class RecipeRepositoryFake implements RecipeRepositoryDef {
   /**
    * Replaces the whole catalog.
    */
-  setRecipes(recipes: Recipe[]): void {
+  configure({ recipes }: { recipes: Recipe[] }): void {
     this._recipes = recipes;
   }
 }
