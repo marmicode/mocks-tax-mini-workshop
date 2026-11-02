@@ -48,6 +48,15 @@
   "plugins": [
     "./tools/plugins/implicit-libs.ts",
     {
+      "plugin": "@nx/js/typescript",
+      "options": {
+        "typecheck": {
+          "targetName": "typecheck",
+          "configName": "tsconfig.app.json"
+        }
+      }
+    },
+    {
       "plugin": "@nx/vitest",
       "options": {
         "testTargetName": "test",
