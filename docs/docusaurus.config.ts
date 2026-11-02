@@ -3,7 +3,7 @@ import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'Charted Coding by Marmicode',
+  title: 'Mocks Tax Mini Workshop by Marmicode',
   tagline: 'Workshop instructions',
 
   future: {
