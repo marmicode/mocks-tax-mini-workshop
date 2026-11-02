@@ -332,11 +332,36 @@ function readIfPresent(
   }
 }
 
+/**
+ * On main, each exercise tsconfig maps `@whiskmate/*` at its own source.
+ * Focusing copies `workspace/tsconfig.base.json` to the repo root, so the
+ * app mappings have to go. Otherwise they hide the root paths.
+ */
+function dropAppTsconfigPaths(
+  fileSystemAdapter: Context['fileSystemAdapter'],
+  projectDir: string,
+) {
+  const path = join(projectDir, 'tsconfig.json');
+  const content = readIfPresent(fileSystemAdapter, path);
+  if (content == null) {
+    return;
+  }
+
+  const tsconfig = JSON.parse(content);
+  if (tsconfig.compilerOptions?.paths == null) {
+    return;
+  }
+
+  delete tsconfig.compilerOptions.paths;
+  fileSystemAdapter.writeFile(path, `${JSON.stringify(tsconfig, null, 2)}\n`);
+}
+
 function focusOnProject(ctx: Context, project: string) {
   const { commandRunner, fileSystemAdapter } = ctx;
   const projectDir = join('apps', project);
 
   fileSystemAdapter.copyDirContents(join(projectDir, 'workspace'), '.');
+  dropAppTsconfigPaths(fileSystemAdapter, projectDir);
   retargetProjectJson(fileSystemAdapter, projectDir);
   retargetAppPath(
     fileSystemAdapter,

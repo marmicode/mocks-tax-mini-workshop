@@ -154,6 +154,15 @@ describe('cook', () => {
           "cacheDir: '../../node_modules/.vite/apps/1-recipe-search-starter'",
         'apps/1-recipe-search-starter/vitest.config.mts':
           "name: '1-recipe-search-starter',\ncoverage: '../../coverage/apps/1-recipe-search-starter'",
+        'apps/1-recipe-search-starter/tsconfig.json': JSON.stringify({
+          extends: '../../tsconfig.base.json',
+          compilerOptions: {
+            paths: {
+              '@whiskmate/recipe/infra': ['./src/app/recipe/infra/index.ts'],
+            },
+            strict: true,
+          },
+        }),
         'apps/1-recipe-search-starter/workspace/tsconfig.base.json':
           '{ "paths": { "@x": ["./apps/whiskmate/src/app/index.ts"] } }',
         'apps/2-test-double-starter/project.json':
@@ -177,6 +186,12 @@ describe('cook', () => {
     expect(files['tsconfig.base.json']).toBe(
       '{ "paths": { "@x": ["./apps/whiskmate/src/app/index.ts"] } }',
     );
+    expect(JSON.parse(files['apps/whiskmate/tsconfig.json'])).toEqual({
+      extends: '../../tsconfig.base.json',
+      compilerOptions: {
+        strict: true,
+      },
+    });
     expect(
       files['apps/whiskmate/workspace/tsconfig.base.json'],
     ).toBeUndefined();

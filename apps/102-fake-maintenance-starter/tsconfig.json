@@ -1,6 +1,54 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "paths": {
+      "@whiskmate/admin/domain": ["./src/app/admin/domain/index.ts"],
+      "@whiskmate/admin/feature-admin": [
+        "./src/app/admin/feature-admin/index.ts"
+      ],
+      "@whiskmate/admin/feature-catalog": [
+        "./src/app/admin/feature-catalog/index.ts"
+      ],
+      "@whiskmate/admin/feature-recipes": [
+        "./src/app/admin/feature-recipes/index.ts"
+      ],
+      "@whiskmate/authz/domain": ["./src/app/authz/domain/index.ts"],
+      "@whiskmate/authz/model": ["./src/app/authz/model/index.ts"],
+      "@whiskmate/meal-plan/domain": ["./src/app/meal-plan/domain/index.ts"],
+      "@whiskmate/meal-plan/feature-meal-plan": [
+        "./src/app/meal-plan/feature-meal-plan/index.ts"
+      ],
+      "@whiskmate/meal-plan/feature-shopping-list": [
+        "./src/app/meal-plan/feature-shopping-list/index.ts"
+      ],
+      "@whiskmate/meal-plan/ui": ["./src/app/meal-plan/ui/index.ts"],
+      "@whiskmate/recipe/domain": ["./src/app/recipe/domain/index.ts"],
+      "@whiskmate/recipe/feature-detail": [
+        "./src/app/recipe/feature-detail/index.ts"
+      ],
+      "@whiskmate/recipe/feature-discover": [
+        "./src/app/recipe/feature-discover/index.ts"
+      ],
+      "@whiskmate/recipe/feature-search": [
+        "./src/app/recipe/feature-search/index.ts"
+      ],
+      "@whiskmate/recipe/infra": ["./src/app/recipe/infra/index.ts"],
+      "@whiskmate/recipe/model": ["./src/app/recipe/model/index.ts"],
+      "@whiskmate/recipe/ui": ["./src/app/recipe/ui/index.ts"],
+      "@whiskmate/recipe/ui-search": ["./src/app/recipe/ui-search/index.ts"],
+      "@whiskmate/shared-meal-plan/domain": [
+        "./src/app/shared-meal-plan/domain/index.ts"
+      ],
+      "@whiskmate/shared-recipe/model": [
+        "./src/app/shared-recipe/model/index.ts"
+      ],
+      "@whiskmate/shared-recipe/testing": [
+        "./src/app/shared-recipe/testing/index.ts"
+      ],
+      "@whiskmate/shared/infra": ["./src/app/shared/infra/index.ts"],
+      "@whiskmate/shared/model": ["./src/app/shared/model/index.ts"],
+      "@whiskmate/shared/ui": ["./src/app/shared/ui/index.ts"]
+    },
     "strict": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,

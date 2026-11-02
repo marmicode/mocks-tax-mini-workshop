@@ -2,17 +2,14 @@ import { TestBed } from '@angular/core/testing';
 import { describe } from 'vitest';
 import { recipeMother } from '@whiskmate/shared-recipe/testing';
 import { verifyRecipeRepositoryContract } from './recipe-repository.contract';
-import {
-  provideRecipeRepositoryFake,
-  RecipeRepositoryFake,
-} from './recipe-repository.fake';
+import { RecipeRepositoryFake } from './recipe-repository.fake';
 
 describe(RecipeRepositoryFake.name, () => {
   verifyRecipeRepositoryContract(createRecipeRepositoryFake);
 
   async function createRecipeRepositoryFake() {
     TestBed.configureTestingModule({
-      providers: [provideRecipeRepositoryFake()],
+      providers: [],
     });
     const recipeRepository = TestBed.inject(RecipeRepositoryFake);
     recipeRepository.configure({
