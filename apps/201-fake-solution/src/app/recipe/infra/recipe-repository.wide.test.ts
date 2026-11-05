@@ -1,7 +1,6 @@
-import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-import { describe } from 'vitest';
 import type { Recipe } from '@whiskmate/shared-recipe/model';
+import { describe } from 'vitest';
 import {
   createRecipeSearchParams,
   RecipeRepository,
@@ -14,7 +13,6 @@ describe(RecipeRepository.name, () => {
   verifyRecipeRepositoryContract(createRecipeRepository);
 
   async function createRecipeRepository({ recipes }: { recipes: Recipe[] }) {
-    TestBed.configureTestingModule({ providers: [provideHttpClient()] });
     await resetCatalog(recipes);
     return { recipeRepository: TestBed.inject(RecipeRepository) };
   }

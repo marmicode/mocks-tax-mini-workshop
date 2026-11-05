@@ -1,4 +1,3 @@
-import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { describe } from 'vitest';
 import { RecipeRepository } from './recipe-repository';
@@ -8,7 +7,6 @@ describe(RecipeRepository.name, () => {
   verifyRecipeRepositoryContract(createRecipeRepository);
 
   async function createRecipeRepository() {
-    TestBed.configureTestingModule({ providers: [provideHttpClient()] });
     return { recipeRepository: TestBed.inject(RecipeRepository) };
   }
 });

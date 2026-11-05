@@ -12,7 +12,6 @@ describe(RecipeRepository.name, () => {
   verifyRecipeRepositoryContract(createRecipeRepository);
 
   async function createRecipeRepository() {
-    TestBed.configureTestingModule({ providers: [provideHttpClient()] });
     const recipeRepository = TestBed.inject(RecipeRepository);
 
     /* Start from an empty catalog. */

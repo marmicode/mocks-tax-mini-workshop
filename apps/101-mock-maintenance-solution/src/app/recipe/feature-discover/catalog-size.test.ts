@@ -101,8 +101,6 @@ describe(CatalogSize, () => {
 });
 
 function mountCatalogSize() {
-  TestBed.configureTestingModule({ providers: [provideHttpClient()] });
-
   const post = vi
     .spyOn(TestBed.inject(HttpClient), 'post')
     .mockImplementation((url: string, body: unknown) => {
