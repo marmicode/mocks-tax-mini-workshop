@@ -1,7 +1,6 @@
 export type UtmMedium = 'navbar' | 'sidebar' | 'footer' | 'banner' | 'page';
 
-// TODO: replace with the real feedback form URL.
-export const FEEDBACK_FORM_URL = '#';
+export const FEEDBACK_FORM_URL = 'https://forms.gle/febepTFEtyn1jj7RA';
 
 // TODO: replace with the real newsletter URL.
 export const NEWSLETTER_URL = '#';
