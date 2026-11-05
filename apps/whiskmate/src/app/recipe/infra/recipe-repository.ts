@@ -1,7 +1,11 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Service } from '@angular/core';
 import { catchError, Observable, of, throwError } from 'rxjs';
-import type { Course, Recipe } from '@whiskmate/shared-recipe/model';
+import {
+  COURSES,
+  type Course,
+  type Recipe,
+} from '@whiskmate/shared-recipe/model';
 
 /**
  * Body sent to the backend's recipe search endpoint.
@@ -10,7 +14,7 @@ export interface RecipeSearchParams {
   keywords: string;
   maxIngredientCount: number | null;
   maxStepCount: number | null;
-  courses?: Course[];
+  courses: Course[];
 }
 
 export function createRecipeSearchParams(
@@ -20,6 +24,7 @@ export function createRecipeSearchParams(
     keywords: '',
     maxIngredientCount: null,
     maxStepCount: null,
+    courses: [...COURSES],
     ...params,
   };
 }

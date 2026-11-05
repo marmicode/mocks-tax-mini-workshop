@@ -35,7 +35,7 @@ export class RecipeRepositoryFake implements RecipeRepositoryDef {
             (maxIngredientCount == null ||
               recipe.ingredients.length <= maxIngredientCount) &&
             (maxStepCount == null || recipe.steps.length <= maxStepCount) &&
-            (courses == null || courses.includes(recipe.course)),
+            courses.includes(recipe.course),
         ),
       );
     });
