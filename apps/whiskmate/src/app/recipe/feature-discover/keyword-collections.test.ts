@@ -32,9 +32,12 @@ const cake: Recipe = {
  * Canned backend responses, keyed by the exact search request.
  */
 const responses: Record<string, Recipe[]> = {
-  '{"keywords":"soup","maxIngredientCount":null,"maxStepCount":null}': [soup],
-  '{"keywords":"salad","maxIngredientCount":null,"maxStepCount":null}': [],
-  '{"keywords":"cake","maxIngredientCount":null,"maxStepCount":null}': [cake],
+  '{"keywords":"soup","maxIngredientCount":null,"maxStepCount":null,"courses":[]}':
+    [soup],
+  '{"keywords":"salad","maxIngredientCount":null,"maxStepCount":null,"courses":[]}':
+    [],
+  '{"keywords":"cake","maxIngredientCount":null,"maxStepCount":null,"courses":[]}':
+    [cake],
 };
 
 describe(KeywordCollections, () => {
@@ -47,6 +50,7 @@ describe(KeywordCollections, () => {
         keywords: 'soup',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       });
   });
 
@@ -91,6 +95,7 @@ describe(KeywordCollections, () => {
       keywords: 'salad',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -113,7 +118,7 @@ function mountKeywordCollections() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation((params) => {
       /* Collections only ever search by keywords. */
-      if (Object.keys(params).length !== 3) {
+      if (params.courses.length > 0) {
         return throwError(
           () => new Error(`unexpected search ${JSON.stringify(params)}`),
         );

@@ -58,6 +58,7 @@ describe(Pantry, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       });
   });
 
@@ -119,6 +120,7 @@ describe(Pantry, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -134,6 +136,7 @@ describe(Pantry, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -169,6 +172,7 @@ describe(Pantry, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -185,6 +189,7 @@ describe(Pantry, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -237,5 +242,10 @@ function textsOf(testId: string) {
  * The pantry matches ingredients locally so it needs the whole catalog.
  */
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
-  return Object.values(params).every((value) => value === '' || value === null);
+  return Object.values(params).every(
+    (value) =>
+      value === '' ||
+      value === null ||
+      (Array.isArray(value) && value.length === 0),
+  );
 }

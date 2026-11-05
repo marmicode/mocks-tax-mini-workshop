@@ -32,10 +32,8 @@ const salad: Recipe = {
  * Canned backend responses, keyed by the exact search body.
  */
 const searchResults: Record<string, Recipe[]> = {
-  '{"keywords":"","maxIngredientCount":null,"maxStepCount":null}': [
-    hummus,
-    salad,
-  ],
+  '{"keywords":"","maxIngredientCount":null,"maxStepCount":null,"courses":[]}':
+    [hummus, salad],
 };
 
 describe(IngredientSpotlight, () => {
@@ -49,6 +47,7 @@ describe(IngredientSpotlight, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(pick).toHaveBeenCalledExactlyOnceWith([
       'aubergines',
@@ -100,6 +99,7 @@ describe(IngredientSpotlight, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -107,6 +107,7 @@ describe(IngredientSpotlight, () => {
         ],
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -127,6 +128,7 @@ describe(IngredientSpotlight, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(pick).not.toHaveBeenCalled();
   });

@@ -4,6 +4,7 @@ exports[`SurpriseMe > picks a random recipe among all recipes 1`] = `
 [
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": null,

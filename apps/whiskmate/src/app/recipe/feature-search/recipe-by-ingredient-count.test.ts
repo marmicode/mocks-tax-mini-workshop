@@ -29,12 +29,12 @@ const shakshuka: Recipe = {
 };
 
 const RESULTS_BY_SEARCH: Record<string, Observable<Recipe[]>> = {
-  '{"keywords":"","maxIngredientCount":3,"maxStepCount":null}': of([]),
-  '{"keywords":"","maxIngredientCount":5,"maxStepCount":null}': of([shakshuka]),
-  '{"keywords":"","maxIngredientCount":8,"maxStepCount":null}': of([
-    hummus,
-    shakshuka,
-  ]),
+  '{"keywords":"","maxIngredientCount":3,"maxStepCount":null,"courses":[]}':
+    of([]),
+  '{"keywords":"","maxIngredientCount":5,"maxStepCount":null,"courses":[]}':
+    of([shakshuka]),
+  '{"keywords":"","maxIngredientCount":8,"maxStepCount":null,"courses":[]}':
+    of([hummus, shakshuka]),
 };
 
 describe(RecipeByIngredientCount, () => {
@@ -47,6 +47,7 @@ describe(RecipeByIngredientCount, () => {
         keywords: '',
         maxIngredientCount: 5,
         maxStepCount: null,
+        courses: [],
       });
   });
 
@@ -54,7 +55,11 @@ describe(RecipeByIngredientCount, () => {
     const { search, recipeNames } = mountRecipeByIngredientCount();
     search.mockImplementation((params) => {
       /* Only the ingredient count filter must be sent. */
-      if (Object.keys(params).length !== 3 || params.maxIngredientCount !== 5) {
+      if (
+        Object.keys(params).length !== 4 ||
+        params.courses.length > 0 ||
+        params.maxIngredientCount !== 5
+      ) {
         return throwError(
           () => new Error(`unexpected search ${JSON.stringify(params)}`),
         );
@@ -94,6 +99,7 @@ describe(RecipeByIngredientCount, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": 5,
             "maxStepCount": null,
@@ -101,6 +107,7 @@ describe(RecipeByIngredientCount, () => {
         ],
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": 3,
             "maxStepCount": null,
@@ -123,6 +130,7 @@ describe(RecipeByIngredientCount, () => {
         keywords: '',
         maxIngredientCount: 8,
         maxStepCount: null,
+        courses: [],
       });
     await expect
       .element(page.getByTestId('recipe-count'))

@@ -39,6 +39,7 @@ describe(WeekendProjects, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -65,8 +66,8 @@ describe(WeekendProjects, () => {
       .mockReturnValue(of([]))
       .mockImplementationOnce((params) =>
         of(
-          params.courses?.length
-            ? [lamb].filter((recipe) => params.courses?.includes(recipe.course))
+          params.courses.length > 0
+            ? [lamb].filter((recipe) => params.courses.includes(recipe.course))
             : [lamb],
         ),
       );
@@ -112,6 +113,7 @@ describe(WeekendProjects, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -142,7 +144,7 @@ function filterByCourses(
   recipes: Recipe[],
   params: RecipeSearchParams,
 ): Recipe[] {
-  return 'courses' in params
-    ? recipes.filter((recipe) => params.courses?.includes(recipe.course))
+  return params.courses.length > 0
+    ? recipes.filter((recipe) => params.courses.includes(recipe.course))
     : recipes;
 }

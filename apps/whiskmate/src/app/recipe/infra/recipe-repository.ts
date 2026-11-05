@@ -10,7 +10,8 @@ export interface RecipeSearchParams {
   keywords: string;
   maxIngredientCount: number | null;
   maxStepCount: number | null;
-  courses?: Course[];
+  /** Empty means "all courses". */
+  courses: Course[];
 }
 
 export function createRecipeSearchParams(
@@ -20,6 +21,7 @@ export function createRecipeSearchParams(
     keywords: '',
     maxIngredientCount: null,
     maxStepCount: null,
+    courses: [],
     ...params,
   };
 }

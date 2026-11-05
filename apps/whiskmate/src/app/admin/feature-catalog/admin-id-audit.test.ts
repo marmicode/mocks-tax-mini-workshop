@@ -17,6 +17,7 @@ describe(AdminIdAudit, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -43,7 +44,7 @@ describe(AdminIdAudit, () => {
   it('flags ids that are not kebab-case', async () => {
     const { search } = mountAdminIdAudit();
     search.mockImplementation((params) =>
-      'courses' in params
+      params.courses.length > 0
         ? of([])
         : of([
             {
@@ -82,6 +83,7 @@ describe(AdminIdAudit, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 

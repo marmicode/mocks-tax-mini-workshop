@@ -55,11 +55,13 @@ describe(MealPlanRandomWeek, () => {
           keywords: '',
           maxIngredientCount: null,
           maxStepCount: null,
+          courses: [],
         })]: [shakshuka, lambKofte],
         [JSON.stringify({
           keywords: '',
           maxIngredientCount: null,
           maxStepCount: 4,
+          courses: [],
         })]: [shakshuka],
       };
       const key = JSON.stringify(params);
@@ -92,6 +94,7 @@ describe(MealPlanRandomWeek, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 4,
+      courses: [],
     });
   });
 
@@ -102,11 +105,11 @@ describe(MealPlanRandomWeek, () => {
     });
     search
       .mockImplementationOnce((params) => {
-        expect(params).not.toHaveProperty('courses');
+        expect(params).toHaveProperty('courses', []);
         return of([shakshuka, lambKofte]);
       })
       .mockImplementationOnce((params) =>
-        params.courses?.length ? of([]) : of([shakshuka, lambKofte]),
+        params.courses.length > 0 ? of([]) : of([shakshuka, lambKofte]),
       );
 
     await expect
@@ -132,7 +135,7 @@ describe(MealPlanRandomWeek, () => {
       friday: null,
     });
     search.mockImplementation((params) =>
-      'courses' in params ? of([]) : of([lambKofte]),
+      params.courses.length > 0 ? of([]) : of([lambKofte]),
     );
     const assign = vi
       .spyOn(mealPlanStore, 'assign')
@@ -150,6 +153,7 @@ describe(MealPlanRandomWeek, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -167,6 +171,7 @@ describe(MealPlanRandomWeek, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     await expect.element(page.getByTestId('no-picks')).toBeVisible();
   });

@@ -3,7 +3,8 @@
     {
       "keywords": "",
       "maxIngredientCount": null,
-      "maxStepCount": null
+      "maxStepCount": null,
+      "courses": []
     }
   ]
 ]

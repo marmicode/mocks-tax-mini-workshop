@@ -40,6 +40,7 @@ describe(Favorites, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       });
   });
 
@@ -60,6 +61,7 @@ describe(Favorites, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -109,6 +111,7 @@ describe(Favorites, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -144,6 +147,7 @@ describe(Favorites, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -167,8 +171,8 @@ function mountFavorites(favoriteIds: string[]) {
     .mockImplementation((params) => {
       const catalog = [shakshuka, cheesecake];
       return of(
-        'courses' in params
-          ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
+        params.courses.length > 0
+          ? catalog.filter((recipe) => params.courses.includes(recipe.course))
           : catalog,
       );
     });

@@ -37,6 +37,7 @@ describe(PictureGallery, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       });
   });
 
@@ -47,6 +48,7 @@ describe(PictureGallery, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       });
       return of([hummus, salad]);
     });
@@ -63,7 +65,12 @@ describe(PictureGallery, () => {
     const { search } = mountPictureGallery();
     search.mockImplementationOnce((params) =>
       of(
-        Object.values(params).every((value) => value === '' || value === null)
+        Object.values(params).every(
+          (value) =>
+            value === '' ||
+            value === null ||
+            (Array.isArray(value) && value.length === 0),
+        )
           ? [salad]
           : [],
       ),
@@ -100,6 +107,7 @@ describe(PictureGallery, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -114,8 +122,8 @@ function mountPictureGallery() {
     .mockImplementation((params) => {
       const catalog = [hummus, salad];
       return of(
-        params.courses
-          ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
+        params.courses.length > 0
+          ? catalog.filter((recipe) => params.courses.includes(recipe.course))
           : catalog,
       );
     });

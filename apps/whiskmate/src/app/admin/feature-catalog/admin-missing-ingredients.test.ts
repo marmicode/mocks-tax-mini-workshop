@@ -19,6 +19,7 @@ describe(AdminMissingIngredients, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -67,6 +68,7 @@ describe(AdminMissingIngredients, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -127,8 +129,8 @@ describe(AdminMissingIngredients, () => {
         },
       ];
       return of(
-        params.courses?.length
-          ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
+        params.courses.length > 0
+          ? catalog.filter((recipe) => params.courses.includes(recipe.course))
           : catalog,
       );
     });

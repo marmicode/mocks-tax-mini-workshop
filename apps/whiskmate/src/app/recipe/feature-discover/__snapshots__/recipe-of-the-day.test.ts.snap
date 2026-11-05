@@ -4,6 +4,7 @@ exports[`RecipeOfTheDay > shows the description, picture and a link to the recip
 [
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": null,

@@ -4,6 +4,7 @@ exports[`AdminMissingIngredients > shows an empty state when every recipe has in
 [
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": null,

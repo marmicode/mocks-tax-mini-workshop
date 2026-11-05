@@ -37,6 +37,7 @@ describe(CatalogSize, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       });
   });
 
@@ -44,9 +45,9 @@ describe(CatalogSize, () => {
     const { post } = mountCatalogSize();
     post.mockImplementation(
       searchHandler((params) =>
-        params.courses
+        params.courses.length > 0
           ? [hummus, salad].filter((recipe) =>
-              params.courses?.includes(recipe.course),
+              params.courses.includes(recipe.course),
             )
           : [hummus, salad],
       ),
@@ -76,7 +77,7 @@ describe(CatalogSize, () => {
       .element(page.getByTestId('ingredient-count'))
       .toHaveTextContent('Using 3 distinct ingredients.');
     expect(searchKey(post.mock.calls[0])).toBe(
-      '/api/recipes/search?keywords=&maxIngredientCount=&maxStepCount=',
+      '/api/recipes/search?keywords=&maxIngredientCount=&maxStepCount=&courses=',
     );
   });
 
@@ -91,6 +92,7 @@ describe(CatalogSize, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     await expect(JSON.stringify(post.mock.calls, null, 2)).toMatchFileSnapshot(
       './__snapshots__/catalog-size-empty.calls.json',
@@ -104,7 +106,10 @@ function mountCatalogSize() {
   const post = vi
     .spyOn(TestBed.inject(HttpClient), 'post')
     .mockImplementation((url: string, body: unknown) => {
-      if (url !== '/api/recipes/search' || 'courses' in (body as object)) {
+      if (
+        url !== '/api/recipes/search' ||
+        (body as RecipeSearchParams).courses.length > 0
+      ) {
         throw new Error(`unexpected POST ${url} ${JSON.stringify(body)}`);
       }
       return of([hummus, salad]);
@@ -125,7 +130,15 @@ function searchHandler(
 }
 
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
-  return Object.values(params).every((value) => value === '' || value === null);
+  return Object.values(params).every(isEmpty);
+}
+
+function isEmpty(value: unknown): boolean {
+  return (
+    value === '' ||
+    value === null ||
+    (Array.isArray(value) && value.length === 0)
+  );
 }
 
 function searchKey([url, body]: unknown[]): string {

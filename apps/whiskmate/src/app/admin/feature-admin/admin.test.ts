@@ -40,6 +40,7 @@ describe(Admin, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -47,7 +48,7 @@ describe(Admin, () => {
     const { search } = mountAdmin();
     search.mockImplementation(({ courses }) =>
       of(
-        courses
+        courses.length > 0
           ? catalog.filter((recipe) => courses.includes(recipe.course))
           : catalog,
       ),
@@ -69,7 +70,7 @@ describe(Admin, () => {
     const { search } = mountAdmin();
     search.mockImplementation((params) => {
       switch (toQueryString(params)) {
-        case 'keywords=&maxIngredientCount=null&maxStepCount=null':
+        case 'keywords=&maxIngredientCount=null&maxStepCount=null&courses=':
           return of(catalog);
         default:
           return of([]);

@@ -44,6 +44,7 @@ describe(AdminRecipeList, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -60,6 +61,7 @@ describe(AdminRecipeList, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -67,6 +69,7 @@ describe(AdminRecipeList, () => {
         ],
         [
           {
+            "courses": [],
             "keywords": "lemon",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -108,7 +111,7 @@ describe(AdminRecipeList, () => {
     ]);
     expect(search).toHaveBeenCalledTimes(3);
     expect(search).toHaveBeenLastCalledWith(
-      expect.not.objectContaining({ courses: expect.anything() }),
+      expect.objectContaining({ courses: [] }),
     );
   });
 
@@ -120,6 +123,7 @@ describe(AdminRecipeList, () => {
           keywords: '',
           maxIngredientCount: null,
           maxStepCount: null,
+          courses: [],
         })]: [shakshuka],
       }),
     );
@@ -158,6 +162,7 @@ describe(AdminRecipeList, () => {
         'keywords',
         'maxIngredientCount',
         'maxStepCount',
+        'courses',
       ]);
       return of(catalog);
     });
@@ -212,14 +217,15 @@ describe(AdminRecipeList, () => {
 
     await expect.poll(() => search).toHaveBeenCalledTimes(4);
     expect(search.mock.lastCall).toMatchInlineSnapshot(`
-        [
-          {
-            "keywords": "hummus",
-            "maxIngredientCount": null,
-            "maxStepCount": null,
-          },
-        ]
-      `);
+      [
+        {
+          "courses": [],
+          "keywords": "hummus",
+          "maxIngredientCount": null,
+          "maxStepCount": null,
+        },
+      ]
+    `);
   });
 });
 
@@ -229,8 +235,8 @@ function mountAdminRecipeList() {
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation((params) => {
       const recipes =
-        'courses' in params
-          ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
+        params.courses.length > 0
+          ? catalog.filter((recipe) => params.courses.includes(recipe.course))
           : catalog;
       return of(
         recipes.filter((recipe) =>

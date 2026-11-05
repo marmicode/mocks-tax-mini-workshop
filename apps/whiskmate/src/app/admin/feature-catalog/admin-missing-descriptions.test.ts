@@ -14,6 +14,7 @@ describe(AdminMissingDescriptions, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -21,7 +22,7 @@ describe(AdminMissingDescriptions, () => {
     const { search } = mountAdminMissingDescriptions();
     search.mockImplementation((params) => {
       expect(params.keywords).toBe('');
-      expect(params.courses).toBeUndefined();
+      expect(params.courses).toEqual([]);
       return of([
         {
           id: 'shakshuka',
@@ -44,7 +45,7 @@ describe(AdminMissingDescriptions, () => {
     const { search } = mountAdminMissingDescriptions();
     search.mockImplementation((params) =>
       of(
-        Object.keys(params).length === 3
+        params.courses.length === 0
           ? [
               {
                 id: 'tahini-halva-brownies',
@@ -106,6 +107,7 @@ describe(AdminMissingDescriptions, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 

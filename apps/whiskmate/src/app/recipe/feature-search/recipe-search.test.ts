@@ -42,6 +42,7 @@ describe(RecipeSearch, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -71,6 +72,7 @@ describe(RecipeSearch, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -86,6 +88,7 @@ describe(RecipeSearch, () => {
         keywords: 'shak',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       });
   });
 
@@ -102,11 +105,13 @@ describe(RecipeSearch, () => {
             keywords: '',
             maxIngredientCount: null,
             maxStepCount: null,
+            courses: [],
           })]: [shakshuka, cheesecake],
           [JSON.stringify({
             keywords: '',
             maxIngredientCount: 5,
             maxStepCount: null,
+            courses: [],
           })]: [shakshuka],
         }[JSON.stringify(params)] ?? [],
       ),
@@ -126,6 +131,7 @@ describe(RecipeSearch, () => {
     expect(search.mock.lastCall).toMatchInlineSnapshot(`
       [
         {
+          "courses": [],
           "keywords": "",
           "maxIngredientCount": null,
           "maxStepCount": 3,
@@ -146,7 +152,7 @@ describe(RecipeSearch, () => {
       .poll(() => recipeNames())
       .toEqual(['Lemon and Ricotta Cheesecake']);
     expect(search).toHaveBeenCalledTimes(2);
-    expect(search.mock.calls[0]?.[0]).not.toHaveProperty('courses');
+    expect(search.mock.calls[0]?.[0]).toHaveProperty('courses', []);
     expect(search).toHaveBeenNthCalledWith(2, {
       keywords: '',
       maxIngredientCount: null,
@@ -209,6 +215,7 @@ describe(RecipeSearch, () => {
         keywords: '',
         maxIngredientCount: 8,
         maxStepCount: 4,
+        courses: [],
       });
   });
 
@@ -241,6 +248,7 @@ describe(RecipeSearch, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -259,13 +267,14 @@ describe(RecipeSearch, () => {
       'keywords',
       'maxIngredientCount',
       'maxStepCount',
+      'courses',
     ]);
   });
 
   it('adds a recipe to favorites', async () => {
     const { search, userFavorites } = mountRecipeSearch();
     search.mockImplementation((params) =>
-      params.courses?.length ? of([]) : of([shakshuka]),
+      params.courses.length > 0 ? of([]) : of([shakshuka]),
     );
     const addFavorite = vi
       .spyOn(userFavorites, 'addFavorite')
@@ -279,7 +288,7 @@ describe(RecipeSearch, () => {
   it('removes a recipe from favorites', async () => {
     const { search, userFavorites } = mountRecipeSearch();
     search.mockImplementation((params) =>
-      'courses' in params ? of([]) : of([shakshuka]),
+      params.courses.length > 0 ? of([]) : of([shakshuka]),
     );
     vi.spyOn(userFavorites, 'favoriteIds').mockReturnValue(
       new Set([shakshuka.id]),
@@ -311,6 +320,7 @@ describe(RecipeSearch, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(assign).toHaveBeenCalledExactlyOnceWith({
       weekday: 'wednesday',
@@ -352,7 +362,7 @@ function mountRecipeSearch() {
     .spyOn(recipeRepository, 'search')
     .mockImplementation(({ courses }) =>
       of(
-        courses
+        courses.length > 0
           ? catalog.filter((recipe) => courses.includes(recipe.course))
           : catalog,
       ),
@@ -376,7 +386,9 @@ function mountRecipeSearch() {
 
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
   return (
-    Object.keys(params).length === 3 &&
-    Object.values(params).every((value) => value === '' || value === null)
+    params.keywords === '' &&
+    params.maxIngredientCount === null &&
+    params.maxStepCount === null &&
+    params.courses.length === 0
   );
 }

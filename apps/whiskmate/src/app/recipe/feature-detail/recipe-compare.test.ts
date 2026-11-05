@@ -47,6 +47,7 @@ describe(RecipeCompare, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     expect(findById).not.toHaveBeenCalled();
   });
@@ -67,6 +68,7 @@ describe(RecipeCompare, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -92,7 +94,7 @@ describe(RecipeCompare, () => {
       .element(page.getByTestId('right-name'))
       .toHaveTextContent('Hummus with Ful');
     expect(searchKey(search.mock.calls[0][0])).toBe(
-      'keywords=&maxIngredientCount=&maxStepCount=',
+      'keywords=&maxIngredientCount=&maxStepCount=&courses=',
     );
     await expect.poll(() => rowCells('course-row')).toEqual(['main', 'starter']);
     await expect.poll(() => rowCells('ingredient-count-row')).toEqual(['3', '2']);
@@ -161,6 +163,7 @@ describe(RecipeCompare, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       });
     await expect.element(page.getByRole('table')).not.toBeInTheDocument();
   });
@@ -190,7 +193,7 @@ describe(RecipeCompare, () => {
       right: 'hummus-ful',
     });
     search.mockImplementationOnce((params) => {
-      expect(params).not.toHaveProperty('courses');
+      expect(params).toHaveProperty('courses', []);
       expect(isWholeCatalogSearch(params)).toBe(true);
       return of([shakshuka, hummus]);
     });
@@ -264,8 +267,10 @@ function rowCells(testId: string): string[] {
  */
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
   return (
-    Object.keys(params).length === 3 &&
-    Object.values(params).every((value) => value === '' || value === null)
+    params.keywords === '' &&
+    params.maxIngredientCount === null &&
+    params.maxStepCount === null &&
+    params.courses.length === 0
   );
 }
 

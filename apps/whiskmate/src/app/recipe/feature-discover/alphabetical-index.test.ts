@@ -47,6 +47,7 @@ const allRecipes = JSON.stringify({
   keywords: '',
   maxIngredientCount: null,
   maxStepCount: null,
+  courses: [],
 });
 
 describe(AlphabeticalIndex, () => {
@@ -59,6 +60,7 @@ describe(AlphabeticalIndex, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       });
   });
 
@@ -98,6 +100,7 @@ describe(AlphabeticalIndex, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -130,6 +133,7 @@ describe(AlphabeticalIndex, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });

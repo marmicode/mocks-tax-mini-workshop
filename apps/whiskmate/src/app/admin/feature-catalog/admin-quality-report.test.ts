@@ -47,7 +47,7 @@ const sketchyFritters: Recipe = {
 };
 
 const WHOLE_CATALOG_QUERY =
-  'keywords=&maxIngredientCount=null&maxStepCount=null';
+  'keywords=&maxIngredientCount=null&maxStepCount=null&courses=';
 
 describe(AdminQualityReport, () => {
   it('searches all recipes', async () => {
@@ -57,6 +57,7 @@ describe(AdminQualityReport, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -78,6 +79,7 @@ describe(AdminQualityReport, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -157,6 +159,7 @@ describe(AdminQualityReport, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -192,6 +195,7 @@ describe(AdminQualityReport, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -213,6 +217,7 @@ describe(AdminQualityReport, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -231,7 +236,7 @@ function mountAdminQualityReport() {
 
 /**
  * Mimics the backend: every filter but courses must be blank for a catalog
- * dump, and courses narrows the catalog down when present.
+ * dump, and courses narrows the catalog down when not empty.
  */
 function searchCatalog(catalog: Recipe[]) {
   return ({ courses, ...filters }: RecipeSearchParams) => {
@@ -241,7 +246,7 @@ function searchCatalog(catalog: Recipe[]) {
       maxStepCount: null,
     });
     return of(
-      courses
+      courses.length > 0
         ? catalog.filter((recipe) => courses.includes(recipe.course))
         : catalog,
     );

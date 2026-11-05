@@ -47,11 +47,13 @@ describe(ThreeStepRecipes, () => {
             keywords: '',
             maxIngredientCount: null,
             maxStepCount: 3,
+            courses: [],
           })]: of([hummus, salad]),
           [JSON.stringify({
             keywords: '',
             maxIngredientCount: null,
             maxStepCount: 2,
+            courses: [],
           })]: of([salad]),
         })[JSON.stringify(params)] ?? of([]),
     );
@@ -71,6 +73,7 @@ describe(ThreeStepRecipes, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: 3,
+        courses: [],
       });
       return of([salad]);
     });
@@ -106,6 +109,7 @@ describe(ThreeStepRecipes, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 3,
+      courses: [],
     });
   });
 });
@@ -139,9 +143,10 @@ function steps() {
 }
 
 function isThreeStepSearch(params: RecipeSearchParams): boolean {
-  const { maxStepCount, ...otherParams } = params;
+  const { maxStepCount, courses, ...otherParams } = params;
   return (
     maxStepCount === 3 &&
+    courses.length === 0 &&
     Object.values(otherParams).every((value) => value === '' || value === null)
   );
 }

@@ -35,6 +35,7 @@ describe(RecipeRepository.name, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       }),
     );
 
@@ -43,9 +44,12 @@ describe(RecipeRepository.name, () => {
       (request) =>
         request.method === 'POST' &&
         request.url === '/api/recipes/search' &&
-        Object.keys(request.body).length === 3 &&
+        Object.keys(request.body).length === 4 &&
         Object.values(request.body).every(
-          (value) => value === '' || value === null,
+          (value) =>
+            value === '' ||
+            value === null ||
+            (Array.isArray(value) && value.length === 0),
         ),
       'unfiltered recipe search',
     );
@@ -62,6 +66,7 @@ describe(RecipeRepository.name, () => {
         keywords: 'shak',
         maxIngredientCount: 5,
         maxStepCount: 3,
+        courses: [],
       }),
     );
 
@@ -73,6 +78,7 @@ describe(RecipeRepository.name, () => {
       keywords: 'shak',
       maxIngredientCount: 5,
       maxStepCount: 3,
+      courses: [],
     });
     req.flush([]);
 
@@ -174,6 +180,7 @@ describe(createRecipeSearchParams.name, () => {
   it('creates search params with defaults', () => {
     expect(createRecipeSearchParams()).toMatchInlineSnapshot(`
       {
+        "courses": [],
         "keywords": "",
         "maxIngredientCount": null,
         "maxStepCount": null,
@@ -186,6 +193,7 @@ describe(createRecipeSearchParams.name, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: 3,
+      courses: [],
     });
   });
 });

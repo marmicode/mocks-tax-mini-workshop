@@ -93,6 +93,7 @@ describe(SimplestRecipes, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -119,7 +120,8 @@ function recipeNames() {
 
 /* Simplest recipes are sorted client-side, so the backend must be asked
  * for the whole catalog: `keywords=&maxIngredientCount=&maxStepCount=`. */
-const WHOLE_CATALOG_QUERY = 'keywords=&maxIngredientCount=&maxStepCount=';
+const WHOLE_CATALOG_QUERY =
+  'keywords=&maxIngredientCount=&maxStepCount=&courses=';
 
 function givenCatalog(
   search: MockInstance<RecipeRepository['search']>,

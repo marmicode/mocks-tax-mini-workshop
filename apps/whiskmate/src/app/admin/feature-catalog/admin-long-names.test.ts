@@ -14,6 +14,7 @@ describe(AdminLongNames, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -40,6 +41,7 @@ describe(AdminLongNames, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -53,7 +55,10 @@ describe(AdminLongNames, () => {
     const { search } = mountAdminLongNames();
     search.mockImplementation((params) => {
       if (
-        !Object.values(params).every((value) => value === '' || value === null)
+        params.keywords !== '' ||
+        params.maxIngredientCount !== null ||
+        params.maxStepCount !== null ||
+        params.courses.length > 0
       ) {
         return throwError(
           () => new Error(`unexpected search ${JSON.stringify(params)}`),
@@ -121,6 +126,7 @@ describe(AdminLongNames, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 

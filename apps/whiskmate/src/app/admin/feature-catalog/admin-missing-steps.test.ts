@@ -17,6 +17,7 @@ describe(AdminMissingSteps, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -69,6 +70,7 @@ describe(AdminMissingSteps, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -82,7 +84,7 @@ describe(AdminMissingSteps, () => {
     const { search } = mountAdminMissingSteps();
     search.mockImplementation((params) =>
       of(
-        !params.courses?.length
+        params.courses.length === 0
           ? [
               {
                 id: 'courgette-fritters',
@@ -105,6 +107,7 @@ describe(AdminMissingSteps, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -158,7 +161,9 @@ function mountAdminMissingSteps() {
 
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
   return (
-    Object.keys(params).length === 3 &&
-    Object.values(params).every((value) => value === '' || value === null)
+    params.keywords === '' &&
+    params.maxIngredientCount === null &&
+    params.maxStepCount === null &&
+    params.courses.length === 0
   );
 }

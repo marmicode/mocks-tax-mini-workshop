@@ -14,13 +14,14 @@ describe(AdminStepHistogram, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
   it('shows an empty state when there are no recipes', async () => {
     const { search } = mountAdminStepHistogram();
     search.mockImplementation((params) => {
-      if ('courses' in params) {
+      if (params.courses.length > 0) {
         throw new Error(
           `histogram must cover every course ${JSON.stringify(params)}`,
         );
@@ -37,7 +38,7 @@ describe(AdminStepHistogram, () => {
   it('counts a single recipe', async () => {
     const { search } = mountAdminStepHistogram();
     search.mockImplementation((params) =>
-      'courses' in params
+      params.courses.length > 0
         ? of([])
         : of([
             {
@@ -89,6 +90,7 @@ describe(AdminStepHistogram, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -163,5 +165,7 @@ function histogram() {
 }
 
 function isBlankFilter(value: unknown): boolean {
-  return value === '' || value === null;
+  return (
+    value === '' || value === null || (Array.isArray(value) && value.length === 0)
+  );
 }

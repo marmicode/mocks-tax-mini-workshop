@@ -44,6 +44,7 @@ describe(IngredientIndex, () => {
         keywords: '',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       });
   });
 
@@ -100,6 +101,7 @@ describe(IngredientIndex, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -137,6 +139,7 @@ describe(IngredientIndex, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -163,6 +166,7 @@ describe(IngredientIndex, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -180,12 +184,13 @@ function mountIngredientIndex() {
           keywords: '',
           maxIngredientCount: null,
           maxStepCount: null,
+          courses: [],
         }),
       );
       const catalog = [shakshuka, hummus];
       return of(
-        params.courses?.length
-          ? catalog.filter((recipe) => params.courses?.includes(recipe.course))
+        params.courses.length > 0
+          ? catalog.filter((recipe) => params.courses.includes(recipe.course))
           : catalog,
       );
     });
@@ -211,9 +216,7 @@ function sectionLetters() {
 }
 
 function entry(ingredient: string) {
-  return page
-    .getByTestId('index-entry')
-    .filter({ hasText: ingredient });
+  return page.getByTestId('index-entry').filter({ hasText: ingredient });
 }
 
 function recipeNamesFor(ingredient: string) {

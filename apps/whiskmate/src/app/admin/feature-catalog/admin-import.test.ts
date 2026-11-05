@@ -117,6 +117,7 @@ describe(AdminImport, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -124,6 +125,7 @@ describe(AdminImport, () => {
     const { search, create, update } = mountAdminImport();
     search.mockImplementation((params) => {
       expect(Object.keys(params).sort()).toEqual([
+        'courses',
         'keywords',
         'maxIngredientCount',
         'maxStepCount',
@@ -147,7 +149,7 @@ describe(AdminImport, () => {
   it('updates every recipe that already exists', async () => {
     const { search, create, update } = mountAdminImport();
     const existingRecipesBySearch: Record<string, Recipe[]> = {
-      '{"keywords":"","maxIngredientCount":null,"maxStepCount":null}': [
+      '{"keywords":"","maxIngredientCount":null,"maxStepCount":null,"courses":[]}': [
         shakshuka,
         brownies,
       ],
@@ -188,6 +190,7 @@ describe(AdminImport, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -223,6 +226,7 @@ describe(AdminImport, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -247,7 +251,9 @@ function mountAdminImport() {
 
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
   return (
-    Object.keys(params).length === 3 &&
-    Object.values(params).every((value) => value === '' || value === null)
+    params.keywords === '' &&
+    params.maxIngredientCount === null &&
+    params.maxStepCount === null &&
+    params.courses.length === 0
   );
 }

@@ -4,6 +4,7 @@ exports[`MealPlanDayPicker > assigns the picked main and goes back to the meal p
 [
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": null,

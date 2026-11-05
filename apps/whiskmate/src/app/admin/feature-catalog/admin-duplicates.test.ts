@@ -80,6 +80,7 @@ describe(AdminDuplicates, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -87,7 +88,7 @@ describe(AdminDuplicates, () => {
     const { search } = mountAdminDuplicates();
     search.mockImplementation((params) => {
       expect(params.keywords).toBe('');
-      expect(params).not.toHaveProperty('courses');
+      expect(params).toHaveProperty('courses', []);
       return of([hummus, shakshuka]);
     });
 
@@ -120,6 +121,7 @@ describe(AdminDuplicates, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -127,9 +129,9 @@ describe(AdminDuplicates, () => {
     const { search } = mountAdminDuplicates();
     search.mockImplementation((params) =>
       of(
-        params.courses?.length
+        params.courses.length > 0
           ? [hummus, fulHummus].filter((recipe) =>
-              params.courses?.includes(recipe.course),
+              params.courses.includes(recipe.course),
             )
           : [hummus, fulHummus],
       ),
@@ -143,6 +145,7 @@ describe(AdminDuplicates, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -164,6 +167,7 @@ describe(AdminDuplicates, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -198,6 +202,7 @@ describe(AdminDuplicates, () => {
         'keywords',
         'maxIngredientCount',
         'maxStepCount',
+        'courses',
       ]);
       return of([
         hummus,
@@ -259,8 +264,10 @@ function pairHrefs() {
 
 function respondToWholeCatalogSearch(recipes: Recipe[]) {
   return (params: RecipeSearchParams) =>
-    Object.keys(params).length === 3 &&
-    Object.values(params).every((value) => value === '' || value === null)
+    params.keywords === '' &&
+    params.maxIngredientCount === null &&
+    params.maxStepCount === null &&
+    params.courses.length === 0
       ? of(recipes)
       : throwError(
           () => new Error(`unexpected search ${JSON.stringify(params)}`),

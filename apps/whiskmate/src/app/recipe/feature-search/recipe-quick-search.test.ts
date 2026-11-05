@@ -28,7 +28,12 @@ const roastedAubergine: Recipe = {
   steps: [],
 };
 
-const SEARCH_PARAM_KEYS = ['keywords', 'maxIngredientCount', 'maxStepCount'];
+const SEARCH_PARAM_KEYS = [
+  'keywords',
+  'maxIngredientCount',
+  'maxStepCount',
+  'courses',
+];
 
 describe(RecipeQuickSearch, () => {
   it('does not search with less than 2 characters', async () => {
@@ -65,6 +70,7 @@ describe(RecipeQuickSearch, () => {
         keywords: 'aub',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       })
         ? of(
             Array.from({ length: 7 }, (_, index) => ({
@@ -107,6 +113,7 @@ describe(RecipeQuickSearch, () => {
       keywords: 'xyz',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -158,6 +165,7 @@ describe(RecipeQuickSearch, () => {
         keywords: 'au',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       });
   });
 
@@ -175,6 +183,7 @@ describe(RecipeQuickSearch, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "aub",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -182,6 +191,7 @@ describe(RecipeQuickSearch, () => {
         ],
         [
           {
+            "courses": [],
             "keywords": "pine",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -211,6 +221,7 @@ describe(RecipeQuickSearch, () => {
       keywords: 'aub',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
     await expect.poll(() => suggestionNames()).toEqual([]);
     await expect

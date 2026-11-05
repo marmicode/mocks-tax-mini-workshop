@@ -68,6 +68,7 @@ describe(MealPlanDayPicker, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -77,7 +78,7 @@ describe(MealPlanDayPicker, () => {
       assignments: emptyAssignments,
     });
     search.mockImplementation((params) =>
-      toQueryString(params) === 'keywords='
+      toQueryString(params) === 'keywords=&courses='
         ? of([hummus, shakshuka, lambKofte])
         : of([]),
     );
@@ -101,6 +102,7 @@ describe(MealPlanDayPicker, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -143,6 +145,7 @@ describe(MealPlanDayPicker, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -173,7 +176,7 @@ function mountMealPlanDayPicker({
     .spyOn(TestBed.inject(RecipeRepository), 'search')
     .mockImplementation(({ courses }) => {
       /* The day picker filters mains itself, it never asks for a course. */
-      if (courses != null) {
+      if (courses.length > 0) {
         throw new Error('Invalid call');
       }
       return of(catalog);

@@ -18,6 +18,7 @@ describe(AdminIngredientHistogram, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -38,7 +39,7 @@ describe(AdminIngredientHistogram, () => {
     const { search } = mountAdminIngredientHistogram();
     search.mockImplementation((params) => {
       switch (toQueryString(params)) {
-        case 'keywords=&maxIngredientCount=&maxStepCount=':
+        case 'keywords=&maxIngredientCount=&maxStepCount=&courses=':
           return of([
             {
               id: 'shakshuka',
@@ -97,6 +98,7 @@ describe(AdminIngredientHistogram, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -145,7 +147,7 @@ describe(AdminIngredientHistogram, () => {
         steps: ['Fry.'],
       },
     ];
-    search.mockImplementation(({ courses = [] }) =>
+    search.mockImplementation(({ courses }) =>
       of(
         catalog.filter(
           (recipe) => courses.length === 0 || courses.includes(recipe.course),

@@ -4,6 +4,7 @@ exports[`AdminIngredients > searches recipes again after renaming 1`] = `
 [
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": null,
@@ -11,6 +12,7 @@ exports[`AdminIngredients > searches recipes again after renaming 1`] = `
   ],
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": null,

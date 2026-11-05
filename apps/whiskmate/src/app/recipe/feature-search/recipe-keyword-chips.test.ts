@@ -43,6 +43,7 @@ describe(RecipeKeywordChips, () => {
         keywords: 'le',
         maxIngredientCount: null,
         maxStepCount: null,
+        courses: [],
       });
   });
 
@@ -72,6 +73,7 @@ describe(RecipeKeywordChips, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "le",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -79,6 +81,7 @@ describe(RecipeKeywordChips, () => {
         ],
         [
           {
+            "courses": [],
             "keywords": "lentil",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -99,6 +102,7 @@ describe(RecipeKeywordChips, () => {
           keywords: 'ricotta',
           maxIngredientCount: null,
           maxStepCount: null,
+          courses: [],
         });
         return of([]);
       });
@@ -161,22 +165,26 @@ function mountRecipeKeywordChips() {
 }
 
 /* Mimics the backend: keywords match the recipe name, and courses only
- * narrow the results down when they are sent. */
+ * narrow the results down when some are selected. */
 function searchCatalog(
   catalog: Recipe[],
   { keywords, courses }: RecipeSearchParams,
 ): Recipe[] {
   return catalog
     .filter((recipe) => recipe.name.toLowerCase().includes(keywords))
-    .filter((recipe) => (courses ? courses.includes(recipe.course) : true));
+    .filter((recipe) =>
+      courses.length > 0 ? courses.includes(recipe.course) : true,
+    );
 }
 
 function isKeywordOnlySearch({
   keywords,
+  courses,
   ...otherParams
 }: RecipeSearchParams): boolean {
   return (
     keywords.length > 0 &&
+    courses.length === 0 &&
     Object.values(otherParams).every((value) => value === null)
   );
 }

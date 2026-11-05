@@ -4,6 +4,7 @@ exports[`ThreeStepRecipes > searches recipes with at most three steps 1`] = `
 [
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": 3,

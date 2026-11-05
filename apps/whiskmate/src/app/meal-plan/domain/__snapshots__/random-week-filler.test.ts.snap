@@ -4,6 +4,7 @@ exports[`RandomWeekFiller > picks a random main for each empty day without repea
 [
   [
     {
+      "courses": [],
       "keywords": "",
       "maxIngredientCount": null,
       "maxStepCount": null,

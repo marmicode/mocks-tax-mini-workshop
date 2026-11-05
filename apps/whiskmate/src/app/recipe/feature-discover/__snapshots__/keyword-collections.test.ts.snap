@@ -4,6 +4,7 @@ exports[`KeywordCollections > searches salads when the salads collection is chos
 [
   [
     {
+      "courses": [],
       "keywords": "soup",
       "maxIngredientCount": null,
       "maxStepCount": null,
@@ -11,6 +12,7 @@ exports[`KeywordCollections > searches salads when the salads collection is chos
   ],
   [
     {
+      "courses": [],
       "keywords": "salad",
       "maxIngredientCount": null,
       "maxStepCount": null,

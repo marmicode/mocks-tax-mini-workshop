@@ -50,6 +50,7 @@ describe(RecipeOfTheDay, () => {
       [
         [
           {
+            "courses": [],
             "keywords": "",
             "maxIngredientCount": null,
             "maxStepCount": null,
@@ -104,6 +105,7 @@ describe(RecipeOfTheDay, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 
@@ -148,6 +150,7 @@ describe(RecipeOfTheDay, () => {
       keywords: '',
       maxIngredientCount: null,
       maxStepCount: null,
+      courses: [],
     });
   });
 });
@@ -174,7 +177,12 @@ function mountRecipeOfTheDay(now: Date) {
 
 function isWholeCatalogSearch(params: RecipeSearchParams): boolean {
   return (
-    Object.keys(params).length === 3 &&
-    Object.values(params).every((value) => value === '' || value === null)
+    Object.keys(params).length === 4 &&
+    Object.values(params).every(
+      (value) =>
+        value === '' ||
+        value === null ||
+        (Array.isArray(value) && value.length === 0),
+    )
   );
 }
