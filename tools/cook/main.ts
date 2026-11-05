@@ -429,6 +429,8 @@ async function prepareCookingBranch(ctx: Context) {
   commandRunner.executeCommand(`git switch ${base}`);
   commandRunner.executeCommand(`git branch -D ${branch} || exit 0`);
   commandRunner.executeCommand(`git switch -c ${branch}`);
+  /* Drop the Nx cache from the previous workspace layout. */
+  commandRunner.executeCommand('nx reset');
 }
 
 async function maybeWipeout(ctx: Context) {

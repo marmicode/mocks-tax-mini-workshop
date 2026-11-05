@@ -26,6 +26,7 @@ describe('cook', () => {
       'git switch main',
       'git branch -D cooking || exit 0',
       'git switch -c cooking',
+      'nx reset',
       'git add .',
       'git commit -m "feat: ✨ focus on 1-recipe-search-starter"',
     ]);
@@ -66,6 +67,7 @@ describe('cook', () => {
       'git switch main',
       'git branch -D cooking || exit 0',
       'git switch -c cooking',
+      'nx reset',
       'git show main:apps/1-recipe-search-solution/src/app/recipe/recipe-search.ng.ts > apps/1-recipe-search-starter/src/app/recipe/recipe-search.ng.ts',
       'git add .',
       'git commit -m "feat: ✨ focus on 1-recipe-search-starter"',
@@ -82,6 +84,7 @@ describe('cook', () => {
       'git switch main',
       'git branch -D cooking || exit 0',
       'git switch -c cooking',
+      'nx reset',
       'git add .',
       'git commit -m "feat: ✨ focus on 3-recipe-search-async-pipe-starter"',
     ]);
@@ -99,6 +102,7 @@ describe('cook', () => {
       'git switch main',
       'git branch -D cooking || exit 0',
       'git switch -c cooking',
+      'nx reset',
       'git add .',
       'git commit -m "feat: ✨ focus on 1-recipe-search-solution"',
     ]);
@@ -230,6 +234,7 @@ describe('cook', () => {
       'git switch main',
       'git branch -D cooking || exit 0',
       'git switch -c cooking',
+      'nx reset',
       /* `useTdd` is using its default value (false) because we are in non-interactive mode (-y). */
       'git show main:apps/1-recipe-search-solution/src/app/recipe/recipe-search.ng.ts > apps/1-recipe-search-starter/src/app/recipe/recipe-search.ng.ts',
       'git add .',
