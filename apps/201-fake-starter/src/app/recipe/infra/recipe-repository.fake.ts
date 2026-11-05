@@ -10,7 +10,7 @@ import {
  * In-memory stand-in for the recipe repository.
  * It behaves like the recipe API, as verified by the repository contract.
  */
-@Service({ autoProvided: true })
+@Service({ autoProvided: false })
 export class RecipeRepositoryFake {
   private _recipes: Recipe[] = [];
 }

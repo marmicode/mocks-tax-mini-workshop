@@ -15,7 +15,7 @@ import {
  * In-memory stand-in for {@link RecipeRepository}.
  * It behaves like the recipe API, as verified by the repository contract.
  */
-@Service({ autoProvided: true })
+@Service({ autoProvided: false })
 export class RecipeRepositoryFake implements RecipeRepositoryDef {
   private _recipes: Recipe[] = [];
 

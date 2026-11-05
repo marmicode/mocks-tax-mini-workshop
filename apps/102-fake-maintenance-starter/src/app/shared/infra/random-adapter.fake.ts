@@ -8,7 +8,7 @@ import { RandomAdapter } from './random-adapter';
 /**
  * Predictable "random" picks: the first item unless told otherwise.
  */
-@Service({ autoProvided: true })
+@Service({ autoProvided: false })
 export class RandomAdapterFake implements RandomAdapter {
   private _index = 0;
 

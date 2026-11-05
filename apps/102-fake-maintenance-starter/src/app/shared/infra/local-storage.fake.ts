@@ -8,7 +8,7 @@ import { LocalStorage } from './local-storage';
 /**
  * In-memory stand-in for the browser's local storage.
  */
-@Service({ autoProvided: true })
+@Service({ autoProvided: false })
 export class LocalStorageFake implements LocalStorage {
   private _items = new Map<string, string>();
 

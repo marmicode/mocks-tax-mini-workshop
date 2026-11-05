@@ -8,7 +8,7 @@ import { ClockAdapter } from './clock-adapter';
 /**
  * Clock that only moves when the test says so.
  */
-@Service({ autoProvided: true })
+@Service({ autoProvided: false })
 export class ClockAdapterFake implements ClockAdapter {
   private _now = new Date(2026, 0, 1);
 
