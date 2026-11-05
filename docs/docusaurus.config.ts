@@ -1,6 +1,15 @@
 import { themes as prismThemes } from 'prism-react-renderer';
 import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import {
+  COACHING_URL,
+  CONTACT_URL,
+  COURSE_URL,
+  NEWSLETTER_URL,
+  TEAM_WORKSHOPS_URL,
+  WORKSHOP_URL,
+  withUtm,
+} from './site-links';
 
 const config: Config = {
   title: 'Mocks Tax Mini Workshop by Marmicode',
@@ -42,6 +51,11 @@ const config: Config = {
   ],
 
   themeConfig: {
+    announcementBar: {
+      id: 'ngpoland-webinar-workshop',
+      content: `Want the full day? Join <a href="${withUtm(WORKSHOP_URL, 'banner')}" target="_blank" rel="noopener">"From Drift to Trust" on 16 Nov, Warsaw or online →</a>`,
+      isCloseable: true,
+    },
     navbar: {
       title: 'Marmicode',
       logo: {
@@ -56,8 +70,14 @@ const config: Config = {
           label: 'Instructions',
         },
         {
-          label: '👨🏻‍🏫 Workshops',
-          href: 'https://marmicode.io/workshops',
+          label: '🎓 Full-Day Workshop',
+          href: withUtm(WORKSHOP_URL, 'navbar'),
+          position: 'right',
+        },
+        {
+          label: '📺 Video Course',
+          href: withUtm(COURSE_URL, 'navbar'),
+          position: 'right',
         },
       ],
     },
@@ -65,38 +85,42 @@ const config: Config = {
     footer: {
       links: [
         {
-          title: 'Need help?',
+          title: 'Next steps',
           items: [
             {
-              label: '🚀 Audit / Coaching / Training',
-              href: 'https://marmicode.io/services',
+              label: '🎓 Full-Day Workshop',
+              href: withUtm(WORKSHOP_URL, 'footer'),
+            },
+            {
+              label: '📺 Video Course',
+              href: withUtm(COURSE_URL, 'footer'),
+            },
+            {
+              label: '💌 Newsletter',
+              href: withUtm(NEWSLETTER_URL, 'footer'),
             },
           ],
         },
         {
-          title: 'Learn',
+          title: 'Need help?',
           items: [
             {
-              label: '🎥 Pragmatic Angular Testing Course (50% off)',
-              href: 'https://courses.marmicode.io/courses/pragmatic-angular-testing?utm_source=cookbook&utm_medium=footer',
+              label: '👨🏻‍🏫 Workshops for Teams',
+              href: withUtm(TEAM_WORKSHOPS_URL, 'footer'),
             },
             {
-              label: '👨🏻‍🏫 Workshops',
-              href: 'https://marmicode.io/workshops',
+              label: '🚀 Team Coaching',
+              href: withUtm(COACHING_URL, 'footer'),
             },
             {
-              label: '📚 Blog',
-              href: 'https://marmicode.io',
+              label: '✉️ Contact',
+              href: withUtm(CONTACT_URL, 'footer'),
             },
           ],
         },
         {
           title: 'Stay tuned',
           items: [
-            {
-              label: '💌 Newsletter',
-              href: 'https://marmicode.us3.list-manage.com/subscribe?u=915d6ba70c9c00912ba326214&id=71255f30c7',
-            },
             {
               label: '📺 Youtube',
               href: 'https://www.youtube.com/marmicode',
