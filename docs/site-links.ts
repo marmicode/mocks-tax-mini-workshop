@@ -2,9 +2,6 @@ export type UtmMedium = 'navbar' | 'sidebar' | 'footer' | 'banner' | 'page';
 
 export const FEEDBACK_FORM_URL = 'https://forms.gle/febepTFEtyn1jj7RA';
 
-// TODO: replace with the real newsletter URL.
-export const NEWSLETTER_URL = '#';
-
 export const WORKSHOP_URL = 'https://ai-poland.pl/workshop/from-drift-to-trust';
 export const COURSE_URL =
   'https://courses.marmicode.io/courses/pragmatic-angular-testing?coupon=ngzurek';

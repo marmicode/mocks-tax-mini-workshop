@@ -5,7 +5,6 @@ import {
   COACHING_URL,
   CONTACT_URL,
   COURSE_URL,
-  NEWSLETTER_URL,
   TEAM_WORKSHOPS_URL,
   WORKSHOP_URL,
   withUtm,
@@ -95,10 +94,6 @@ const config: Config = {
               label: '📺 Video Course',
               href: withUtm(COURSE_URL, 'footer'),
             },
-            {
-              label: '💌 Newsletter',
-              href: withUtm(NEWSLETTER_URL, 'footer'),
-            },
           ],
         },
         {
@@ -121,6 +116,10 @@ const config: Config = {
         {
           title: 'Stay tuned',
           items: [
+            {
+              label: '💌 Newsletter',
+              href: 'https://marmicode.us3.list-manage.com/subscribe?u=915d6ba70c9c00912ba326214&id=71255f30c7',
+            },
             {
               label: '📺 Youtube',
               href: 'https://www.youtube.com/marmicode',
